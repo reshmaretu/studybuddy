@@ -1672,55 +1672,25 @@ export const useStudyStore = create<StudyState>()(
 
             fetchBroadcasts: async (limit = 50, offset = 0) => {
                 try {
-                    // Try using the RPC function first (mobile-optimized)
-                    if (navigator.onLine) {
-                        const { data, error } = await supabase.rpc('get_network_feed', {
-                            limit_param: limit,
-                            offset_param: offset
-                        });
-
-                        if (!error && data) {
-                            console.log("Fetched broadcasts via RPC:", data?.length);
-                            set((state) => ({ 
-                                broadcasts: offset === 0 ? data : [...state.broadcasts, ...data] 
-                            }));
-                            return;
-                        }
-                    }
-
-                    // Fallback: Use direct query (works offline)
-                    const { data, error } = await supabase
-                        .from('synthetic_logs')
-                        .select(`
-                            *,
-                            profile:profile_id (
-                                id,
-                                display_name,
-                                avatar_url,
-                                full_name,
-                                status
-                            )
-                        `)
-                        .order('created_at', { ascending: false })
-                        .range(offset, offset + limit - 1);
+                    // Use RPC function - handles profile joins server-side with proper permissions
+                    const { data, error } = await supabase.rpc('get_network_feed', {
+                        limit_param: limit,
+                        offset_param: offset
+                    });
 
                     if (error) {
-                        console.error("Fetch broadcasts error:", error);
+                        console.error("Fetch broadcasts RPC error:", error);
                         return;
                     }
 
-                    // Transform response to ensure profile data is accessible
-                    const broadcastsWithProfiles = (data || []).map(broadcast => ({
-                        ...broadcast,
-                        display_name: broadcast.profile?.display_name || 'Anonymous Broadcaster',
-                        avatar_url: broadcast.profile?.avatar_url,
-                        full_name: broadcast.profile?.full_name,
-                        user_status: broadcast.profile?.status
-                    }));
+                    if (!data) {
+                        console.log("No broadcasts returned from RPC");
+                        return;
+                    }
 
-                    console.log("Fetched broadcasts:", broadcastsWithProfiles?.length, "with profiles");
+                    console.log("Fetched broadcasts via RPC:", data?.length, "broadcasts with display_names:", data?.map((d: any) => d.display_name));
                     set((state) => ({ 
-                        broadcasts: offset === 0 ? broadcastsWithProfiles : [...state.broadcasts, ...broadcastsWithProfiles] 
+                        broadcasts: offset === 0 ? data : [...state.broadcasts, ...data] 
                     }));
                 } catch (e) {
                     console.error("Fetch broadcasts exception:", e);
