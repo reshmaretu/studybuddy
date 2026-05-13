@@ -307,10 +307,11 @@ export default function StudyRoom() {
     const channelRef = useRef<RealtimeChannel | null>(null);
     const router = useRouter();
     const searchParams = useSearchParams();
-    const roomCode = searchParams.get('code');
+    const roomCode = searchParams.get('code') || searchParams.get('room');
     const {
         isPremiumUser,
-        enableDevRoomOptions
+        enableDevRoomOptions,
+        triggerChumToast
     } = useStudyStore();
     const [isRoomPremium, setIsRoomPremium] = useState(false);
 
@@ -430,42 +431,66 @@ export default function StudyRoom() {
 
         const initRoom = async () => {
             try {
+                console.log('🌐 ROOM INIT: Starting room initialization for roomCode:', roomCode);
+                
                 const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return router.push('/lantern');
-            setCurrentUserId(user.id); // ⚡ Track ID for the "You" effect
+                if (!user) {
+                    console.error('❌ ROOM INIT: No user authenticated');
+                    return router.push('/lantern');
+                }
+                console.log('✅ ROOM INIT: User authenticated:', user.id);
+                setCurrentUserId(user.id); // ⚡ Track ID for the "You" effect
 
             // 1. Fetch Room Data first to establish Host context
             let roomData = null;
+            console.log('📡 ROOM INIT: Fetching room data...');
             for (let i = 0; i < 3; i++) {
+                console.log(`📡 ROOM INIT: Attempt ${i + 1}/3 to fetch room data`);
                 const { data } = await supabase
                     .from('rooms')
                     .select('*')
                     .eq('room_code', roomCode)
                     .maybeSingle();
-                if (data) { roomData = data; break; }
+                if (data) { 
+                    console.log('✅ ROOM INIT: Room data found:', data);
+                    roomData = data; 
+                    break; 
+                }
                 await new Promise(r => setTimeout(r, 800));
             }
 
             if (!roomData) {
+                console.warn('⚠️ ROOM INIT: Room data not found in initial attempts, retrying with limited select...');
                 // ⚡ RESILIENCE: Before kicking, check if we're just hitting a cold DB or RLS
                 await new Promise(r => setTimeout(r, 2000));
-                const { data: retryData } = await supabase.from('rooms').select('host_id, status').eq('room_code', roomCode).maybeSingle();
+                const { data: retryData, error: retryError } = await supabase.from('rooms').select('*').eq('room_code', roomCode).maybeSingle();
                 if (!retryData) {
+                    console.error('❌ ROOM INIT: Room still not found after retry. Error:', retryError);
                     return router.push('/lantern?error=room_not_found');
                 }
+                console.log('✅ ROOM INIT: Room data found on retry:', retryData);
                 roomData = retryData;
             }
 
+            console.log('✅ ROOM INIT: Room data ready. Host ID:', roomData.host_id, 'Current user:', user.id);
             const isActuallyHost = roomData.host_id === user.id;
+            console.log('✅ ROOM INIT: Is host?', isActuallyHost);
             setIsHost(isActuallyHost);
             setHostId(roomData.host_id);
 
             // 2. ⚡ FETCH CURRENT USER DETAILS (For Presence)
+            console.log('📡 ROOM INIT: Fetching user profile data...');
             const [profileRes, statsRes, wardrobeRes] = await Promise.all([
                 supabase.from('profiles').select('display_name, full_name, is_premium, avatar_url').eq('id', user.id).single(),
                 supabase.from('user_stats').select('focus_score').eq('user_id', user.id).single(),
                 supabase.from('chum_wardrobe').select('base_emoji, hat_emoji').eq('user_id', user.id).single()
             ]);
+
+            if (profileRes.error) console.error('❌ ROOM INIT: Profile fetch error:', profileRes.error);
+            if (statsRes.error) console.error('❌ ROOM INIT: Stats fetch error:', statsRes.error);
+            if (wardrobeRes.error) console.error('❌ ROOM INIT: Wardrobe fetch error:', wardrobeRes.error);
+            
+            console.log('✅ ROOM INIT: User data fetched - Profile:', profileRes.data, 'Stats:', statsRes.data, 'Wardrobe:', wardrobeRes.data);
 
             const myProfile = (profileRes.data || {}) as any;
             const myStats = (statsRes.data || {}) as any;
@@ -475,6 +500,7 @@ export default function StudyRoom() {
                 : (myProfile.full_name && myProfile.full_name.trim() !== '') ? myProfile.full_name
                     : user.email?.split('@')[0] || "Chum";
             const finalAvatar = `${myWardrobe.base_emoji || "👻"}${myWardrobe.hat_emoji || ""}`;
+            console.log('✅ ROOM INIT: Resolved name:', finalName, 'Avatar:', finalAvatar);
 
             setResolvedName(finalName);
             setResolvedAvatar(finalAvatar);
@@ -517,15 +543,19 @@ export default function StudyRoom() {
                 }));
             }
 
+            console.log('✅ ROOM INIT: Setting status and updating profile...');
+            
             await supabase.from('profiles').update({
                 status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
                 joined_room_code: isActuallyHost ? null : roomCode
             }).eq('id', user.id);
 
+            console.log('📡 ROOM INIT: Creating realtime channel...');
             const channel = supabase.channel(`room:${roomCode}`, { config: { presence: { key: user.id } } });
             activeChannel = channel;
             channelRef.current = channel;
 
+            console.log('📡 ROOM INIT: Setting up channel listeners...');
             channel
                 .on('presence', { event: 'sync' }, () => {
                     const state = channel.presenceState();
@@ -574,7 +604,9 @@ export default function StudyRoom() {
                     }
                 })
                 .subscribe(async (s) => {
+                    console.log('📡 ROOM INIT: Channel subscription status:', s);
                     if (s === 'SUBSCRIBED') {
+                        console.log('✅ ROOM INIT: Channel subscribed! Tracking presence...');
                         const finalRoomTitle = roomData?.name || searchParams.get('title') || "New Sanctuary";
                         await channel.track({
                             id: user.id,
@@ -587,15 +619,23 @@ export default function StudyRoom() {
                             focusScore: myStats.focus_score || 0,
                             totalHours: Number(((myStats.total_seconds_tracked || 0) / 3600).toFixed(1))
                         });
+                        console.log('✅ ROOM INIT: Presence tracked!');
                         // ⚡ LATE JOINER DETECTED: Ask host for the time!
                         if (!isActuallyHost && roomData?.status === 'ACTIVE') {
+                            console.log('📡 ROOM INIT: Late joiner detected, requesting sync...');
                             setIsSyncing(true);
                             channel.send({ type: 'broadcast', event: 'request_sync' });
                         }
+                        console.log('🎉 ROOM INIT: Complete! Room is ready.');
                     }
                 });
             } catch (error) {
-                console.error('Room initialization error:', error);
+                console.error('❌ ROOM INIT FATAL ERROR:', error);
+                if (error instanceof Error) {
+                    console.error('Error message:', error.message);
+                    console.error('Error stack:', error.stack);
+                }
+                triggerChumToast?.(`Room error: ${error instanceof Error ? error.message : String(error)}`, 'error');
                 router.push('/lantern?error=room_init_failed');
             }
         };

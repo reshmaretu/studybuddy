@@ -296,24 +296,30 @@ export default function LanternNetPage() {
     const handleBroadcast = async () => {
         if (isSubmitting) return;
         setIsSubmitting(true);
+        console.log('🚀 BROADCAST: Starting broadcast...');
 
         const { data: { user }, error: authError } = await supabase.auth.getUser();
+        console.log('🚀 BROADCAST: User:', user?.id, 'Auth error:', authError);
 
         if (!isVerified) {
+            console.warn('⚠️ BROADCAST: User not verified');
             triggerChumToast?.("Access Denied: You must verify your spirit link (email) before broadcasting to the network.", "warning");
             setIsSubmitting(false);
             return;
         }
 
         if (!user || authError) {
+            console.error('❌ BROADCAST: No user or auth error');
             alert("Session expired. Please log in again.");
             setIsSubmitting(false);
             return;
         }
 
         const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        console.log('🚀 BROADCAST: Generated room code:', roomCode);
 
         if (hostRoomType === 'canvas') {
+            console.log('🚀 BROADCAST: Creating CANVAS room...');
             const { error } = await supabase.from('rooms').insert({
                 room_code: roomCode,
                 host_id: user.id,
@@ -330,6 +336,7 @@ export default function LanternNetPage() {
             });
 
             if (!error) {
+                console.log('✅ BROADCAST: Canvas room created! Room code:', roomCode);
                 const link = `${window.location.origin}/canvas?room=${roomCode}`;
                 navigator.clipboard?.writeText(link).catch(() => undefined);
                 triggerChumToast?.('Canvas room link copied.', 'success');
@@ -343,15 +350,17 @@ export default function LanternNetPage() {
                     room_mode: 'canvas'
                 }).catch(e => console.error("Broadcast failed:", e));
 
+                console.log('🚀 BROADCAST: Redirecting to canvas room:', roomCode);
                 router.push(`/canvas?room=${roomCode}`);
             } else {
-                console.error("Insert Error:", error.message);
+                console.error("❌ BROADCAST: Canvas room insert error:", error?.message);
                 alert("Architect error: Could not initialize canvas room.");
                 setIsSubmitting(false);
             }
             return;
         }
 
+        console.log('🚀 BROADCAST: Creating STUDY room...');
         const { error } = await supabase.from('rooms').insert({
             room_code: roomCode,
             host_id: user.id,
@@ -368,6 +377,7 @@ export default function LanternNetPage() {
         });
 
         if (!error) {
+            console.log('✅ BROADCAST: Study room created! Room code:', roomCode);
             // 🌐 Broadcast to the network!
             const { addBroadcast } = useStudyStore.getState();
             await addBroadcast(`${roomSettings.title}`, 'study-room', {
@@ -377,10 +387,10 @@ export default function LanternNetPage() {
                 room_mode: roomSettings.mode
             }).catch(e => console.error("Broadcast failed:", e));
 
-            router.push(`/room?room=${roomCode}&title=${encodeURIComponent(roomSettings.title)}`);
+            router.push(`/room?code=${roomCode}&title=${encodeURIComponent(roomSettings.title)}`);
         } else {
-            console.error("Insert Error:", error.message);
-            alert("Architect error: Could not initialize blueprint.");
+            console.error("❌ BROADCAST: Study room insert error:", error?.message);
+            alert("Sanctuary Blueprint error: Could not initialize study room.");
             setIsSubmitting(false);
         }
     };
@@ -973,7 +983,7 @@ export default function LanternNetPage() {
                                                                     <SquishyButton
                                                                         onClick={() => {
                                                                             if (isRoomActive) {
-                                                                                router.push(isCanvas ? `/canvas?room=${roomCode}` : `/room/${roomCode}`);
+                                                                                router.push(isCanvas ? `/canvas?room=${roomCode}` : `/room?code=${roomCode}`);
                                                                             }
                                                                         }}
                                                                         disabled={!isRoomActive}
