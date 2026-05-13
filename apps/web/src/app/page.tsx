@@ -104,16 +104,29 @@ export default function LandingPage() {
     free: "The core app is 100% free forever! We also have a Luminary tier if you want to support the devs and unlock premium hats for me!"
   };
 
-  // 🔄 AUTH CHECK (No Redirect!)
+  // 🔄 AUTH CHECK & REDIRECT
+  const { userEmail, isInitialized } = useStudyStore();
+
   useEffect(() => {
-    const checkUser = async () => {
+    const checkRedirect = async () => {
+      // 1. Check Zustand store (Best for offline/fast re-entry)
+      if (userEmail) {
+        router.push('/garden');
+        return;
+      }
+
+      // 2. Fallback to Supabase session (Standard check)
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        setIsLoggedIn(true); // Just remember they are logged in, but let them stay!
+        setIsLoggedIn(true);
+        router.push('/garden');
       }
     };
-    checkUser();
-  }, []);
+
+    if (isInitialized) {
+      checkRedirect();
+    }
+  }, [userEmail, isInitialized, router]);
 
   // Helper function to render tasks based on framework
   const renderTasks = () => {
@@ -243,11 +256,20 @@ export default function LandingPage() {
           <a href="#pricing" className="text-[#A89F9A] hover:text-[#789B8C] transition-colors">Pricing</a>
           <a href="#philosophy" className="text-[#A89F9A] hover:text-[#789B8C] transition-colors">Philosophy</a>
           <a href="#architects" className="text-[#A89F9A] hover:text-[#789B8C] transition-colors">About Us</a>
-          <Link href="/login" className="text-[#A89F9A] hover:text-[#789B8C] transition-colors">Login</Link>
-          <Link href="/register" className="relative group bg-[#E8C37D] text-[#1E1A1D] px-6 py-2.5 rounded-xl font-bold overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(232,195,125,0.4)]">
-            <span className="relative z-10">Join Free</span>
-            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-          </Link>
+          {isLoggedIn || userEmail ? (
+            <Link href="/garden" className="relative group bg-[#789B8C] text-[#141113] px-6 py-2.5 rounded-xl font-bold overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(120,155,140,0.4)]">
+              <span className="relative z-10">Enter Sanctuary</span>
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="text-[#A89F9A] hover:text-[#789B8C] transition-colors">Login</Link>
+              <Link href="/register" className="relative group bg-[#E8C37D] text-[#1E1A1D] px-6 py-2.5 rounded-xl font-bold overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(232,195,125,0.4)]">
+                <span className="relative z-10">Join Free</span>
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+              </Link>
+            </>
+          )}
         </motion.div>
       </nav>
 
@@ -265,8 +287,10 @@ export default function LandingPage() {
             The all-in-one sanctuary for your academic life. Forge knowledge shards, join quiet study rooms, and untangle complex ideas with your AI companion.
           </motion.p>
           <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4">
-            <Link href="/register" className="group relative bg-[#789B8C] text-[#141113] px-8 py-4 rounded-2xl font-black text-center overflow-hidden hover:-translate-y-1 transition-all shadow-[0_10px_30px_rgba(120,155,140,0.2)] hover:shadow-[0_15px_40px_rgba(120,155,140,0.4)]">
-              <span className="relative z-10 flex items-center justify-center gap-2">Get Started — It's Free</span>
+            <Link href={isLoggedIn || userEmail ? "/garden" : "/register"} className="group relative bg-[#789B8C] text-[#141113] px-8 py-4 rounded-2xl font-black text-center overflow-hidden hover:-translate-y-1 transition-all shadow-[0_10px_30px_rgba(120,155,140,0.2)] hover:shadow-[0_15px_40px_rgba(120,155,140,0.4)]">
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {isLoggedIn || userEmail ? "Go to Sanctuary" : "Get Started — It's Free"}
+              </span>
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
             </Link>
           </motion.div>
