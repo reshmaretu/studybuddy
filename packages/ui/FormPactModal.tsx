@@ -20,6 +20,7 @@ interface FormPactModalProps {
     created_by?: string | null;
     constellation_color?: string | null;
     members?: Array<{ id: string; display_name?: string | null; avatar_url?: string | null }>;
+    pact_members?: Array<{ user_id: string; display_name?: string | null; avatar_url?: string | null }>;
   };
 }
 
@@ -40,7 +41,9 @@ export const FormPactModal: React.FC<FormPactModalProps> = ({
   const { createPact, leavePact, deletePact, addPactMembers } = useStudyStore();
 
   const isOwner = Boolean(currentUserId && currentPact?.created_by === currentUserId);
-  const pactMemberIds = new Set((currentPact?.members || []).map((member) => member.id));
+  // Support both old (members) and new RPC (pact_members) structures
+  const currentMembers = currentPact?.pact_members || currentPact?.members || [];
+  const pactMemberIds = new Set(currentMembers.map((member: any) => member.user_id || member.id));
 
   const handleToggleFriend = (userId: string) => {
     playTick(); // Provide feedback for selection
@@ -187,16 +190,21 @@ export const FormPactModal: React.FC<FormPactModalProps> = ({
                 <div>
                   <p className="text-xs font-black uppercase tracking-widest text-(--text-muted) mb-2">Members</p>
                   <div className="space-y-2">
-                    {(currentPact.members || []).map((member) => (
-                      <div key={member.id} className="flex items-center gap-3 p-2 rounded-xl bg-(--bg-dark) border border-(--border-color)">
-                        {member.avatar_url ? (
-                          <img src={member.avatar_url} alt={member.display_name || 'Member'} className="w-8 h-8 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-(--bg-card) border border-(--border-color)" />
-                        )}
-                        <span className="text-sm font-bold text-(--text-main)">{member.display_name || 'Unknown User'}</span>
-                      </div>
-                    ))}
+                    {currentMembers.map((member: any) => {
+                      const memberId = member.user_id || member.id;
+                      const displayName = member.display_name || 'Unknown User';
+                      const avatarUrl = member.avatar_url;
+                      return (
+                        <div key={memberId} className="flex items-center gap-3 p-2 rounded-xl bg-(--bg-dark) border border-(--border-color)">
+                          {avatarUrl ? (
+                            <img src={avatarUrl} alt={displayName} className="w-8 h-8 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-(--bg-card) border border-(--border-color)" />
+                          )}
+                          <span className="text-sm font-bold text-(--text-main)">{displayName}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 {isOwner && (
@@ -233,9 +241,7 @@ export const FormPactModal: React.FC<FormPactModalProps> = ({
                             : isUser2
                               ? friend.profiles_1
                               : friend.profiles_2 || friend.profiles_1 || friend;
-                          const isAlreadyMember = Boolean(
-                            currentPact.members?.some((member) => member.id === friendId)
-                          );
+                          const isAlreadyMember = pactMemberIds.has(friendId);
                           if (isAlreadyMember) return null;
                           const isSelected = pendingMembers.includes(friendId);
 

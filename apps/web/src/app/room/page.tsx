@@ -429,8 +429,9 @@ export default function StudyRoom() {
         let activeChannel: RealtimeChannel | null = null;
 
         const initRoom = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return router.push('/lantern');
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return router.push('/lantern');
             setCurrentUserId(user.id); // ⚡ Track ID for the "You" effect
 
             // 1. Fetch Room Data first to establish Host context
@@ -593,6 +594,10 @@ export default function StudyRoom() {
                         }
                     }
                 });
+            } catch (error) {
+                console.error('Room initialization error:', error);
+                router.push('/lantern?error=room_init_failed');
+            }
         };
 
         initRoom();

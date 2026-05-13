@@ -118,11 +118,15 @@ $$;
 GRANT EXECUTE ON FUNCTION public.get_user_friends_with_profiles() TO authenticated;
 
 -- PHASE 6: Create RPC for pacts with member profiles
+DROP FUNCTION IF EXISTS public.get_user_pacts_with_members();
+
 CREATE OR REPLACE FUNCTION public.get_user_pacts_with_members()
 RETURNS TABLE (
   id uuid,
   created_by uuid,
   created_at timestamp with time zone,
+  pact_name text,
+  constellation_color text,
   pact_members jsonb
 )
 LANGUAGE sql
@@ -133,6 +137,8 @@ SELECT
   p.id,
   p.created_by,
   p.created_at,
+  p.pact_name,
+  p.constellation_color,
   jsonb_agg(
     jsonb_build_object(
       'user_id', pm.user_id,
@@ -148,7 +154,7 @@ WHERE EXISTS (
   SELECT 1 FROM public.pact_members
   WHERE pact_id = p.id AND user_id = auth.uid()
 )
-GROUP BY p.id, p.created_by, p.created_at;
+GROUP BY p.id, p.created_by, p.created_at, p.pact_name, p.constellation_color;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_user_pacts_with_members() TO authenticated;

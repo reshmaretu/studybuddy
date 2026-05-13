@@ -212,8 +212,8 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
 
             memberIds.forEach((memberId: string) => {
                 const normalizedId = currentUserId && memberId === currentUserId ? 'me' : memberId;
-                // Pact name is not returned from RPC, use fallback
-                if (!pactNames.has(normalizedId)) pactNames.set(normalizedId, 'Pact');
+                // Use pact_name from RPC if available
+                if (!pactNames.has(normalizedId)) pactNames.set(normalizedId, pact.pact_name || 'Pact');
                 pactMemberIds.add(memberId);
             });
 
