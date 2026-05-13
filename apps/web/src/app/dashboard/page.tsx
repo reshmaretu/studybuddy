@@ -30,15 +30,17 @@ function CompletionDropZone() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 150, opacity: 0 }}
             ref={setNodeRef}
-            className={`fixed bottom-10 left-1/2 -translate-x-1/2 w-96 h-32 rounded-3xl border-4 border-dashed flex flex-col items-center justify-center z-50 transition-all duration-300 backdrop-blur-md shadow-2xl ${isOver
-                ? "bg-[var(--accent-teal)]/30 border-[var(--accent-teal)] scale-110 drop-shadow-[0_0_20px_var(--accent-teal)] text-[var(--text-main)]"
-                : "bg-[var(--bg-dark)]/80 border-[var(--text-muted)] text-[var(--text-muted)]"
-                }`}
+            className={`fixed bottom-[15%] left-1/2 -translate-x-1/2 w-[90vw] max-w-md h-40 rounded-3xl border-4 border-dashed flex flex-col items-center justify-center gap-3 transition-all duration-300 z-[2000] ${isOver ? "bg-(--accent-teal)/20 border-(--accent-teal) scale-110 shadow-[0_0_30px_rgba(45,212,191,0.3)]" : "bg-(--bg-sidebar)/80 backdrop-blur-xl border-(--border-color) opacity-80"}`}
         >
-            <CheckCircle2 size={36} className={`mb-2 ${isOver ? "text-[var(--accent-teal)] animate-bounce" : ""}`} />
-            <span className="text-lg font-bold tracking-widest uppercase">
-                {isOver ? "Release to Bloom!" : "Gently Nurture Here"}
-            </span>
+            <div className={`p-4 rounded-full ${isOver ? "bg-(--accent-teal) text-black animate-bounce" : "bg-(--bg-dark) text-(--accent-teal)"}`}>
+                <Check size={32} strokeWidth={3} />
+            </div>
+            <div className="text-center">
+                <span className={`text-sm font-black uppercase tracking-[0.2em] ${isOver ? "text-(--accent-teal)" : "text-(--text-main)"}`}>
+                    {isOver ? "Release to Master" : "Drop here to Complete"}
+                </span>
+                <p className="text-[10px] text-(--text-muted) font-bold uppercase tracking-widest mt-1">XP Surge +25</p>
+            </div>
         </motion.div>
     );
 }
@@ -103,12 +105,14 @@ export default function Dashboard() {
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8,
+                delay: 250,
+                tolerance: 5,
             },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
         })
     );
-
-    // Safety filter to ensure we only try to render valid tasks
     const validTasks = tasks.filter(t => t && t.id);
     const activeTasks = validTasks.filter(t => !t.isCompleted);
     const completedTasks = validTasks.filter(t => t.isCompleted);

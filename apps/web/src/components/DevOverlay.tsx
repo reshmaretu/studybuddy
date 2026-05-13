@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useStudyStore, LanternUser } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Terminal, RefreshCw, ShieldAlert, Skull, CheckCircle2, BrainCircuit, Clock } from "lucide-react";
-import { toast } from "sonner";
+
 import { supabase } from '@/lib/supabase';
 export default function DevOverlay() {
     const {
@@ -62,7 +62,7 @@ export default function DevOverlay() {
         yesterday.setHours(3, 59, 0, 0);
 
         await setLastPlannedDate(yesterday.toISOString());
-        toast.info("Dev: Morning reset forced. Refresh or change page to see modal.");
+        triggerChumToast?.("Dev: Morning reset forced. Refresh or change page to see modal.", "info");
         setIsOpen(false);
     };
 
@@ -96,11 +96,11 @@ export default function DevOverlay() {
             if (triggerChumToast) {
                 triggerChumToast("Neural link severed. All systems wiped and restarted.", "warning");
             }
-            toast.success("Database nuked successfully.");
+            triggerChumToast?.("Database nuked successfully.", "success");
             setIsOpen(false);
         } catch (err) {
             console.error("Failed to wipe database:", err);
-            toast.error("Nuke failed. Check console for details.");
+            triggerChumToast?.("Nuke failed. Check console for details.", "warning");
         } finally {
             setIsNuking(false);
         }

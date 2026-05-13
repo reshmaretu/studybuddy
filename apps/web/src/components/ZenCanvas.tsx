@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useStudyStore } from "@/store/useStudyStore";
 import { Save, Cloud, CloudOff } from "lucide-react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+
 import { getSnapshot, loadSnapshot } from "tldraw";
 import "tldraw/tldraw.css";
 
@@ -18,6 +18,7 @@ export default function ZenCanvas() {
     const channelRef = useRef<import('@supabase/supabase-js').RealtimeChannel | null>(null);
     const [app, setApp] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const { triggerChumToast } = useStudyStore();
     const [canvasId, setCanvasId] = useState("studybuddy-zen-canvas-guest");
 
     // Initialize state from localStorage safely
@@ -75,11 +76,11 @@ export default function ZenCanvas() {
 
                     // 👇 Pass the store as the first argument
                     loadSnapshot(app.store, data.snapshot_data);
-                    toast.success("Welcome back to your Sanctuary.");
+                    triggerChumToast?.("Welcome back to your Sanctuary.", "success");
                 }
             } catch (error) {
                 console.error("Load Error:", error);
-                toast.error("Could not retrieve cloud data.");
+                triggerChumToast?.("Could not retrieve cloud data.", "warning");
             }
         };
 
@@ -108,7 +109,7 @@ export default function ZenCanvas() {
                 });
 
             if (error) throw error;
-            toast.success("Cloud Sanctuary Updated");
+            triggerChumToast?.("Cloud Sanctuary Updated", "success");
         } catch (error) {
             console.error("Sync Error:", error);
         } finally {

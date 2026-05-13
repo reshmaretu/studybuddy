@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, useDroppable, useDraggable } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, useDroppable, useDraggable, useSensor, useSensors, PointerSensor, KeyboardSensor } from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar as CalendarIcon, Inbox, Sparkles, ChevronLeft, ChevronRight, Search, Filter } from "lucide-react";
 import { useStudyStore, Task } from "@/store/useStudyStore";
@@ -94,6 +95,18 @@ export default function TactileCalendar() {
     // Filter State (The Lens Bar)
     const [searchQuery, setSearchQuery] = useState("");
     const [activeFilter, setActiveFilter] = useState<'heavy' | 'medium' | 'light' | null>(null);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                delay: 250,
+                tolerance: 5,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     useEffect(() => setIsMounted(true), []);
     if (!isMounted) return null;
@@ -208,8 +221,8 @@ export default function TactileCalendar() {
     const handleMouseUp = () => setIsSwiping(false);
 
     return (
-        <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className={`h-screen flex flex-col space-y-4 p-6 md:p-8 overflow-hidden ${isSwiping ? 'cursor-grabbing' : ''}`}>
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <div className={`min-h-screen flex flex-col space-y-4 p-4 md:p-8 overflow-y-auto lg:overflow-hidden pb-24 ${isSwiping ? 'cursor-grabbing' : ''}`}>
 
                 {/* HEADER */}
                 <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-2">
@@ -309,7 +322,7 @@ export default function TactileCalendar() {
                     </div>
 
                     {/* RIGHT: THE TIMELINES */}
-                    <div id="calendar-temporal-nexus" className="flex-1 lg:h-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 flex flex-col overflow-hidden shadow-sm">
+                    <div id="calendar-temporal-nexus" className="flex-1 min-h-[500px] lg:h-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 flex flex-col overflow-hidden shadow-sm">
 
                         {/* ── Horizon View ── */}
                         {view === 'horizon' && (
@@ -321,7 +334,7 @@ export default function TactileCalendar() {
                                 onMouseMove={handleMouseMove}
                                 onMouseUp={handleMouseUp}
                                 onMouseLeave={handleMouseUp}
-                                className="flex-1 overflow-x-auto pb-6 no-scrollbar relative select-none"
+                                className="flex-1 overflow-x-auto pb-6 relative select-none"
                             >
                                 <div className="flex gap-4 min-w-max h-full">
                                     {next7Days.map((date) => {

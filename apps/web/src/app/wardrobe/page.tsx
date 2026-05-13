@@ -212,8 +212,8 @@ export default function WardrobePage() {
                     </div>
 
                     {/* AVATAR RENDERER */}
-                    <div className="flex-1 flex items-center justify-center w-full min-h-[300px] lg:min-h-0 mt-4 lg:mt-8">
-                        <div className="relative w-48 h-48 sm:w-64 sm:h-64 shrink-0">
+                    <div className="flex-1 flex items-center justify-center w-full min-h-[350px] lg:min-h-0 mt-4 lg:mt-8">
+                        <div className="relative w-64 h-64 sm:w-80 sm:h-80 shrink-0">
                             <ChumRenderer size="w-full h-full" />
                         </div>
                     </div>
@@ -232,7 +232,7 @@ export default function WardrobePage() {
                             </SquishyButton>
                         </div>
 
-                        <div className="flex items-center justify-start sm:justify-center gap-4 overflow-x-auto w-full py-6 px-4 custom-scrollbar no-scrollbar" style={{ scrollSnapType: 'x mandatory' }}>
+                        <div className="flex items-center justify-start sm:justify-center gap-4 overflow-x-auto w-full py-6 px-4" style={{ scrollSnapType: 'x mandatory' }}>
                             {BASE_COLORS_CATALOG.map((base) => (
                                 <SquishyButton
                                     key={base.id}
@@ -261,22 +261,22 @@ export default function WardrobePage() {
                 <section id="wardrobe-customization-hub" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl flex flex-col min-h-[500px] lg:min-h-0 shadow-sm overflow-hidden mb-10 lg:mb-0">
 
                     {/* TABS HEADER */}
-                    <div className="flex p-2 border-b border-[var(--border-color)]/50 bg-[var(--bg-dark)]/30">
+                    <div className="flex p-2 border-b border-[var(--border-color)]/50 bg-[var(--bg-dark)]/30 overflow-x-auto no-scrollbar whitespace-nowrap gap-2">
                         <SquishyButton
                             onClick={() => setActiveTab('themes')}
-                            className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'themes' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
+                            className={`min-w-[120px] py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'themes' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Palette size={14} className={activeTab === 'themes' ? 'text-[var(--accent-cyan)]' : ''} /> App Themes
                         </SquishyButton>
                         <SquishyButton
                             onClick={() => setActiveTab('crystals')}
-                            className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'crystals' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
+                            className={`min-w-[120px] py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'crystals' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Gem size={14} className={activeTab === 'crystals' ? 'text-[var(--accent-teal)]' : ''} /> Crystal Vault
                         </SquishyButton>
                         <SquishyButton
                             onClick={() => setActiveTab('accessories')}
-                            className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'accessories' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
+                            className={`min-w-[120px] py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'accessories' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Shirt size={14} className={activeTab === 'accessories' ? 'text-[var(--accent-teal)]' : ''} /> {isGamified ? "Charms" : "Accessories"}
                         </SquishyButton>

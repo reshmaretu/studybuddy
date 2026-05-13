@@ -448,7 +448,8 @@ export default function CrystalGarden() {
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8,
+                delay: 250,
+                tolerance: 5,
             },
         })
     );
@@ -1304,8 +1305,7 @@ export default function CrystalGarden() {
                                             animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                                             exit={{ opacity: 0, x: 30, filter: "blur(5px)" }}
                                             transition={{ duration: 0.3, type: "spring", bounce: 0.2 }}
-                                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                                            className="absolute inset-0 flex flex-col gap-4 overflow-y-auto [&::-webkit-scrollbar]:hidden pr-1 pb-1"
+                                            className="absolute inset-0 flex flex-col gap-4 overflow-y-auto pr-1 pb-1"
                                         >
                                             {/* ✅ Using the new interactive dropdown slots! */}
                                             <DropdownCapacityZone loadType="heavy" title="1 Heavy Quest" max={1} allTasks={filteredTasksByLoad} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
@@ -1323,7 +1323,7 @@ export default function CrystalGarden() {
                                             className="absolute inset-0 flex flex-col gap-4 overflow-hidden"
                                         >
                                             {/* 🔥 PADDED SCROLL CONTAINER: px-1 and -mx-1 gives the glow room to breathe! */}
-                                            <div style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="flex-1 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden flex flex-col gap-3 pb-6 px-1 -mx-1">
+                                            <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col gap-3 pb-6 px-1 -mx-1">
                                                 {[1, 2, 3, 4, 5, 6].map(rank => {
                                                     const task = filteredTasksByLoad.find(t => t.ivyRank === rank);
                                                     const activeRank = [1, 2, 3, 4, 5, 6].find(r => {
