@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { content, broadcastType = 'custom-status' } = await req.json();
+    const { content, broadcastType = 'custom-status', metadata = {} } = await req.json();
 
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
       return NextResponse.json({ error: 'Content is required' }, { status: 400 });
@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
         user_id: user.id,
         content: content.trim(),
         broadcast_type: broadcastType,
+        metadata: metadata,
         created_at: new Date().toISOString(),
         reactions_count: 0,
       }])
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
     const { data, error } = await supabase
       .from('synthetic_logs')
       .select(
-        'id, user_id, content, broadcast_type, created_at, reactions_count'
+        'id, user_id, content, broadcast_type, metadata, created_at, reactions_count'
       )
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -81,12 +82,22 @@ export async function GET(req: NextRequest) {
 
     const logs = data ?? [];
     const userIds = [...new Set(logs.map((log) => log.user_id))];
-    let profilesById: Record<string, { display_name: string; avatar_url: string | null; status: string }> = {};
+    let profilesById: Record<string, any> = {};
 
     if (userIds.length > 0) {
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, display_name, avatar_url, status')
+        .select(`
+          id, 
+          display_name, 
+          full_name, 
+          avatar_url, 
+          status,
+          chum_wardrobe (
+            active_accessories,
+            active_chum_base_color
+          )
+        `)
         .in('id', userIds);
 
       if (profilesError) throw profilesError;
@@ -110,3 +121,4 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+

@@ -283,7 +283,7 @@ export interface StudyState {
     friends: any[];
     friendRequests: any[];
     pacts: any[];
-    addBroadcast: (content: string, broadcastType?: string) => Promise<void>;
+    addBroadcast: (content: string, broadcastType?: string, metadata?: Record<string, any>) => Promise<void>;
     fetchBroadcasts: (limit?: number, offset?: number) => Promise<void>;
     sparkBroadcast: (broadcastId: string) => Promise<void>;
     sendFriendRequest: (targetUserId: string) => Promise<void>;
@@ -1513,12 +1513,12 @@ export const useStudyStore = create<StudyState>()(
             },
 
             // 🌐 SOCIAL FEATURE METHODS
-            addBroadcast: async (content, broadcastType = 'custom-status') => {
+            addBroadcast: async (content, broadcastType = 'custom-status', metadata = {}) => {
                 const authHeaders = await getAuthHeaders();
                 const response = await fetch('/api/broadcasts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', ...authHeaders },
-                    body: JSON.stringify({ content, broadcastType }),
+                    body: JSON.stringify({ content, broadcastType, metadata }),
                 });
                 if (!response.ok) throw new Error('Failed to create broadcast');
                 const data = await response.json();

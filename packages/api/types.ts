@@ -132,15 +132,28 @@ export interface SyntheticLog {
     id: string;
     user_id: string;
     content: string;
-    broadcast_type: 'custom-status' | 'milestone' | 'quest-progress' | 'feedback';
+    broadcast_type: 'custom-status' | 'milestone' | 'quest-progress' | 'feedback' | 'study-room' | 'canvas-room';
     created_at: string;
     reactions_count: number;
+    metadata?: {
+        room_code?: string;
+        room_title?: string;
+        room_description?: string;
+        room_mode?: string;
+        [key: string]: any;
+    };
     profiles?: {
         display_name: string;
+        full_name?: string | null;
         avatar_url: string | null;
         status: string;
+        chum_wardrobe?: Array<{
+            active_accessories: WardrobeAccessory[];
+            active_chum_base_color: string | null;
+        }>;
     };
 }
+
 
 export interface UserFriendship {
     id: string;

@@ -142,7 +142,7 @@ export default function LanternNetPage() {
         totalSessions, activeMode, isTutorModeActive, isDev,
         debrisSize, debrisColor, debrisCount, debrisSpread, setDebris,
         mockUsers, setMockUsers, isPremiumUser, setSettings, totalSecondsTracked, isVerified, triggerChumToast,
-        activeAppTheme
+        activeAppTheme, broadcasts, fetchBroadcasts, sparkBroadcast
     } = useStudyStore();
     const router = useRouter();
     const { isGamified } = useTerms();
@@ -174,6 +174,11 @@ export default function LanternNetPage() {
     const { friends, friendRequests, pacts, fetchFriends, fetchFriendRequests, fetchPacts } = useStudyStore();
     const [isFriendsLoading, setIsFriendsLoading] = useState(false);
     const [isPactsLoading, setIsPactsLoading] = useState(false);
+    const [activeRooms, setActiveRooms] = useState<RawRoom[]>([]);
+
+    useEffect(() => {
+        fetchBroadcasts(50, 0);
+    }, [fetchBroadcasts]);
 
     // Load friend requests on mount
     useEffect(() => {
@@ -256,6 +261,7 @@ export default function LanternNetPage() {
                         return formatUser(mergedProfile, rooms, currentUserId, index);
                     });
                     setFullNetwork(users);
+                    setActiveRooms(rooms);
                 }
             } catch (err) {
                 console.error("Lantern Network Fetch Error:", err);
@@ -330,7 +336,12 @@ export default function LanternNetPage() {
 
                 // 🌐 Broadcast to the network!
                 const { addBroadcast } = useStudyStore.getState();
-                addBroadcast(`${roomSettings.title}`, 'canvas-room').catch(e => console.error("Broadcast failed:", e));
+                addBroadcast(`${roomSettings.title}`, 'canvas-room', {
+                    room_code: roomCode,
+                    room_title: roomSettings.title,
+                    room_description: roomSettings.description,
+                    room_mode: 'canvas'
+                }).catch(e => console.error("Broadcast failed:", e));
 
                 router.push(`/canvas?room=${roomCode}`);
             } else {
@@ -359,7 +370,12 @@ export default function LanternNetPage() {
         if (!error) {
             // 🌐 Broadcast to the network!
             const { addBroadcast } = useStudyStore.getState();
-            addBroadcast(`${roomSettings.title}`, 'study-room').catch(e => console.error("Broadcast failed:", e));
+            addBroadcast(`${roomSettings.title}`, 'study-room', {
+                room_code: roomCode,
+                room_title: roomSettings.title,
+                room_description: roomSettings.description,
+                room_mode: roomSettings.mode
+            }).catch(e => console.error("Broadcast failed:", e));
 
             router.push(`/room/${roomCode}?title=${encodeURIComponent(roomSettings.title)}`);
         } else {
@@ -903,29 +919,86 @@ export default function LanternNetPage() {
                                                     <Radio size={18} className="text-(--accent-teal)" /> active Sanctuaries
                                                 </h3>
                                                 <div className="space-y-3">
-                                                    {combinedNetwork.filter(u => (u.status === 'hosting' || u.status === 'joined' || u.status === 'cafe') && u.roomCode).map(user => (
-                                                        <div key={user.roomCode} className="p-4 rounded-3xl bg-(--bg-dark)/50 border border-(--border-color) hover:border-(--accent-teal)/40 transition-all cursor-pointer group/room"
-                                                            onClick={() => router.push(`/room/${user.roomCode}`)}>
-                                                            <div className="flex justify-between items-start mb-2">
-                                                                <h4 className="text-xs font-black text-white group-hover/room:text-(--accent-teal) transition-colors truncate pr-2">{user.roomTitle || 'Sanctuary'}</h4>
-                                                                <span className="text-[10px] bg-(--accent-teal)/10 text-(--accent-teal) px-2 py-0.5 rounded-full font-black uppercase">{user.status}</span>
+                                                    {broadcasts.filter(b => b.broadcast_type === 'study-room' || b.broadcast_type === 'canvas-room').map((broadcast: any) => {
+                                                        const isCanvas = broadcast.broadcast_type === 'canvas-room';
+                                                        const roomCode = broadcast.metadata?.room_code;
+                                                        const roomTitle = broadcast.metadata?.room_title || broadcast.content;
+                                                        const roomDesc = broadcast.metadata?.room_description;
+                                                        const hostProfile = broadcast.profiles;
+                                                        
+                                                        // Check if room is still active
+                                                        const isRoomActive = activeRooms.some(r => r.room_code === roomCode && (r.status === 'ACTIVE' || r.status === 'DRAFT'));
+                                                        const hostName = (hostProfile?.display_name && hostProfile.display_name.trim() !== "") 
+                                                            ? hostProfile.display_name 
+                                                            : (hostProfile?.full_name && hostProfile.full_name.trim() !== "") 
+                                                            ? hostProfile.full_name 
+                                                            : "Anonymous";
+
+                                                        // Chum avatar props
+                                                        const wardrobe = Array.isArray(hostProfile?.chum_wardrobe) ? hostProfile.chum_wardrobe[0] : hostProfile?.chum_wardrobe;
+                                                        let rawAccessories = wardrobe?.active_accessories;
+                                                        if (typeof rawAccessories === 'string') {
+                                                            try { rawAccessories = JSON.parse(rawAccessories); } catch (e) { rawAccessories = []; }
+                                                        }
+                                                        const finalAccessories = Array.isArray(rawAccessories) ? rawAccessories : [];
+
+                                                        return (
+                                                            <div key={broadcast.id} className="p-4 rounded-3xl bg-(--bg-dark)/50 border border-(--border-color) hover:border-(--accent-teal)/20 transition-all group/room">
+                                                                <div className="flex justify-between items-start mb-2">
+                                                                    <div className="flex-1 min-w-0 pr-2">
+                                                                        <h4 className="text-xs font-black text-white truncate">{roomTitle}</h4>
+                                                                        {roomDesc && <p className="text-[10px] text-(--text-muted) italic line-clamp-1">&quot;{roomDesc}&quot;</p>}
+                                                                    </div>
+                                                                    <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase shrink-0 ${isCanvas ? 'bg-(--accent-cyan)/10 text-(--accent-cyan)' : 'bg-(--accent-teal)/10 text-(--accent-teal)'}`}>
+                                                                        {isCanvas ? 'Canvas' : 'Study'}
+                                                                    </span>
+                                                                </div>
+                                                                
+                                                                <div className="flex items-center justify-between mt-3">
+                                                                    <div className="flex items-center gap-2 min-w-0">
+                                                                        <div className="w-6 h-6 rounded-full border border-(--border-color) shrink-0 bg-(--bg-dark) overflow-hidden flex items-center justify-center p-0.5 relative">
+                                                                            {hostProfile?.avatar_url ? (
+                                                                                <img src={hostProfile.avatar_url} alt="Host" className="w-full h-full object-cover rounded-full" />
+                                                                            ) : (
+                                                                                <ChumRenderer 
+                                                                                    size="w-full h-full"
+                                                                                    baseColorIdOverride={wardrobe?.active_chum_base_color}
+                                                                                    activeAccessoriesOverride={finalAccessories}
+                                                                                />
+                                                                            )}
+                                                                        </div>
+                                                                        <span className="text-[10px] font-bold text-(--text-muted) truncate">By {hostName}</span>
+                                                                    </div>
+                                                                    
+                                                                    <SquishyButton
+                                                                        onClick={() => {
+                                                                            if (isRoomActive) {
+                                                                                router.push(isCanvas ? `/canvas?room=${roomCode}` : `/room/${roomCode}`);
+                                                                            }
+                                                                        }}
+                                                                        disabled={!isRoomActive}
+                                                                        className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                                                                            isRoomActive 
+                                                                                ? 'bg-(--accent-teal) text-black hover:scale-105 active:scale-95 shadow-[0_5px_15px_-5px_rgba(45,212,191,0.4)]'
+                                                                                : 'bg-(--bg-dark) text-(--text-muted) border border-(--border-color) cursor-not-allowed opacity-50'
+                                                                        }`}
+                                                                    >
+                                                                        {isRoomActive ? 'Join' : 'Expired'}
+                                                                    </SquishyButton>
+                                                                </div>
                                                             </div>
-                                                            {user.roomDescription && <p className="text-[10px] text-(--text-muted) italic line-clamp-1 mb-3">&quot;{user.roomDescription}&quot;</p>}
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-5 h-5 rounded-full bg-(--bg-dark) flex items-center justify-center text-[10px]">{user.chumLabel.split(' ')[0]}</div>
-                                                                <span className="text-[10px] font-bold text-(--text-muted)">Hosted by {user.name}</span>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                    {combinedNetwork.filter(u => (u.status === 'hosting' || u.status === 'joined' || u.status === 'cafe') && u.roomCode).length === 0 && (
+                                                        );
+                                                    })}
+                                                    {broadcasts.filter(b => b.broadcast_type === 'study-room' || b.broadcast_type === 'canvas-room').length === 0 && (
                                                         <div className="text-center p-8 opacity-30">
                                                             <Radio size={32} className="mx-auto mb-2" />
-                                                            <p className="text-[10px] font-black uppercase tracking-widest">No active Sanctuaries</p>
+                                                            <p className="text-[10px] font-black uppercase tracking-widest">No room broadcasts yet</p>
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
                                         </motion.div>
+
                                     )}
                                 </AnimatePresence>
                             </div>
