@@ -1,0 +1,26 @@
+// Add this code after the eraser cursor section in handleCanvasPointerMove
+
+      // Cursor feedback for select mode
+      if (store.activeTool === 'select') {
+        const world = engineRef.current.canvasToWorld(x, y);
+        const hit = engineRef.current.hitTest(x, y);
+        
+        if (hit && hit.type === 'shape') {
+          const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
+          const shape = schema.yshapes.get(hit.objectId);
+          if (shape) {
+            const handle = getResizeHandle(shape, world);
+            let cursor = 'grab';
+            
+            if (handle === 'nw' || handle === 'se') cursor = 'nwse-resize';
+            else if (handle === 'ne' || handle === 'sw') cursor = 'nesw-resize';
+            else if (handle === 'n' || handle === 's') cursor = 'ns-resize';
+            else if (handle === 'e' || handle === 'w') cursor = 'ew-resize';
+            else if (handle === 'rotate') cursor = 'grab';
+            
+            canvasRef.current.style.cursor = cursor;
+          }
+        } else {
+          canvasRef.current.style.cursor = 'default';
+        }
+      }

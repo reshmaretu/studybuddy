@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["apps/web/src/*"],
+      "@studybuddy/api": ["packages/api"],
+      "@studybuddy/ui": ["packages/ui"],
+      "@studybuddy/canvas-engine": ["packages/canvas-engine"]
+    }
+  },
+  "include": [
+    "apps/web/**/*.ts",
+    "apps/web/**/*.tsx",
+    "packages/**/*.ts",
+    "packages/**/*.tsx"
+  ],
+  "exclude": ["node_modules", "**/node_modules"]
+}
