@@ -816,7 +816,7 @@ export default function CrystalGarden() {
     // const [activeFilter, setActiveFilter] = useState<'default' | 'dark' | 'refreshing' | 'cool'>('default'); // Unused
 
     return (
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragEnd}>
             {/* Full-height container, responsive scroll logic */}
             <div id="garden-main-zone" className={`flex flex-col h-full p-6 lg:p-8 bg-[var(--bg-dark)] overflow-hidden relative ${isGarden3DMaximized ? 'hidden' : ''}`}>
 

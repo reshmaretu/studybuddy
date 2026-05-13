@@ -317,8 +317,8 @@ export default function Dashboard() {
     const handleDragEnd = (event: DragEndEvent) => {
         setActiveDragTask(null);
         const { active, over } = event;
-
-        if (over && over.id === "completion-zone") {
+        if (!over) return;
+        if (over.id === "completion-zone") {
             const task = tasks.find(t => t.id === active.id);
 
             if (requireCompletionConfirmation) {
@@ -378,8 +378,15 @@ export default function Dashboard() {
     };
 
     return (
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className={`max-w-[1400px] mx-auto pb-24 md:pb-12 space-y-6 px-4 md:px-0 transition-all duration-500 ${confirmationModal.isOpen ? 'opacity-30 blur-md pointer-events-none' : 'opacity-100 blur-0'}`}>
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragEnd}>
+            {/* 🌌 AMBIENT PARALLAX BACKGROUND */}
+            <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+                <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-[var(--accent-teal)] mix-blend-screen filter blur-[150px] opacity-[0.03] rounded-full animate-pulse" style={{ animationDuration: '10s' }} />
+                <div className="absolute top-[40%] right-[-10%] w-[60vw] h-[60vw] bg-[var(--accent-yellow)] mix-blend-screen filter blur-[150px] opacity-[0.02] rounded-full animate-pulse" style={{ animationDuration: '15s' }} />
+                <div className="absolute bottom-[-10%] left-[20%] w-[40vw] h-[40vw] bg-[var(--accent-cyan)] mix-blend-screen filter blur-[120px] opacity-[0.02] rounded-full animate-pulse" style={{ animationDuration: '12s' }} />
+            </div>
+
+            <div className={`relative z-10 max-w-[1400px] mx-auto pb-24 md:pb-12 space-y-6 px-4 md:px-0 transition-all duration-500 ${confirmationModal.isOpen ? 'opacity-30 blur-md pointer-events-none' : 'opacity-100 blur-0'}`}>
 
                 {/* HEADER */}
                 <header className="flex justify-between items-center gap-6 mb-4 pt-4 md:pt-0">
