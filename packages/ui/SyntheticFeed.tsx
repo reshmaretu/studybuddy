@@ -188,17 +188,17 @@ export const SyntheticFeed = () => {
                               if (code) {
                                 window.location.href = broadcast.broadcast_type === 'canvas-room' 
                                   ? `/canvas?room=${code}` 
-                                  : `/room/${code}`;
+                                  : `/room?code=${code}`;
                               }
                             }}
-                            disabled={!broadcast.profiles?.status || (broadcast.profiles.status !== 'hosting' && broadcast.profiles.status !== 'cafe')}
+                            disabled={!broadcast.profiles?.status || (broadcast.profiles.status !== 'hosting' && broadcast.profiles.status !== 'cafe' && broadcast.profiles.status !== 'drafting')}
                             className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border transition-all ${
-                              (broadcast.profiles?.status === 'hosting' || broadcast.profiles?.status === 'cafe')
+                              (broadcast.profiles?.status === 'hosting' || broadcast.profiles?.status === 'cafe' || broadcast.profiles?.status === 'drafting')
                                 ? 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(20,184,166,0.3)]'
                                 : 'bg-[var(--bg-dark)] border-[var(--border-color)] text-[var(--text-muted)] cursor-not-allowed'
                             }`}
                           >
-                            {(broadcast.profiles?.status === 'hosting' || broadcast.profiles?.status === 'cafe') ? 'Join Now' : 'Expired'}
+                            {(broadcast.profiles?.status === 'hosting' || broadcast.profiles?.status === 'cafe' || broadcast.profiles?.status === 'drafting') ? 'Join Now' : 'Expired'}
                           </button>
                         )}
                       </div>

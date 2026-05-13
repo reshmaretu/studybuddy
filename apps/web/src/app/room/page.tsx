@@ -483,7 +483,7 @@ export default function StudyRoom() {
             const [profileRes, statsRes, wardrobeRes] = await Promise.all([
                 supabase.from('profiles').select('display_name, full_name, is_premium, avatar_url').eq('id', user.id).single(),
                 supabase.from('user_stats').select('focus_score').eq('user_id', user.id).single(),
-                supabase.from('chum_wardrobe').select('base_emoji, hat_emoji').eq('user_id', user.id).single()
+                supabase.from('chum_wardrobe').select('active_chum_base_color, active_accessories').eq('user_id', user.id).maybeSingle()
             ]);
 
             if (profileRes.error) console.error('❌ ROOM INIT: Profile fetch error:', profileRes.error);
@@ -499,7 +499,8 @@ export default function StudyRoom() {
             const finalName = (myProfile.display_name && myProfile.display_name.trim() !== '') ? myProfile.display_name
                 : (myProfile.full_name && myProfile.full_name.trim() !== '') ? myProfile.full_name
                     : user.email?.split('@')[0] || "Chum";
-            const finalAvatar = `${myWardrobe.base_emoji || "👻"}${myWardrobe.hat_emoji || ""}`;
+            // 👻 FALLBACK: Use a default emoji as base_emoji is deprecated in favor of ChumRenderer colors
+            const finalAvatar = "👻";
             console.log('✅ ROOM INIT: Resolved name:', finalName, 'Avatar:', finalAvatar);
 
             setResolvedName(finalName);
@@ -547,7 +548,7 @@ export default function StudyRoom() {
             
             await supabase.from('profiles').update({
                 status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
-                joined_room_code: isActuallyHost ? null : roomCode
+                joined_room_code: roomCode
             }).eq('id', user.id);
 
             console.log('📡 ROOM INIT: Creating realtime channel...');
@@ -641,8 +642,14 @@ export default function StudyRoom() {
         };
 
         initRoom();
-        return () => { if (activeChannel) supabase.removeChannel(activeChannel); };
-    }, [roomCode]);
+        return () => { 
+            if (activeChannel) supabase.removeChannel(activeChannel);
+            // ⚡ CLEANUP: Reset status to idle when leaving the sanctuary
+            if (currentUserId) {
+                supabase.from('profiles').update({ status: 'idle', joined_room_code: null }).eq('id', currentUserId).then();
+            }
+        };
+    }, [roomCode, currentUserId]);
 
     // ⚡ RE-TRACK PRESENCE ON STATUS CHANGE
     useEffect(() => {

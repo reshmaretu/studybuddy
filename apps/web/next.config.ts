@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
               "font-src 'self' data: https://*.tldraw.com;",
               "worker-src 'self' blob:;",
               // 🔥 Added Stripe API
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tldraw.com https://cdn.tldraw.com https://cdn.jsdelivr.net http://localhost:11434 http://127.0.0.1:11434 https://openrouter.ai https://api.groq.com https://generativelanguage.googleapis.com https://api.stripe.com https://api.emailjs.com;",
+              "connect-src 'self' data: https://*.supabase.co wss://*.supabase.co https://*.tldraw.com https://cdn.tldraw.com https://cdn.jsdelivr.net http://localhost:11434 http://127.0.0.1:11434 https://openrouter.ai https://api.groq.com https://generativelanguage.googleapis.com https://api.stripe.com https://api.emailjs.com;",
               // 🔥 Added Frame source for the Embedded iframe
               "frame-src 'self' https://js.stripe.com;",
               "object-src 'none';"
