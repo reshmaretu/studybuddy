@@ -1672,10 +1672,10 @@ export const useStudyStore = create<StudyState>()(
 
             fetchBroadcasts: async (limit = 50, offset = 0) => {
                 try {
-                    // Use RPC function - handles profile joins server-side with proper permissions
-                    const { data, error } = await supabase.rpc('get_network_feed', {
-                        limit_param: limit,
-                        offset_param: offset
+                    // Use RPC function that returns proper structure
+                    const { data, error } = await supabase.rpc('get_broadcasts_feed', {
+                        limit_num: limit,
+                        offset_num: offset
                     });
 
                     if (error) {
@@ -1688,7 +1688,7 @@ export const useStudyStore = create<StudyState>()(
                         return;
                     }
 
-                    console.log("Fetched broadcasts via RPC:", data?.length, "broadcasts with display_names:", data?.map((d: any) => d.display_name));
+                    console.log("Fetched broadcasts via RPC:", data?.length);
                     set((state) => ({ 
                         broadcasts: offset === 0 ? data : [...state.broadcasts, ...data] 
                     }));
@@ -1780,47 +1780,17 @@ export const useStudyStore = create<StudyState>()(
                         return;
                     }
 
-                    // Try RPC function first (mobile-optimized)
-                    if (navigator.onLine) {
-                        try {
-                            const { data, error } = await supabase.rpc('get_friends');
-                            if (!error && data) {
-                                console.log("Fetched friends via RPC:", data?.length);
-                                set({ friends: data || [] });
-                                return;
-                            }
-                        } catch (e) {
-                            console.warn("RPC get_friends failed, falling back to direct query:", e);
-                        }
-                    }
-
-                    // Fallback: Direct query
-                    const { data, error } = await supabase
-                        .from('user_friendships')
-                        .select(`
-                            id,
-                            user_id_1,
-                            user_id_2,
-                            status,
-                            profiles_1:user_id_1(id, display_name, avatar_url),
-                            profiles_2:user_id_2(id, display_name, avatar_url)
-                        `)
-                        .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
-                        .eq('status', 'accepted');
-
+                    // Use RPC function that returns proper structure with profiles
+                    const { data, error } = await supabase.rpc('get_user_friends_with_profiles');
+                    
                     if (error) {
-                        console.error("Fetch friends error:", error);
+                        console.error("Fetch friends RPC error:", error);
                         set({ friends: [] });
                         return;
                     }
-                    
-                    const formatted = (data || []).map(f => {
-                        const otherProfile = f.user_id_1 === user.id ? f.profiles_2 : f.profiles_1;
-                        return { ...f, friend_profile: otherProfile };
-                    });
 
-                    console.log("Fetched friends:", formatted?.length);
-                    set({ friends: formatted });
+                    console.log("Fetched friends via RPC:", data?.length);
+                    set({ friends: data || [] });
                 } catch (e) {
                     console.error("Fetch friends exception:", e);
                     set({ friends: [] });
@@ -1952,27 +1922,29 @@ export const useStudyStore = create<StudyState>()(
             },
 
             fetchPacts: async () => {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+                try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) {
+                        console.warn("Cannot fetch pacts: user not authenticated");
+                        set({ pacts: [] });
+                        return;
+                    }
 
-                const { data, error } = await supabase
-                    .from('pacts')
-                    .select(`
-                        *,
-                        pact_members (
-                            user_id,
-                            profiles (id, display_name, avatar_url)
-                        )
-                    `)
-                    .in('id', (
-                        await supabase
-                            .from('pact_members')
-                            .select('pact_id')
-                            .eq('user_id', user.id)
-                    ).data?.map(pm => pm.pact_id) || []);
+                    // Use RPC function that returns pacts with member profiles
+                    const { data, error } = await supabase.rpc('get_user_pacts_with_members');
+                    
+                    if (error) {
+                        console.error("Fetch pacts RPC error:", error);
+                        set({ pacts: [] });
+                        return;
+                    }
 
-                if (error) throw error;
-                set({ pacts: data });
+                    console.log("Fetched pacts via RPC:", data?.length);
+                    set({ pacts: data || [] });
+                } catch (e) {
+                    console.error("Fetch pacts exception:", e);
+                    set({ pacts: [] });
+                }
             },
 
             leavePact: async (pactId: string) => {
