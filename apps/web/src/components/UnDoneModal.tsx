@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useStudyStore, Task } from '@/store/useStudyStore';
 import { Check, X, Moon, Sunrise, Trash2 } from 'lucide-react';
-import { SquishyButton } from '@studybuddy/ui';
+import { SquishyButton, ConfirmationModal } from '@studybuddy/ui';
 
 export default function UnDoneModal({ onClose }: { onClose: () => void }) {
     const { tasks, completeTask, deleteTask, updateTask } = useStudyStore();
@@ -10,6 +10,7 @@ export default function UnDoneModal({ onClose }: { onClose: () => void }) {
 
     // Keep track of which tasks we have 'resolved' in this modal
     const [resolvedTaskIds, setResolvedTaskIds] = useState<string[]>([]);
+    const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
 
     const handleMoveToTomorrow = (task: Task) => {
         const tomorrow = new Date();
@@ -26,9 +27,16 @@ export default function UnDoneModal({ onClose }: { onClose: () => void }) {
         setResolvedTaskIds([...resolvedTaskIds, task.id]);
     };
 
-    const handleDelete = (id: string) => {
-        deleteTask(id);
-        setResolvedTaskIds([...resolvedTaskIds, id]);
+    const handleDeleteClick = (id: string) => {
+        setTaskToDelete(id);
+    };
+
+    const confirmDelete = () => {
+        if (taskToDelete) {
+            deleteTask(taskToDelete);
+            setResolvedTaskIds([...resolvedTaskIds, taskToDelete]);
+            setTaskToDelete(null);
+        }
     };
 
     const unresolvedQuests = activeQuests.filter(t => !resolvedTaskIds.includes(t.id));
@@ -82,7 +90,7 @@ export default function UnDoneModal({ onClose }: { onClose: () => void }) {
                                         <Sunrise size={12} /> Tomorrow
                                     </SquishyButton>
                                     <SquishyButton 
-                                        onClick={() => handleDelete(task.id)}
+                                        onClick={() => handleDeleteClick(task.id)}
                                         className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-[var(--bg-sidebar)] hover:bg-red-500/10 border border-[var(--border-color)] hover:border-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--text-main)] hover:text-red-400 transition-all text-red-400"
                                     >
                                         <Trash2 size={12} /> Delete
@@ -100,6 +108,17 @@ export default function UnDoneModal({ onClose }: { onClose: () => void }) {
                     {unresolvedQuests.length > 0 ? "Finish Anyway" : "Rest Well"}
                 </SquishyButton>
             </motion.div>
+
+            <ConfirmationModal
+                isOpen={!!taskToDelete}
+                title="Release Quest?"
+                message="Are you sure you want to release this quest? This cannot be undone."
+                confirmText="Release"
+                cancelText="Keep"
+                isDangerous={true}
+                onConfirm={confirmDelete}
+                onCancel={() => setTaskToDelete(null)}
+            />
         </div>
     );
 }

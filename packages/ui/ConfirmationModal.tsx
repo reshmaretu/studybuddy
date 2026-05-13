@@ -16,7 +16,7 @@ interface ConfirmationModalProps {
     isDangerous?: boolean;
 }
 
-export default function ConfirmationModal({
+export function ConfirmationModal({
     isOpen,
     title,
     message,

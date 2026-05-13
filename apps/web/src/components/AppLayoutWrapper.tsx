@@ -22,6 +22,7 @@ import TutorialIntro from "./TutorialIntro";
 import PremiumModal from "./PremiumModal";
 import UnDoneModal from "./UnDoneModal";
 import { SparkBurstOverlay } from "./SparkBurstOverlay";
+import ContextualBrain from "./ContextualBrain";
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -108,33 +109,34 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             ${accessibilitySettings.reducedMotion ? 'reduced-motion' : ''}
         `}>
             <PresenceSync />
+            <ContextualBrain />
             <div className={`flex flex-col md:flex-row h-screen w-full overflow-hidden bg-[var(--bg-dark)]`}>
                 {!isSidebarHidden && !isCanvasRoom && <Sidebar />}
                 <main className={`flex-1 min-w-0 ${isCanvasPage ? 'p-0' : 'p-4 md:p-8 pb-24 md:pb-12'} h-screen relative z-[1] 
-                    ${['/dashboard', '/insights', '/account', '/wardrobe', '/archive', '/calendar'].includes(pathname) 
+                    ${['/dashboard', '/insights', '/account', '/wardrobe', '/archive', '/calendar', '/garden'].includes(pathname) 
                         ? 'overflow-y-auto no-scrollbar' 
                         : 'overflow-hidden'}`}
                 >
                     {children}
                 </main>
-                {isInitialized && hasCompletedTutorial && !isCanvasPage && <ChumWidget />}
-                <FocusModal />
-                <FlowStateOverlay />
-                <StudyCafeOverlay />
-                <MindDumpPad />
-                <TaskEditModal />
-                <TaskViewModal />
-                <ProfileModal />
-                <NotificationCenter />
-                <BrainResetModal isOpen={isBrainResetOpen} onClose={() => setIsBrainResetOpen(false)} />
-                {isUnDoneModalOpen && (
-                    <UnDoneModal onClose={() => setIsUnDoneModalOpen(false)} />
-                )}
-                {isInitialized && <TutorialIntro />}
-                <DevOverlay />
-                <PremiumModal />
-                <SparkBurstOverlay />
             </div>
+            {isInitialized && hasCompletedTutorial && !isCanvasPage && <ChumWidget />}
+            <FocusModal />
+            <FlowStateOverlay />
+            <StudyCafeOverlay />
+            <MindDumpPad />
+            <TaskEditModal />
+            <TaskViewModal />
+            <ProfileModal />
+            <NotificationCenter />
+            <BrainResetModal isOpen={isBrainResetOpen} onClose={() => setIsBrainResetOpen(false)} />
+            {isUnDoneModalOpen && (
+                <UnDoneModal onClose={() => setIsUnDoneModalOpen(false)} />
+            )}
+            {isInitialized && <TutorialIntro />}
+            <DevOverlay />
+            <PremiumModal />
+            <SparkBurstOverlay />
         </div>
     );
 }

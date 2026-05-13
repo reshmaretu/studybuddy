@@ -6,7 +6,7 @@ import { useStudyStore, Task, useTerms, playChime, playTick } from "@studybuddy/
 import { MoreHorizontal, Pin, Clock, Edit2, Trash2, X, Check, Zap, Lock, Eye, AlertTriangle, Flame } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from 'canvas-confetti';
-import ConfirmationModal from './ConfirmationModal';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface TaskCardProps {
     task: Task;
@@ -175,7 +175,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
             style={{ 
                 ...style, 
                 willChange: (isAnimating || externalIsAnimating || isDragging || isRecentlyCompleted) ? "transform, opacity, filter" : "auto",
-                zIndex: (isAnimating || externalIsAnimating) ? 9999 : (isOverlay ? 100001 : (showMenu || showCompletionConfirm ? 1001 : 10)),
+                zIndex: (isAnimating || externalIsAnimating || isRecentlyCompleted) ? 9999 : (isOverlay ? 100001 : (showMenu || showCompletionConfirm ? 1001 : 10)),
                 pointerEvents: (isAnimating || externalIsAnimating) ? "none" : "auto"
             }} 
             {...listeners} 
@@ -230,13 +230,19 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                 <div className="flex gap-2 items-center">
                     <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-lg border tracking-tighter ${loadColors[task.load]}`}>{task.load}</span>
                     {task.isPinned && !task.isCompleted && <Pin size={10} className="text-teal-400" />}
+                    {/* FROG BADGE (Relocated to top-left for zero conflict) */}
+                    {task.isFrog && !task.isCompleted && (
+                        <motion.div 
+                            initial={{ scale: 0 }} animate={{ scale: 1 }}
+                            className="bg-orange-400 text-black px-2 py-1 rounded-lg shadow-sm border border-orange-500/30 flex items-center gap-1 shrink-0"
+                        >
+                            <Flame size={10} className="fill-current" />
+                            <span className="text-[8px] font-black uppercase">Frog</span>
+                        </motion.div>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
-                    {task.isCompleted ? (
-                        <span className="text-[9px] font-black uppercase tracking-widest text-[var(--accent-teal)]">MASTERED</span>
-                    ) : dlStatus.phase > 1 && (
-                        <span className={`text-[9px] font-black uppercase tracking-widest ${dlStatus.color}`}>{dlStatus.label}</span>
-                    )}
+                    {/* Multi-select Checkbox */}
                     {onToggleSelect && !isOverlay && !locked && (
                         <button
                             type="button"
@@ -250,11 +256,19 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                                     ? 'bg-(--accent-teal) border-(--accent-teal) text-black opacity-100'
                                     : 'bg-(--bg-dark) border-(--border-color) text-(--text-muted) hover:text-(--text-main) opacity-0 group-hover:opacity-100'
                             }`}
-                            aria-label={selected ? "Deselect task" : "Select task"}
                         >
                             {selected ? <Check size={12} strokeWidth={3} /> : <span className="w-2 h-2 rounded-full bg-current opacity-60" />}
                         </button>
                     )}
+
+                    {/* Due Label */}
+                    {task.isCompleted ? (
+                        <span className="text-[9px] font-black uppercase tracking-widest text-[var(--accent-teal)]">MASTERED</span>
+                    ) : dlStatus.phase > 1 && (
+                        <span className={`text-[9px] font-black uppercase tracking-widest ${dlStatus.color}`}>{dlStatus.label}</span>
+                    )}
+
+                    {/* Three-dot Button */}
                     <button id="task-card-menu-trigger" onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-(--text-muted) hover:text-(--text-main) transition-colors relative z-40"><MoreHorizontal size={16} /></button>
                 </div>
                 <div className="absolute right-0 top-0">
@@ -292,15 +306,20 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                 </div>
             </div>
 
-            {/* FROG BADGE */}
-            {task.isFrog && !task.isCompleted && (
-                <motion.div 
-                    initial={{ scale: 0 }} animate={{ scale: 1 }}
-                    className="absolute bottom-2 right-2 bg-orange-400 text-black p-1.5 rounded-xl shadow-lg border-2 border-(--bg-card) flex items-center gap-1 group-hover:scale-110 transition-transform"
-                >
-                    <Flame size={12} className="fill-current" />
-                    <span className="text-[8px] font-black uppercase">Frog</span>
-                </motion.div>
+            {/* FOCUS BUTTON (Hover only, bottom right) */}
+            {!task.isCompleted && !isMinimized && (
+                <div className={`absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all z-20 transform translate-y-2 group-hover:translate-y-0 ${showMenu || showCompletionConfirm ? 'pointer-events-none invisible' : ''}`}>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            openFocusModal(task.id);
+                        }}
+                        className="w-8 h-8 rounded-full bg-(--accent-teal) text-black flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
+                        title="Focus on this quest"
+                    >
+                        <Zap size={14} fill="currentColor" />
+                    </button>
+                </div>
             )}
 
             {/* COMPLETION CONFIRMATION MODAL */}
@@ -315,6 +334,22 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                     handleCompleteDirectly();
                 }}
                 onCancel={() => setShowCompletionConfirm(false)}
+            />
+
+            {/* DELETE CONFIRMATION MODAL */}
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                title="Release Quest?"
+                message={`Are you sure you want to release "${task.title}" back to the void? This action cannot be undone.`}
+                confirmText="Release"
+                cancelText="Keep"
+                isDangerous={true}
+                onConfirm={() => {
+                    setShowDeleteModal(false);
+                    deleteTask(task.id);
+                    triggerChumToast("Quest released back to the void.", "info");
+                }}
+                onCancel={() => setShowDeleteModal(false)}
             />
         </motion.div>
     );

@@ -446,7 +446,7 @@ export default function ChumWidget() {
                     isTop: info.point.y < window.innerHeight / 3 // Flips if in the top 33% of screen
                 })}
                 style={{ zIndex: 100000 }}
-                className="fixed bottom-8 right-8 flex flex-col items-end justify-end cursor-grab active:cursor-grabbing relative"
+                className="fixed bottom-8 right-8 flex flex-col items-end justify-end cursor-grab active:cursor-grabbing"
             >
                 <AnimatePresence>
                     {isOpen && (

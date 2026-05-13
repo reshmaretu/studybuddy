@@ -59,6 +59,44 @@ const STATUS_CONFIG: Record<LanternUser['status'], { color: string; emissive: nu
     cafe: { color: '#ff8800', emissive: 12.0, scale: 0.7, pulse: 1.5 },
     mastering: { color: '#c084fc', emissive: 35.0, scale: 1.2, pulse: 14 } // 💎 Hyper-Pulse Shard
 };
+
+const CONSTELLATION_TEMPLATES = [
+    {
+        name: "Triangulum",
+        points: [[-4, -4, 0], [4, -4, 0], [0, 6, 0]] as [number, number, number][],
+        lines: [[0, 1], [1, 2], [2, 0]]
+    },
+    {
+        name: "Crux",
+        points: [[0, 7, 0], [0, -7, 0], [-4, 1, 0], [4, 1, 0]] as [number, number, number][],
+        lines: [[0, 1], [2, 3]]
+    },
+    {
+        name: "Cassiopeia",
+        points: [[-10, 5, 0], [-5, -2, 0], [0, 3, 0], [5, -2, 0], [10, 5, 0]] as [number, number, number][],
+        lines: [[0, 1], [1, 2], [2, 3], [3, 4]]
+    },
+    {
+        name: "Cygnus",
+        points: [[0, 10, 0], [0, 2, 0], [0, -3, 0], [0, -9, 0], [-7, 2, 0], [7, 2, 0]] as [number, number, number][],
+        lines: [[0, 1], [1, 2], [2, 3], [1, 4], [1, 5]]
+    },
+    {
+        name: "Ursa Minor",
+        points: [[-9, 7, 0], [-5, 6, 0], [-2, 4, 0], [0, 0, 0], [7, 1, 0], [6, -5, 0], [0, -6, 0]] as [number, number, number][],
+        lines: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 3]]
+    },
+    {
+        name: "Orion",
+        points: [[-5, 9, 0], [5, 8, 0], [0, 3, 0], [-1.5, 0, 0], [1.5, -1, 0], [-5, -7, 0], [5, -8, 0], [-8, 7, 0]] as [number, number, number][],
+        lines: [[0, 2], [1, 2], [2, 3], [3, 4], [3, 5], [4, 6], [0, 7]]
+    },
+    {
+        name: "Lynx",
+        points: [[-10, 10, 0], [-5, 5, 0], [0, 8, 0], [5, 3, 0], [10, 5, 0], [8, -3, 0], [3, -5, 0], [-3, -3, 0], [-8, -8, 0]] as [number, number, number][],
+        lines: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8]]
+    }
+];
 const createGlowTexture = () => {
     const canvas = document.createElement('canvas');
     canvas.width = 64; canvas.height = 64;
@@ -142,6 +180,15 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
         const pactMemberIds = new Set<string>();
         const pactCenters: Array<{ center: [number, number, number]; color: string }> = [];
 
+        const getHash = (str: string) => {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash |= 0;
+            }
+            return Math.abs(hash);
+        };
+
         const getAngle = (seed: string) => {
             let hash = 0;
             for (let i = 0; i < seed.length; i++) {
@@ -152,21 +199,24 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
         };
 
         pacts.forEach((pact) => {
-            let memberIds = (pact.members || []).map((m: any) => m.id).filter(Boolean);
+            let memberIds = Array.from(new Set((pact.members || []).map((m: any) => m.id).filter(Boolean)));
             
             // Ensure current user is included in pact members for rendering
             if (currentUserId && !memberIds.includes(currentUserId)) {
-                memberIds = [currentUserId, ...memberIds];
+                memberIds.push(currentUserId);
             }
             
+            // 🔥 CRITICAL: Sort member IDs so the constellation is deterministic for ALL users!
+            memberIds.sort();
+
             memberIds.forEach((memberId: string) => {
                 const normalizedId = currentUserId && memberId === currentUserId ? 'me' : memberId;
                 if (!pactNames.has(normalizedId)) pactNames.set(normalizedId, pact.pact_name);
                 pactMemberIds.add(memberId);
             });
+
             const memberPositions = memberIds.map((id) => {
-                const normalizedId = currentUserId && id === currentUserId ? 'me' : id;
-                return { id, pos: basePositions.get(normalizedId) };
+                return { id, pos: basePositions.get(id) };
             }).filter(m => m.pos) as { id: string; pos: [number, number, number] }[];
 
             if (memberPositions.length < 2) return;
@@ -181,18 +231,41 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
             center[1] /= memberPositions.length;
             center[2] /= memberPositions.length;
 
-            const radius = 9;
-            const ordered = memberPositions
-                .map((member) => ({
-                    ...member,
-                    angle: getAngle(`${pact.id}-${member.id}`)
-                }))
-                .sort((a, b) => a.angle - b.angle);
+            // Select constellation template that BEST fits the current member count
+            // This ensures a 3-member pact actually looks like Triangulum (a triangle)
+            const exactTemplates = CONSTELLATION_TEMPLATES.filter(t => t.points.length === memberPositions.length);
+            const largerTemplates = CONSTELLATION_TEMPLATES.filter(t => t.points.length > memberPositions.length)
+                .sort((a, b) => a.points.length - b.points.length);
+            
+            let template;
+            if (exactTemplates.length > 0) {
+                template = exactTemplates[getHash(pact.id || 'default') % exactTemplates.length];
+            } else if (largerTemplates.length > 0) {
+                // If no exact match, pick from the closest larger templates for variety
+                template = largerTemplates[getHash(pact.id || 'default') % Math.min(2, largerTemplates.length)];
+            } else {
+                template = CONSTELLATION_TEMPLATES[CONSTELLATION_TEMPLATES.length - 1];
+            }
 
-            ordered.forEach((member) => {
-                const targetX = center[0] + Math.cos(member.angle) * radius;
-                const targetY = center[1] + Math.sin(member.angle) * radius;
-                const targetZ = is3D ? center[2] + (Math.sin(member.angle * 2) * 2) : 0;
+            // Scale template points based on a desired overall size
+            const scale = 1.3; // Increased slightly for better clarity
+            const rotation = getAngle(`${pact.id}-rotation`);
+            const cosR = Math.cos(rotation);
+            const sinR = Math.sin(rotation);
+
+            memberPositions.forEach((member, i) => {
+                let [tx, ty, tz] = i < template.points.length 
+                    ? template.points[i] 
+                    : [(Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 5];
+                
+                const rx = (tx * cosR - ty * sinR) * scale;
+                const ry = (tx * sinR + ty * cosR) * scale;
+                const rz = tz * scale;
+
+                const targetX = center[0] + rx;
+                const targetY = center[1] + ry;
+                const targetZ = is3D ? center[2] + rz : 0;
+
                 const base = member.pos;
                 const blend = 0.7;
                 const x = base[0] + (targetX - base[0]) * blend;
@@ -208,16 +281,29 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                 color: pactColor
             });
 
-            for (let i = 0; i < ordered.length - 1; i += 1) {
-                const curr = ordered[i];
-                const next = ordered[i + 1];
-                const start = nextPositions.get(curr.id) as [number, number, number];
-                const end = nextPositions.get(next.id) as [number, number, number];
-                lines.push({ start, end, color: pactColor });
-            }
-            // Close the loop for more constellation-like feel
-            if (ordered.length > 2) {
-                lines.push({ start: nextPositions.get(ordered[ordered.length - 1].id) as [number, number, number], end: nextPositions.get(ordered[0].id) as [number, number, number], color: pactColor });
+            // Draw template lines
+            const connectedSet = new Set<number>();
+            template.lines.forEach(([startIdx, endIdx]) => {
+                if (startIdx < memberPositions.length && endIdx < memberPositions.length) {
+                    const start = nextPositions.get(memberPositions[startIdx].id);
+                    const end = nextPositions.get(memberPositions[endIdx].id);
+                    if (start && end) {
+                        lines.push({ start, end, color: pactColor });
+                        connectedSet.add(startIdx);
+                        connectedSet.add(endIdx);
+                    }
+                }
+            });
+
+            // Ensure every node is connected to at least one other node to avoid "floating" stars
+            for (let i = 0; i < memberPositions.length; i++) {
+                if (!connectedSet.has(i) && i > 0) {
+                    const start = nextPositions.get(memberPositions[i].id);
+                    const end = nextPositions.get(memberPositions[i - 1].id);
+                    if (start && end) {
+                        lines.push({ start, end, color: pactColor });
+                    }
+                }
             }
         });
 
