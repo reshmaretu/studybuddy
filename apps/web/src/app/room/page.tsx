@@ -635,7 +635,7 @@ export default function StudyRoom() {
                     console.error('Error message:', error.message);
                     console.error('Error stack:', error.stack);
                 }
-                triggerChumToast?.(`Room error: ${error instanceof Error ? error.message : String(error)}`, 'error');
+                triggerChumToast?.(`Room error: ${error instanceof Error ? error.message : String(error)}`, 'warning');
                 router.push('/lantern?error=room_init_failed');
             }
         };
