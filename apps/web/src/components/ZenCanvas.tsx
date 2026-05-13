@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { useStudyStore } from "@/store/useStudyStore";
 import { Save, Cloud, CloudOff } from "lucide-react";
 import dynamic from "next/dynamic";

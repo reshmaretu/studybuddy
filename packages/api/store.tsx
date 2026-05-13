@@ -46,6 +46,7 @@ export interface StudyState {
     useChumAvatar: boolean;
     setUseChumAvatar: (use: boolean) => Promise<void>;
 
+    userId: string | null;
     displayName: string;
     fullName: string;
     userEmail: string;
@@ -339,10 +340,11 @@ export const useStudyStore = create<StudyState>()(
 
             isInitialized: false,
             isPremiumUser: false,
+            userId: null,
+            userEmail: '',
+            displayName: 'Guardian',
+            fullName: 'New Sprout',
             isVerified: false,
-            displayName: "",
-            fullName: "",
-            userEmail: "",
             avatarUrl: null,
             isProfileModalOpen: false,
             isBrainResetOpen: false,
@@ -1012,8 +1014,8 @@ export const useStudyStore = create<StudyState>()(
                 await get().syncWardrobe();
             },
             syncWardrobe: async () => {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+                const userId = get().userId;
+                if (!userId) return;
                 const state = get();
                 const wardrobeData = {
                     active_accessories: state.activeAccessories,
@@ -1022,7 +1024,7 @@ export const useStudyStore = create<StudyState>()(
                     active_chum_base_color: state.activeBaseColor,
                     active_app_theme: state.activeAppTheme
                 };
-                await supabase.from('chum_wardrobe').upsert({ user_id: user.id, ...wardrobeData }, { onConflict: 'user_id' });
+                await supabase.from('chum_wardrobe').upsert({ user_id: userId, ...wardrobeData }, { onConflict: 'user_id' });
             },
 
             windSpeed: 2.0,
@@ -1040,7 +1042,12 @@ export const useStudyStore = create<StudyState>()(
                 });
                 
                 const { data: { user } } = await supabase.auth.getUser();
-                if (!user) { set({ isInitialized: true }); return; }
+                if (!user) { 
+                    set({ isInitialized: true, userId: null }); 
+                    return; 
+                }
+
+                set({ userId: user.id });
 
                 const mapDbNotification = (row: any): AppNotification | null => {
                     if (!row) return null;
@@ -1088,21 +1095,35 @@ export const useStudyStore = create<StudyState>()(
                 };
 
                 try {
+                    const fetchSafely = async (query: any) => {
+                        try {
+                            const res = await query;
+                            if (res.error) {
+                                console.warn("Fetch error:", res.error);
+                                return { data: null, error: res.error };
+                            }
+                            return res;
+                        } catch (e) {
+                            console.error("Fetch crash:", e);
+                            return { data: null, error: e };
+                        }
+                    };
+
                     const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse, sessionsResponse, notificationsResponse, crystalGrowthResponse, crystalMasteryResponse] = await Promise.all([
-                        supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                        supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
-                        supabase.from('user_stats').select('*').eq('user_id', user.id).maybeSingle(),
-                        supabase.from('chum_wardrobe').select('user_id, active_accessories, active_chum_base_color, active_crystal_theme, active_atmosphere_filter, active_app_theme').eq('user_id', user.id).maybeSingle(),
-                        supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false }),
-                        supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
-                        supabase.from('crystal_growth').select('*').eq('user_id', user.id).maybeSingle(),
-                        supabase.from('crystal_mastery').select('*').eq('user_id', user.id).order('mastered_at', { ascending: false })
+                        fetchSafely(supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false })),
+                        fetchSafely(supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false })),
+                        fetchSafely(supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()),
+                        fetchSafely(supabase.from('user_stats').select('*').eq('user_id', user.id).maybeSingle()),
+                        fetchSafely(supabase.from('chum_wardrobe').select('user_id, active_accessories, active_chum_base_color, active_crystal_theme, active_atmosphere_filter, active_app_theme').eq('user_id', user.id).maybeSingle()),
+                        fetchSafely(supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false })),
+                        fetchSafely(supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50)),
+                        fetchSafely(supabase.from('crystal_growth').select('*').eq('user_id', user.id).maybeSingle()),
+                        fetchSafely(supabase.from('crystal_mastery').select('*').eq('user_id', user.id).order('mastered_at', { ascending: false }))
                     ]);
 
                     if (tasksResponse.data) {
                         set({
-                            tasks: tasksResponse.data.map(t => ({
+                            tasks: tasksResponse.data.map((t: any) => ({
                                 id: t.id, title: t.title, description: t.description,
                                 load: t.load, deadline: t.deadline, isCompleted: t.is_completed, isPinned: t.is_pinned,
                                 urgency: t.urgency, importance: t.importance, isFrog: t.is_frog,
@@ -1114,7 +1135,7 @@ export const useStudyStore = create<StudyState>()(
 
                     if (shardsResponse.data) {
                         set({
-                            shards: shardsResponse.data.map(s => ({
+                            shards: shardsResponse.data.map((s: any) => ({
                                 id: s.id, title: s.title, content: s.content,
                                 mastery: s.mastery, isMastered: s.is_mastered, createdAt: s.created_at
                             }))
@@ -1140,7 +1161,7 @@ export const useStudyStore = create<StudyState>()(
                     if (notificationsResponse.data) {
                         const mapped = (notificationsResponse.data || [])
                             .map(mapDbNotification)
-                            .filter((n): n is AppNotification => Boolean(n));
+                            .filter((n: any): n is AppNotification => Boolean(n));
                         if (mapped.length > 0) {
                             set({ notifications: mapped });
                         }
@@ -1295,6 +1316,7 @@ export const useStudyStore = create<StudyState>()(
                     }
 
                     set({
+                        userId: user.id,
                         displayName: profile?.display_name || metadata?.display_name || "Guardian",
                         fullName: profile?.full_name || metadata?.full_name || "New Sprout",
                         isVerified: profile?.is_verified || false,
@@ -1387,42 +1409,45 @@ export const useStudyStore = create<StudyState>()(
             },
 
             addTask: async (task) => {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+                const userId = get().userId;
+                if (!userId) return;
                 const tempId = `temp-${Date.now()}`;
                 set((state) => ({ tasks: [{ ...task, id: tempId, isCompleted: false }, ...state.tasks] }));
                 const { data } = await supabase.from('tasks').insert([{
-                    user_id: user.id, title: task.title, description: task.description,
+                    user_id: userId, title: task.title, description: task.description,
                     load: task.load, deadline: task.deadline, estimated_pomodoros: task.estimatedPomos
                 }]).select().single();
                 if (data) set((state) => ({ tasks: state.tasks.map(t => t.id === tempId ? { ...t, id: data.id } : t) }));
             },
 
-            updateTask: async (id, updates) => {
-                set((state) => ({ tasks: state.tasks.map(t => t.id === id ? { ...t, ...updates } : t) }));
-                if (!id.startsWith('temp-')) {
-                    const dbUpdates: any = { ...updates };
-                    if (updates.isCompleted !== undefined) { dbUpdates.is_completed = updates.isCompleted; delete dbUpdates.isCompleted; }
-                    if (updates.isPinned !== undefined) { dbUpdates.is_pinned = updates.isPinned; delete dbUpdates.isPinned; }
-                    if (updates.isFrog !== undefined) { dbUpdates.is_frog = updates.isFrog; delete dbUpdates.isFrog; }
-                    if (updates.eisenhowerQuadrant !== undefined) { dbUpdates.eisenhower_quadrant = updates.eisenhowerQuadrant; delete dbUpdates.eisenhowerQuadrant; }
-                    if (updates.ivyRank !== undefined) { dbUpdates.ivy_rank = updates.ivyRank; delete dbUpdates.ivyRank; }
-                    await supabase.from('tasks').update(dbUpdates).eq('id', id);
-                }
-            },
-
             deleteTask: async (id) => {
+                const userId = get().userId;
+                if (!userId) return;
                 set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) }));
-                if (!id.startsWith('temp-')) await supabase.from('tasks').delete().eq('id', id);
+                await supabase.from('tasks').delete().eq('id', id);
             },
 
+            updateTask: async (id, updates) => {
+                const userId = get().userId;
+                if (!userId) return;
+                set((state) => ({ tasks: state.tasks.map(t => t.id === id ? { ...t, ...updates } : t) }));
 
+                const dbUpdates: any = { ...updates };
+                if (updates.isCompleted !== undefined) { dbUpdates.is_completed = updates.isCompleted; delete dbUpdates.isCompleted; }
+                if (updates.isPinned !== undefined) { dbUpdates.is_pinned = updates.isPinned; delete dbUpdates.isPinned; }
+                if (updates.isFrog !== undefined) { dbUpdates.is_frog = updates.isFrog; delete dbUpdates.isFrog; }
+                if (updates.eisenhowerQuadrant !== undefined) { dbUpdates.eisenhower_quadrant = updates.eisenhowerQuadrant; delete dbUpdates.eisenhowerQuadrant; }
+                if (updates.ivyRank !== undefined) { dbUpdates.ivy_rank = updates.ivyRank; delete dbUpdates.ivyRank; }
+                await supabase.from('tasks').update(dbUpdates).eq('id', id);
+            },
 
             forgeShard: async (shard) => {
+                const userId = get().userId;
+                if (!userId) return;
+                const tempId = `temp-shard-${Date.now()}`;
+                set((state) => ({ shards: [{ ...shard, id: tempId, mastery: 0, isMastered: false, createdAt: new Date().toISOString() }, ...state.shards] }));
+
                 try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    if (!session) return;
-                    
                     const geminiKey = get().aiKeys.gemini;
                     const llamaKey = get().aiKeys.llama || process.env.NEXT_PUBLIC_LLAMA_CLOUD_API_KEY;
 
@@ -1445,7 +1470,7 @@ export const useStudyStore = create<StudyState>()(
                     // 3. Supabase Save
                     const { data: newShard, error: shardError } = await supabase
                         .from('shards')
-                        .insert([{ user_id: session.user.id, title: finalTitle, content: finalContent }])
+                        .insert([{ user_id: userId, title: finalTitle, content: finalContent }])
                         .select().single();
 
                     if (shardError) throw shardError;
@@ -1453,13 +1478,14 @@ export const useStudyStore = create<StudyState>()(
                     await supabase.from('shard_embeddings').insert([{ shard_id: newShard.id, embedding }]);
 
                     set((state) => ({
-                        shards: [{
+                        shards: state.shards.map(s => s.id === tempId ? {
                             id: newShard.id, title: newShard.title, content: newShard.content,
                             mastery: 0, isMastered: false, createdAt: newShard.created_at
-                        }, ...state.shards]
+                        } : s)
                     }));
                 } catch (error: any) {
                     alert(`Failed to forge shard: ${error.message}`);
+                    set((state) => ({ shards: state.shards.filter(s => s.id !== tempId) }));
                 }
             },
 
@@ -1481,11 +1507,9 @@ export const useStudyStore = create<StudyState>()(
                 timeLeft: state.pomodoroFocus * 60, isRunning: true
             })),
             exitMode: () => {
-                const { totalSecondsTracked } = get();
+                const { totalSecondsTracked, userId } = get();
                 set({ activeMode: 'none', activeTaskId: null, isRunning: false });
-                supabase.auth.getUser().then(({ data: { user } }) => {
-                    if (user) supabase.from('user_stats').update({ total_seconds_tracked: totalSecondsTracked }).eq('user_id', user.id).then();
-                });
+                if (userId) supabase.from('user_stats').update({ total_seconds_tracked: totalSecondsTracked }).eq('user_id', userId).then();
             },
 
             updatePomodoroSettings: (settings) => set((state) => ({ ...state, ...settings })),
@@ -1499,8 +1523,8 @@ export const useStudyStore = create<StudyState>()(
             })),
             exitTutorMode: () => set({ isTutorModeActive: false, activeShardId: null, tutorChatHistory: [] }),
             completeTutorSession: async (masteryGained) => {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+                const userId = get().userId;
+                if (!userId) return;
                 const activeShard = get().shards.find(s => s.id === get().activeShardId);
                 if (!activeShard) return;
                 const newSession: TutorSession = {
@@ -1512,7 +1536,7 @@ export const useStudyStore = create<StudyState>()(
                     tutorSessionState: { ...state.tutorSessionState, isSessionComplete: true, totalMasteryGained: 0 }
                 }));
                 await supabase.from('ai_sessions').insert([{
-                    user_id: user.id, shard_id: activeShard.id,
+                    user_id: userId, shard_id: activeShard.id,
                     chat_history: get().tutorChatHistory, mastery_gained: masteryGained
                 }]);
             },

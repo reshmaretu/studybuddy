@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import GeodeScene from "@/components/GeodeScene";
 import { useTerms } from "@/hooks/useTerms";
+import { useStudyStore } from "@/store/useStudyStore";
 
 // --- DUMMY DATA FOR THE INTERACTIVE SHOWCASE ---
 const SHOWCASE_TASKS = [
