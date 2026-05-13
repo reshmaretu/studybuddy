@@ -599,7 +599,16 @@ export const useStudyStore = create<StudyState>()(
             })),
             processOfflineQueue: async () => {
                 const { offlineQueue } = get();
-                if (offlineQueue.length === 0) return;
+                if (offlineQueue.length === 0) {
+                    // Even if no queue, sync any missing profile data when coming online
+                    try {
+                        await supabase.rpc('mobile_sync_all_data');
+                        console.log('[Sync] Mobile sync completed');
+                    } catch (e) {
+                        console.warn('[Sync] Mobile sync failed:', e);
+                    }
+                    return;
+                }
                 
                 console.log(`[Sync] Processing ${offlineQueue.length} offline actions...`);
                 const remaining = [...offlineQueue];
@@ -618,6 +627,15 @@ export const useStudyStore = create<StudyState>()(
                         break; // Stop processing if we're still offline or error occurs
                     }
                 }
+                
+                // After processing queue, sync any missing data
+                try {
+                    await supabase.rpc('mobile_sync_all_data');
+                    console.log('[Sync] Post-queue mobile sync completed');
+                } catch (e) {
+                    console.warn('[Sync] Post-queue mobile sync failed:', e);
+                }
+                
                 set({ offlineQueue: remaining });
             },
             incrementCrystalGrowth: async (amount = 1) => {
@@ -1653,37 +1671,60 @@ export const useStudyStore = create<StudyState>()(
             },
 
             fetchBroadcasts: async (limit = 50, offset = 0) => {
-                const { data, error } = await supabase
-                    .from('synthetic_logs')
-                    .select(`
-                        *,
-                        profile:profile_id (
-                            id,
-                            display_name,
-                            avatar_url,
-                            full_name,
-                            status
-                        )
-                    `)
-                    .order('created_at', { ascending: false })
-                    .range(offset, offset + limit - 1);
+                try {
+                    // Try using the RPC function first (mobile-optimized)
+                    if (navigator.onLine) {
+                        const { data, error } = await supabase.rpc('get_network_feed', {
+                            limit_param: limit,
+                            offset_param: offset
+                        });
 
-                if (error) {
-                    console.error("Fetch broadcasts error:", error);
-                    return;
+                        if (!error && data) {
+                            console.log("Fetched broadcasts via RPC:", data?.length);
+                            set((state) => ({ 
+                                broadcasts: offset === 0 ? data : [...state.broadcasts, ...data] 
+                            }));
+                            return;
+                        }
+                    }
+
+                    // Fallback: Use direct query (works offline)
+                    const { data, error } = await supabase
+                        .from('synthetic_logs')
+                        .select(`
+                            *,
+                            profile:profile_id (
+                                id,
+                                display_name,
+                                avatar_url,
+                                full_name,
+                                status
+                            )
+                        `)
+                        .order('created_at', { ascending: false })
+                        .range(offset, offset + limit - 1);
+
+                    if (error) {
+                        console.error("Fetch broadcasts error:", error);
+                        return;
+                    }
+
+                    // Transform response to ensure profile data is accessible
+                    const broadcastsWithProfiles = (data || []).map(broadcast => ({
+                        ...broadcast,
+                        display_name: broadcast.profile?.display_name || 'Anonymous Broadcaster',
+                        avatar_url: broadcast.profile?.avatar_url,
+                        full_name: broadcast.profile?.full_name,
+                        user_status: broadcast.profile?.status
+                    }));
+
+                    console.log("Fetched broadcasts:", broadcastsWithProfiles?.length, "with profiles");
+                    set((state) => ({ 
+                        broadcasts: offset === 0 ? broadcastsWithProfiles : [...state.broadcasts, ...broadcastsWithProfiles] 
+                    }));
+                } catch (e) {
+                    console.error("Fetch broadcasts exception:", e);
                 }
-
-                // Transform response to ensure profile data is accessible
-                const broadcastsWithProfiles = (data || []).map(broadcast => ({
-                    ...broadcast,
-                    display_name: broadcast.profile?.display_name || 'Anonymous Broadcaster',
-                    avatar_url: broadcast.profile?.avatar_url,
-                    full_name: broadcast.profile?.full_name,
-                    user_status: broadcast.profile?.status
-                }));
-
-                console.log("Fetched broadcasts:", broadcastsWithProfiles?.length, "with profiles");
-                set((state) => ({ broadcasts: offset === 0 ? broadcastsWithProfiles : [...state.broadcasts, ...broadcastsWithProfiles] }));
             },
 
             sparkBroadcast: async (broadcastId: string) => {
@@ -1761,51 +1802,110 @@ export const useStudyStore = create<StudyState>()(
             },
 
             fetchFriends: async () => {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+                try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) {
+                        console.warn("Cannot fetch friends: user not authenticated");
+                        set({ friends: [] });
+                        return;
+                    }
 
-                const { data, error } = await supabase
-                    .from('user_friendships')
-                    .select(`
-                        id,
-                        user_id_1,
-                        user_id_2,
-                        status,
-                        profiles_1:user_id_1(id, display_name, avatar_url),
-                        profiles_2:user_id_2(id, display_name, avatar_url)
-                    `)
-                    .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
-                    .eq('status', 'accepted');
+                    // Try RPC function first (mobile-optimized)
+                    if (navigator.onLine) {
+                        try {
+                            const { data, error } = await supabase.rpc('get_friends');
+                            if (!error && data) {
+                                console.log("Fetched friends via RPC:", data?.length);
+                                set({ friends: data || [] });
+                                return;
+                            }
+                        } catch (e) {
+                            console.warn("RPC get_friends failed, falling back to direct query:", e);
+                        }
+                    }
 
-                if (error) throw error;
-                
-                const formatted = data.map(f => {
-                    const otherProfile = f.user_id_1 === user.id ? f.profiles_2 : f.profiles_1;
-                    return { ...f, friend_profile: otherProfile };
-                });
+                    // Fallback: Direct query
+                    const { data, error } = await supabase
+                        .from('user_friendships')
+                        .select(`
+                            id,
+                            user_id_1,
+                            user_id_2,
+                            status,
+                            profiles_1:user_id_1(id, display_name, avatar_url),
+                            profiles_2:user_id_2(id, display_name, avatar_url)
+                        `)
+                        .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+                        .eq('status', 'accepted');
 
-                set({ friends: formatted });
+                    if (error) {
+                        console.error("Fetch friends error:", error);
+                        set({ friends: [] });
+                        return;
+                    }
+                    
+                    const formatted = (data || []).map(f => {
+                        const otherProfile = f.user_id_1 === user.id ? f.profiles_2 : f.profiles_1;
+                        return { ...f, friend_profile: otherProfile };
+                    });
+
+                    console.log("Fetched friends:", formatted?.length);
+                    set({ friends: formatted });
+                } catch (e) {
+                    console.error("Fetch friends exception:", e);
+                    set({ friends: [] });
+                }
             },
 
             fetchFriendRequests: async () => {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+                try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) {
+                        console.warn("Cannot fetch friend requests: user not authenticated");
+                        set({ friendRequests: [] });
+                        return;
+                    }
 
-                const { data, error } = await supabase
-                    .from('user_friendships')
-                    .select(`
-                        id,
-                        user_id_1,
-                        user_id_2,
-                        status,
-                        profiles_1:user_id_1(id, display_name, avatar_url),
-                        profiles_2:user_id_2(id, display_name, avatar_url)
-                    `)
-                    .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
-                    .eq('status', 'pending');
+                    // Try RPC function first (mobile-optimized)
+                    if (navigator.onLine) {
+                        try {
+                            const { data, error } = await supabase.rpc('get_friend_requests');
+                            if (!error && data) {
+                                console.log("Fetched friend requests via RPC:", data?.length);
+                                set({ friendRequests: data || [] });
+                                return;
+                            }
+                        } catch (e) {
+                            console.warn("RPC get_friend_requests failed, falling back to direct query:", e);
+                        }
+                    }
 
-                if (error) throw error;
-                set({ friendRequests: data });
+                    // Fallback: Direct query
+                    const { data, error } = await supabase
+                        .from('user_friendships')
+                        .select(`
+                            id,
+                            user_id_1,
+                            user_id_2,
+                            status,
+                            profiles_1:user_id_1(id, display_name, avatar_url),
+                            profiles_2:user_id_2(id, display_name, avatar_url)
+                        `)
+                        .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+                        .eq('status', 'pending');
+
+                    if (error) {
+                        console.error("Fetch friend requests error:", error);
+                        set({ friendRequests: [] });
+                        return;
+                    }
+
+                    console.log("Fetched friend requests:", data?.length);
+                    set({ friendRequests: data || [] });
+                } catch (e) {
+                    console.error("Fetch friend requests exception:", e);
+                    set({ friendRequests: [] });
+                }
             },
 
             acceptFriendRequest: async (friendshipId) => {

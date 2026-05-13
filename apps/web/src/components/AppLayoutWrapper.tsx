@@ -57,6 +57,26 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                 .catch(err => console.error('[STUDYBUDDY] Neural Link Failed:', err));
         }
 
+        // � Mobile/Offline Sync Handler
+        const handleOnline = async () => {
+            console.log('[STUDYBUDDY] Coming online, syncing data...');
+            try {
+                await useStudyStore.getState().processOfflineQueue();
+                await useStudyStore.getState().fetchBroadcasts(50, 0);
+                await useStudyStore.getState().fetchFriends?.();
+                await useStudyStore.getState().fetchFriendRequests?.();
+            } catch (e) {
+                console.warn('[STUDYBUDDY] Sync error:', e);
+            }
+        };
+
+        const handleOffline = () => {
+            console.log('[STUDYBUDDY] Going offline');
+        };
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
         // 🔊 Unlock Audio on first interaction
         const unlock = () => {
             unlockAudio();
@@ -65,7 +85,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         };
         window.addEventListener('click', unlock);
         window.addEventListener('keydown', unlock);
+        
         return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
             window.removeEventListener('click', unlock);
             window.removeEventListener('keydown', unlock);
         };
