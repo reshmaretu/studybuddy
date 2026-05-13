@@ -377,7 +377,7 @@ export default function LanternNetPage() {
                 room_mode: roomSettings.mode
             }).catch(e => console.error("Broadcast failed:", e));
 
-            router.push(`/room/${roomCode}?title=${encodeURIComponent(roomSettings.title)}`);
+            router.push(`/room?room=${roomCode}&title=${encodeURIComponent(roomSettings.title)}`);
         } else {
             console.error("Insert Error:", error.message);
             alert("Architect error: Could not initialize blueprint.");

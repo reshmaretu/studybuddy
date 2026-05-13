@@ -199,7 +199,8 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
         };
 
         pacts.forEach((pact) => {
-            let memberIds = Array.from(new Set((pact.members || []).map((m: any) => m.id).filter(Boolean)));
+            // NEW RPC STRUCTURE: pact_members is JSONB array with user_id field
+            let memberIds = Array.from(new Set((pact.pact_members || []).map((m: any) => m.user_id).filter(Boolean)));
             
             // Ensure current user is included in pact members for rendering
             if (currentUserId && !memberIds.includes(currentUserId)) {
@@ -211,7 +212,8 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
 
             memberIds.forEach((memberId: string) => {
                 const normalizedId = currentUserId && memberId === currentUserId ? 'me' : memberId;
-                if (!pactNames.has(normalizedId)) pactNames.set(normalizedId, pact.pact_name);
+                // Pact name is not returned from RPC, use fallback
+                if (!pactNames.has(normalizedId)) pactNames.set(normalizedId, 'Pact');
                 pactMemberIds.add(memberId);
             });
 

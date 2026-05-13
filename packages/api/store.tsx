@@ -1789,8 +1789,22 @@ export const useStudyStore = create<StudyState>()(
                         return;
                     }
 
-                    console.log("Fetched friends via RPC:", data?.length);
-                    set({ friends: data || [] });
+                    // Extract friend's profile (the one that's NOT the current user)
+                    const formatted = (data || []).map((friendship: any) => {
+                        const otherProfile = friendship.user_id_1 === user.id 
+                            ? friendship.profiles_2 
+                            : friendship.profiles_1;
+                        
+                        return {
+                            ...friendship,
+                            friend_profile: otherProfile,
+                            display_name: otherProfile?.display_name || 'Unknown',
+                            avatar_url: otherProfile?.avatar_url
+                        };
+                    });
+
+                    console.log("Fetched friends via RPC:", formatted?.length, "with profiles:", formatted?.map((f: any) => f.display_name));
+                    set({ friends: formatted });
                 } catch (e) {
                     console.error("Fetch friends exception:", e);
                     set({ friends: [] });

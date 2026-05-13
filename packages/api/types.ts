@@ -188,6 +188,13 @@ export interface Pact {
         avatar_url?: string | null;
         status?: string | null;
     }>;
+    // NEW RPC STRUCTURE: pact_members as JSONB array from get_user_pacts_with_members()
+    pact_members?: Array<{
+        user_id: string;
+        display_name?: string | null;
+        avatar_url?: string | null;
+        status?: string | null;
+    }>;
 }
 
 export interface PactMember {

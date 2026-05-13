@@ -122,8 +122,6 @@ CREATE OR REPLACE FUNCTION public.get_user_pacts_with_members()
 RETURNS TABLE (
   id uuid,
   created_by uuid,
-  name text,
-  description text,
   created_at timestamp with time zone,
   pact_members jsonb
 )
@@ -134,8 +132,6 @@ AS $$
 SELECT 
   p.id,
   p.created_by,
-  p.name,
-  p.description,
   p.created_at,
   jsonb_agg(
     jsonb_build_object(
@@ -152,7 +148,7 @@ WHERE EXISTS (
   SELECT 1 FROM public.pact_members
   WHERE pact_id = p.id AND user_id = auth.uid()
 )
-GROUP BY p.id, p.created_by, p.name, p.description, p.created_at;
+GROUP BY p.id, p.created_by, p.created_at;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_user_pacts_with_members() TO authenticated;
