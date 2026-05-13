@@ -336,7 +336,7 @@ export default function LanternNetPage() {
 
                 // 🌐 Broadcast to the network!
                 const { addBroadcast } = useStudyStore.getState();
-                addBroadcast(`${roomSettings.title}`, 'canvas-room', {
+                await addBroadcast(`${roomSettings.title}`, 'canvas-room', {
                     room_code: roomCode,
                     room_title: roomSettings.title,
                     room_description: roomSettings.description,
@@ -370,7 +370,7 @@ export default function LanternNetPage() {
         if (!error) {
             // 🌐 Broadcast to the network!
             const { addBroadcast } = useStudyStore.getState();
-            addBroadcast(`${roomSettings.title}`, 'study-room', {
+            await addBroadcast(`${roomSettings.title}`, 'study-room', {
                 room_code: roomCode,
                 room_title: roomSettings.title,
                 room_description: roomSettings.description,

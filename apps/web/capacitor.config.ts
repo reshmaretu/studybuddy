@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'studybuddy-v2',
   webDir: 'out',
   server: {
-    url: 'http://studybuddy-repository.vercel.app', // Points to your machine from the Android emulator
+    url: 'https://studybuddy-repository.vercel.app',
     cleartext: true
   }
 };
