@@ -18,11 +18,14 @@ export const SyntheticFeed = () => {
 
   useEffect(() => {
     const loadBroadcasts = async () => {
+      console.log("SyntheticFeed: Starting loadBroadcasts...");
       try {
-        await fetchBroadcasts(5, 0);
+        console.log("SyntheticFeed: Calling fetchBroadcasts(20, 0)...");
+        await fetchBroadcasts(20, 0);
+        console.log("SyntheticFeed: Fetch successful.");
         setLoading(false);
       } catch (error) {
-        console.error('Failed to load broadcasts:', error);
+        console.error('SyntheticFeed: Failed to load broadcasts:', error);
         setLoading(false);
       }
     };
@@ -119,8 +122,7 @@ export const SyntheticFeed = () => {
         <>
           <div className="space-y-3 max-h-[500px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {broadcasts
-              .filter(b => ['milestone', 'study-room', 'canvas-room'].includes(b.broadcast_type))
-              .slice(0, 5)
+              .slice(0, 10)
               .map((broadcast) => {
                 const displayName = broadcast.profiles?.display_name || 'Anonymous';
                 const isSelf = currentUserId ? broadcast.user_id === currentUserId : false;

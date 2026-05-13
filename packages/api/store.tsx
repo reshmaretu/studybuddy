@@ -1118,7 +1118,8 @@ export const useStudyStore = create<StudyState>()(
                         fetchSafely(supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false })),
                         fetchSafely(supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50)),
                         fetchSafely(supabase.from('crystal_growth').select('*').eq('user_id', user.id).maybeSingle()),
-                        fetchSafely(supabase.from('crystal_mastery').select('*').eq('user_id', user.id).order('mastered_at', { ascending: false }))
+                        fetchSafely(supabase.from('crystal_mastery').select('*').eq('user_id', user.id).order('mastered_at', { ascending: false })),
+                        get().fetchBroadcasts(50, 0)
                     ]);
 
                     if (tasksResponse.data) {
@@ -1621,7 +1622,16 @@ export const useStudyStore = create<StudyState>()(
                         broadcast_type: broadcastType,
                         metadata 
                     }])
-                    .select('*, profiles(display_name, avatar_url)')
+                    .select(`
+                        *,
+                        profile:profile_id (
+                            id,
+                            display_name,
+                            avatar_url,
+                            full_name,
+                            status
+                        )
+                    `)
                     .single();
 
                 if (error) {
@@ -1629,14 +1639,32 @@ export const useStudyStore = create<StudyState>()(
                     get().addToOfflineQueue('addBroadcast', { content, type: broadcastType, metadata });
                     return;
                 }
-                set((state) => ({ broadcasts: [data, ...state.broadcasts] }));
+
+                // Transform response to match expected structure
+                const broadcastWithProfile = {
+                    ...data,
+                    display_name: data.profile?.display_name || user.email?.split('@')[0] || 'Broadcaster',
+                    avatar_url: data.profile?.avatar_url,
+                    full_name: data.profile?.full_name
+                };
+
+                set((state) => ({ broadcasts: [broadcastWithProfile, ...state.broadcasts] }));
                 get().triggerChumToast?.('Your message has been shared with the network!', 'success');
             },
 
             fetchBroadcasts: async (limit = 50, offset = 0) => {
                 const { data, error } = await supabase
                     .from('synthetic_logs')
-                    .select('*, profiles(display_name, avatar_url)')
+                    .select(`
+                        *,
+                        profile:profile_id (
+                            id,
+                            display_name,
+                            avatar_url,
+                            full_name,
+                            status
+                        )
+                    `)
                     .order('created_at', { ascending: false })
                     .range(offset, offset + limit - 1);
 
@@ -1644,7 +1672,18 @@ export const useStudyStore = create<StudyState>()(
                     console.error("Fetch broadcasts error:", error);
                     return;
                 }
-                set((state) => ({ broadcasts: offset === 0 ? data : [...state.broadcasts, ...data] }));
+
+                // Transform response to ensure profile data is accessible
+                const broadcastsWithProfiles = (data || []).map(broadcast => ({
+                    ...broadcast,
+                    display_name: broadcast.profile?.display_name || 'Anonymous Broadcaster',
+                    avatar_url: broadcast.profile?.avatar_url,
+                    full_name: broadcast.profile?.full_name,
+                    user_status: broadcast.profile?.status
+                }));
+
+                console.log("Fetched broadcasts:", broadcastsWithProfiles?.length, "with profiles");
+                set((state) => ({ broadcasts: offset === 0 ? broadcastsWithProfiles : [...state.broadcasts, ...broadcastsWithProfiles] }));
             },
 
             sparkBroadcast: async (broadcastId: string) => {
@@ -1656,30 +1695,64 @@ export const useStudyStore = create<StudyState>()(
                 }));
 
                 const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+                if (!user) {
+                    console.warn("Cannot spark broadcast: user not authenticated");
+                    return;
+                }
 
                 // We use an RPC call for atomic increment to avoid race conditions
                 const { error } = await supabase.rpc('increment_broadcast_reaction', { broadcast_id: broadcastId });
-                if (error) console.error("Spark error:", error);
+                if (error) {
+                    console.error("Spark error:", error);
+                    // Revert optimistic update on error
+                    set((state) => ({
+                        broadcasts: state.broadcasts.map((b) =>
+                            b.id === broadcastId ? { ...b, reactions_count: Math.max(0, (b.reactions_count || 1) - 1) } : b
+                        )
+                    }));
+                } else {
+                    get().triggerChumToast?.("✨ Sparked!", "success");
+                }
             },
 
             sendFriendRequest: async (targetUserId) => {
                 const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+                if (!user) {
+                    console.warn("Cannot send friend request: user not authenticated");
+                    return;
+                }
 
                 const user_id_1 = user.id < targetUserId ? user.id : targetUserId;
                 const user_id_2 = user.id < targetUserId ? targetUserId : user.id;
 
                 const { data, error } = await supabase
                     .from('user_friendships')
-                    .insert([{ user_id_1, user_id_2, status: 'pending' }])
-                    .select();
+                    .insert([{ 
+                        user_id_1, 
+                        user_id_2, 
+                        status: 'pending',
+                        requester_id: user.id
+                    }])
+                    .select(`
+                        *,
+                        profiles_1:user_id_1 (
+                            id,
+                            display_name,
+                            avatar_url
+                        ),
+                        profiles_2:user_id_2 (
+                            id,
+                            display_name,
+                            avatar_url
+                        )
+                    `);
 
                 if (error) {
                     if (error.code === '23505') {
                         get().triggerChumToast?.('Friend request already sent.', 'warning');
                     } else {
-                        throw error;
+                        console.error('Friend request error:', error);
+                        get().triggerChumToast?.('Failed to send friend request', 'warning');
                     }
                 } else {
                     get().triggerChumToast?.('Friend request sent!', 'success');
