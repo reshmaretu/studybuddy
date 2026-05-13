@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.studybuddy.app',
-  appName: 'studybuddy-v2',
+  appName: 'StudyBuddy',
   webDir: 'out',
 };
 

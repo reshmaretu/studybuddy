@@ -10,6 +10,11 @@ const outfit = Outfit({ subsets: ["latin"], weight: ["400", "500", "600", "700"]
 export const metadata: Metadata = {
   title: "StudyBuddy",
   description: "Your cozy productivity sanctuary.",
+  icons: {
+    icon: "/assets/favicon.png",
+    shortcut: "/assets/favicon.png",
+    apple: "/assets/favicon.png",
+  },
 };
 
 export default function RootLayout({
