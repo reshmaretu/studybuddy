@@ -913,7 +913,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                                 if (user.roomMode === 'canvas') {
                                                     router.push(`/canvas?room=${user.roomCode}`);
                                                 } else {
-                                                    router.push(`/room/${user.roomCode}`);
+                                                    router.push(`/room?code=${user.roomCode}`);
                                                 }
                                             }}
                                             className="w-full py-3 bg-[var(--accent-teal)] text-black text-xs font-black rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"

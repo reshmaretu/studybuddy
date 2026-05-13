@@ -11,7 +11,7 @@ export default function PresenceSync() {
     const userIdRef = useRef<string | null>(null);
     const channelRef = useRef<import('@supabase/supabase-js').RealtimeChannel | null>(null);
 
-    const isInRoom = pathname.startsWith('/room/') || (pathname.startsWith('/canvas') && !!searchParams.get('room'));
+    const isInRoom = pathname.startsWith('/room') || (pathname.startsWith('/canvas') && !!searchParams.get('room'));
     // 🛑 EMBARGO: If any of these are active, we hide the burst
     const isSpecialMode = isInRoom || activeMode === 'flowState' || activeMode === 'studyCafe';
 

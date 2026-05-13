@@ -193,7 +193,7 @@ export default function WardrobePage() {
     const premiumCrystals = Object.entries(CRYSTAL_CATALOG).filter(([_, c]) => c.isPremium);
 
     return (
-        <div className="flex flex-col h-full p-6 lg:p-8 bg-[var(--bg-dark)] overflow-hidden">
+        <div className="flex flex-col h-full p-4 lg:p-8 bg-[var(--bg-dark)] overflow-y-auto lg:overflow-hidden">
             <header className="mb-6 shrink-0">
                 <h1 className="text-3xl font-black text-[var(--text-main)] flex items-center gap-3">
                     <Shirt className="text-[var(--accent-teal)]" size={32} /> The Wardrobe
@@ -212,8 +212,8 @@ export default function WardrobePage() {
                     </div>
 
                     {/* AVATAR RENDERER */}
-                    <div className="flex-1 flex items-center justify-center w-full min-h-0 mt-8">
-                        <div className="relative w-64 h-64 shrink-0">
+                    <div className="flex-1 flex items-center justify-center w-full min-h-[300px] lg:min-h-0 mt-4 lg:mt-8">
+                        <div className="relative w-48 h-48 sm:w-64 sm:h-64 shrink-0">
                             <ChumRenderer size="w-full h-full" />
                         </div>
                     </div>
@@ -258,7 +258,7 @@ export default function WardrobePage() {
                 </section>
 
                 {/* RIGHT PANEL: Customization Hub */}
-                <section id="wardrobe-customization-hub" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl flex flex-col min-h-0 shadow-sm overflow-hidden">
+                <section id="wardrobe-customization-hub" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl flex flex-col min-h-[500px] lg:min-h-0 shadow-sm overflow-hidden mb-10 lg:mb-0">
 
                     {/* TABS HEADER */}
                     <div className="flex p-2 border-b border-[var(--border-color)]/50 bg-[var(--bg-dark)]/30">

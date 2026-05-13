@@ -396,7 +396,7 @@ export default function LanternNetPage() {
     if (!isMounted) return null;
 
     return (
-        <div data-theme={activeAppTheme} className="flex flex-col lg:flex-row h-screen max-h-screen p-4 pb-8 lg:p-6 lg:pb-10 gap-6 bg-(--bg-dark) overflow-hidden relative">
+        <div data-theme={activeAppTheme} className={`flex flex-col lg:flex-row h-screen max-h-screen ${isMaximized ? 'p-0 gap-0' : 'p-4 pb-8 lg:p-6 lg:pb-10 gap-6'} bg-(--bg-dark) overflow-hidden relative`}>
 
 
             <AnimatePresence>
@@ -1007,7 +1007,7 @@ export default function LanternNetPage() {
                 )}
             </AnimatePresence>
 
-            <div id="lantern-map-container" className="flex-1 h-full rounded-[40px] overflow-hidden border border-(--border-color) shadow-xl relative min-h-0">
+            <div id="lantern-map-container" className={`flex-1 h-full ${isMaximized ? 'rounded-none border-none' : 'rounded-[40px] border border-(--border-color) shadow-xl'} overflow-hidden relative min-h-0`}>
                 {!isVerified && (
                     <div className="absolute inset-0 z-[100] bg-(--bg-dark)/80 backdrop-blur-md flex items-center justify-center p-8 text-center">
                         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md space-y-6">

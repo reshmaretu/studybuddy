@@ -8,6 +8,7 @@ import {
     CheckCircle2, Music, Wind, Waves, Flame, Droplets, ChevronUp, ChevronDown, BrainCircuit, Clock
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { startNoise, stopNoise } from "@studybuddy/api";
 
 // ─── Atmosphere Definitions ─────────────────────────────────────────────────
 const ATMOSPHERES = [
@@ -180,6 +181,8 @@ export default function StudyCafeOverlay() {
     const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
     const [stressLevel, setStressLevel] = useState(50);
     const [actualPomos, setActualPomos] = useState(1);
+    const [noiseActive, setNoiseActive] = useState(false);
+    const [noiseVolume, setNoiseVolume] = useState(0.05);
 
     const dragControls = useDragControls();
     const constraintsRef = useRef<HTMLDivElement>(null);
@@ -287,6 +290,18 @@ export default function StudyCafeOverlay() {
         if (isActive) document.body.setAttribute("data-cafe", "true");
         return () => { document.body.removeAttribute("data-cafe"); };
     }, [isActive]);
+
+    // Handle Noise Logic
+    useEffect(() => {
+        if (isActive && isRunning && noiseActive) {
+            const type = atmo.id === 'rain' || atmo.id === 'lofi' ? 'brown' : 
+                         atmo.id === 'wind' ? 'pink' : 'white';
+            startNoise(type, noiseVolume);
+        } else {
+            stopNoise();
+        }
+        return () => stopNoise();
+    }, [isActive, isRunning, noiseActive, atmo.id, noiseVolume]);
 
     // ==========================================
     // 2. EARLY RETURN (SAFELY BELOW ALL HOOKS)
@@ -438,6 +453,40 @@ export default function StudyCafeOverlay() {
                                         </button>
                                     );
                                 })}
+
+                                <div className="mt-auto pt-4 border-t border-white/10 space-y-3">
+                                    <p className="text-[9px] font-black tracking-[0.2em] uppercase" style={{ color: `${atmo.accent}80` }}>Sound Engine</p>
+                                    <button 
+                                        onClick={() => setNoiseActive(!noiseActive)}
+                                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all"
+                                        style={{ 
+                                            background: noiseActive ? `${atmo.accent}15` : "transparent",
+                                            borderColor: noiseActive ? `${atmo.accent}40` : "rgba(255,255,255,0.05)",
+                                            color: noiseActive ? atmo.accent : "rgba(255,255,255,0.3)"
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Waves size={14} className={noiseActive ? "animate-pulse" : ""} />
+                                            <span className="text-xs font-bold">Deep Noise</span>
+                                        </div>
+                                        <div className={`w-8 h-4 rounded-full relative transition-colors ${noiseActive ? "bg-white/20" : "bg-white/5"}`}>
+                                            <motion.div 
+                                                animate={{ x: noiseActive ? 16 : 2 }}
+                                                className="absolute top-1 left-0 w-2 h-2 rounded-full" 
+                                                style={{ backgroundColor: noiseActive ? atmo.accent : "rgba(255,255,255,0.2)" }} 
+                                            />
+                                        </div>
+                                    </button>
+                                    {noiseActive && (
+                                        <div className="px-2">
+                                            <input 
+                                                type="range" min="0" max="0.2" step="0.01" 
+                                                value={noiseVolume} onChange={(e) => setNoiseVolume(parseFloat(e.target.value))}
+                                                className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-white"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* ========================================== */}

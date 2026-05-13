@@ -2,6 +2,8 @@ import React from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from './index';
+import { playChime, setSoundConfig } from './sound';
+import { getGeminiEmbedding, parseDocument } from './ai';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import {
     Task, TaskLoad, ChumToast, AppNotification,
@@ -9,7 +11,7 @@ import {
     ChatMessage, TutorSession, TutorSessionState, Shard, LanternUser, WardrobeAccessory, Invoice,
     SyntheticLog, UserFriendship, Pact, CrystalMastery
 } from './types';
-import { playChime, setSoundConfig } from './sound';
+
 
 const getAuthHeaders = async (): Promise<Record<string, string>> => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -73,6 +75,8 @@ export interface StudyState {
 
     isMindDumpOpen: boolean;
     toggleMindDump: () => void;
+    mindDumpContent: string;
+    setMindDumpContent: (content: string) => void;
 
     tasks: Task[];
     focusScore: number;
@@ -130,7 +134,7 @@ export interface StudyState {
     aiTier: 'cloud' | 'local' | 'offline';
     aiPrimaryNode: 'openrouter' | 'groq' | 'gemini';
     setAIPrimaryNode: (node: 'openrouter' | 'groq' | 'gemini') => void;
-    aiKeys: { groq: string; gemini: string; openrouter: string };
+    aiKeys: { groq: string; gemini: string; openrouter: string; llama: string };
     selectedModel: string;
     setSelectedModel: (model: string) => void;
     ollamaUrl: string;
@@ -227,6 +231,11 @@ export interface StudyState {
     setMockUsers: (val: LanternUser[] | ((prev: LanternUser[]) => LanternUser[])) => void;
     addMockInvoice: (invoice: Invoice) => void;
     setPremiumStatus: (status: boolean) => void;
+
+    // 🔄 OFFLINE SYNC
+    offlineQueue: { type: string; payload: any }[];
+    addToOfflineQueue: (type: string, payload: any) => void;
+    processOfflineQueue: () => Promise<void>;
 
     chumToasts: ChumToast[];
     triggerChumToast: (message: string | React.ReactNode, type?: 'info' | 'success' | 'warning', action?: () => void) => void;
@@ -435,6 +444,8 @@ export const useStudyStore = create<StudyState>()(
             },
             isMindDumpOpen: false,
             toggleMindDump: () => set((state) => ({ isMindDumpOpen: !state.isMindDumpOpen })),
+            mindDumpContent: '',
+            setMindDumpContent: (content) => set({ mindDumpContent: content }),
             tasks: [],
             focusScore: 100,
             dailyFocusScores: {},
@@ -485,7 +496,7 @@ export const useStudyStore = create<StudyState>()(
                 };
                 set({ aiPrimaryNode: node, selectedModel: defaults[node] });
             },
-            aiKeys: { groq: '', gemini: '', openrouter: '' },
+            aiKeys: { groq: '', gemini: '', openrouter: '', llama: '' },
             selectedModel: 'mistralai/mistral-7b-instruct:free',
             setSelectedModel: (model) => set({ selectedModel: model }),
             ollamaUrl: 'http://localhost:11434',
@@ -560,12 +571,12 @@ export const useStudyStore = create<StudyState>()(
                         : []
                 }));
                 (async () => {
-                    const authHeaders = await getAuthHeaders();
-                    await fetch('/api/notifications/read', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', ...authHeaders },
-                        body: JSON.stringify({ category })
-                    });
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) return;
+                    
+                    const query = supabase.from('notifications').update({ is_read: true }).eq('user_id', user.id);
+                    if (category) query.eq('category', category);
+                    await query;
                 })();
             },
             requestNotificationPermission: async () => {
@@ -579,6 +590,34 @@ export const useStudyStore = create<StudyState>()(
 
             crystalGrowth: 0,
             masteredCrystals: [],
+
+            offlineQueue: [],
+            addToOfflineQueue: (type, payload) => set((state) => ({ 
+                offlineQueue: [...state.offlineQueue, { type, payload }] 
+            })),
+            processOfflineQueue: async () => {
+                const { offlineQueue } = get();
+                if (offlineQueue.length === 0) return;
+                
+                console.log(`[Sync] Processing ${offlineQueue.length} offline actions...`);
+                const remaining = [...offlineQueue];
+                
+                for (const action of offlineQueue) {
+                    try {
+                        if (action.type === 'completeTask') {
+                            await get().completeTask(action.payload.id, action.payload.metrics);
+                        } else if (action.type === 'addBroadcast') {
+                            await get().addBroadcast(action.payload.content, action.payload.type, action.payload.metadata);
+                        }
+                        // Remove successfully processed action
+                        remaining.shift();
+                    } catch (e) {
+                        console.error(`[Sync] Failed to process ${action.type}:`, e);
+                        break; // Stop processing if we're still offline or error occurs
+                    }
+                }
+                set({ offlineQueue: remaining });
+            },
             incrementCrystalGrowth: async (amount = 1) => {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
@@ -872,6 +911,7 @@ export const useStudyStore = create<StudyState>()(
                 const task = get().tasks.find(t => t.id === id);
                 const now = new Date().toISOString();
 
+                // 1. Optimistic & Framework Logic
                 set((state) => {
                     let updatedTasks = state.tasks.map((t) => t.id === id ? {
                         ...t,
@@ -893,59 +933,62 @@ export const useStudyStore = create<StudyState>()(
                             return t;
                         });
                     }
-
                     return { tasks: updatedTasks };
                 });
 
+                // 2. Gameplay Rewards & Neural Fog Logic
                 get().modifyFocusScore(5);
                 if (task) {
                     const xpReward = task.load === 'heavy' ? 20 : task.load === 'medium' ? 10 : 5;
                     get().gainXp(xpReward);
+                    if (!task.isCompleted) get().incrementCrystalGrowth(1);
                 }
 
-                if (task && !task.isCompleted) {
-                    get().incrementCrystalGrowth(1);
-                }
+                const currentMode = get().activeMode;
+                const isFocusMode = currentMode === 'flowState' || currentMode === 'studyCafe';
+                if (isFocusMode) {
+                    const newTotal = get().totalSessions + 1;
+                    const newSinceReset = get().sessionsSinceLastReset + 1;
+                    set({ totalSessions: newTotal, sessionsSinceLastReset: newSinceReset });
 
-                if (!id.startsWith('temp-') && user) {
-                    const currentMode = get().activeMode;
-                    const isFocusMode = currentMode === 'flowState' || currentMode === 'studyCafe';
-
-                    if (isFocusMode) {
-                        const newTotal = get().totalSessions + 1;
-                        const newSinceReset = get().sessionsSinceLastReset + 1;
-                        set({ totalSessions: newTotal, sessionsSinceLastReset: newSinceReset });
-
-                        if (newSinceReset >= 4) {
-                            set({ lastResetHighlightAt: new Date().toISOString() });
-                            get().triggerChumToast(
-                                <span><strong className="text-yellow-400">🧠 Neural Fog Detected!</strong><br />You've completed {newSinceReset} flows in the zone. Time for a Brain Reset?</span>,
-                                "info",
-                                () => get().setIsBrainResetOpen(true)
-                            );
-                        }
-                        supabase.from('user_stats').update({ total_sessions: newTotal }).eq('user_id', user.id).then();
+                    if (newSinceReset >= 4) {
+                        set({ lastResetHighlightAt: now });
+                        get().triggerChumToast(
+                            <span><strong className="text-yellow-400">🧠 Neural Fog Detected!</strong><br />You've completed {newSinceReset} flows in the zone. Time for a Brain Reset?</span>,
+                            "info",
+                            () => get().setIsBrainResetOpen(true)
+                        );
                     }
+                    if (user) supabase.from('user_stats').update({ total_sessions: newTotal }).eq('user_id', user.id).then();
+                }
 
-                    const dbUpdate: {
-                        is_completed?: boolean;
-                        completed_at?: string;
-                        actual_pomodoros?: number;
-                        stress_level?: number;
-                    } = { is_completed: true, completed_at: now };
-                    if (premiumStats?.actualPomos !== undefined) dbUpdate.actual_pomodoros = premiumStats.actualPomos;
-                    if (premiumStats?.stressLevel !== undefined) dbUpdate.stress_level = premiumStats.stressLevel;
+                // 3. Offline Shield
+                if (typeof navigator !== 'undefined' && !navigator.onLine) {
+                    get().addToOfflineQueue('completeTask', { id, metrics: premiumStats });
+                    get().triggerChumToast?.('Offline: Task completion queued for sync.', 'info');
+                    return;
+                }
 
-                    supabase.from('tasks').update(dbUpdate).eq('id', id).then();
+                // 4. Supabase Sync
+                if (!id.startsWith('temp-') && user) {
+                    const { error } = await supabase
+                        .from('tasks')
+                        .update({
+                            is_completed: true,
+                            completed_at: now,
+                            actual_pomodoros: premiumStats?.actualPomos,
+                            stress_level: premiumStats?.stressLevel
+                        })
+                        .eq('id', id);
 
-                    if (task?.ivyRank && get().activeFramework === 'ivy') {
-                        const activeIvy = get().tasks.filter(t => !t.isCompleted && t.ivyRank);
-                        for (const it of activeIvy) {
-                            supabase.from('tasks').update({ ivy_rank: it.ivyRank }).eq('id', it.id).then();
-                        }
+                    if (error) {
+                        console.error("Complete task error:", error);
+                        get().addToOfflineQueue('completeTask', { id, metrics: premiumStats });
                     }
                 }
             },
+
+
 
             activeCrystalTheme: 'quartz',
             activeAtmosphereFilter: 'default',
@@ -1269,7 +1312,8 @@ export const useStudyStore = create<StudyState>()(
                         aiKeys: {
                             openrouter: profile?.openrouter_key || "",
                             gemini: profile?.gemini_key || "",
-                            groq: profile?.groq_key || ""
+                            groq: profile?.groq_key || "",
+                            llama: profile?.llama_key || ""
                         },
                         hasCompletedTutorial: profile?.has_completed_tutorial || false,
                     });
@@ -1335,6 +1379,10 @@ export const useStudyStore = create<StudyState>()(
                     console.error("Initialization failed:", error);
                 } finally {
                     set({ isInitialized: true });
+                    // ⚡ Auto-sync on rehydration
+                    if (get().offlineQueue.length > 0 && navigator.onLine) {
+                        get().processOfflineQueue();
+                    }
                 }
             },
 
@@ -1368,31 +1416,48 @@ export const useStudyStore = create<StudyState>()(
                 if (!id.startsWith('temp-')) await supabase.from('tasks').delete().eq('id', id);
             },
 
+
+
             forgeShard: async (shard) => {
                 try {
                     const { data: { session } } = await supabase.auth.getSession();
                     if (!session) return;
-                    const res = await fetch(`/api/forge`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` },
-                        body: JSON.stringify({
-                            user_id: session.user.id, title: shard.title, content: shard.content,
-                            files: shard.files, geminiKey: get().aiKeys.gemini
-                        })
-                    });
-                    if (!res.ok) {
-                        const errorData = await res.json().catch(() => null);
-                        throw new Error(errorData?.error || "API Error");
+                    
+                    const geminiKey = get().aiKeys.gemini;
+                    const llamaKey = get().aiKeys.llama || process.env.NEXT_PUBLIC_LLAMA_CLOUD_API_KEY;
+
+                    if (!geminiKey) throw new Error("Gemini API Key missing.");
+
+                    let finalContent = shard.content || "";
+                    let finalTitle = shard.title || "Untitled Shard";
+
+                    // 1. LlamaParse
+                    if (shard.files && shard.files.length > 0) {
+                        if (!llamaKey) throw new Error("LlamaKey missing for file processing.");
+                        const parsed = await parseDocument(shard.files[0], llamaKey);
+                        finalContent = (finalContent ? finalContent + "\n\n" : "") + parsed;
+                        if (!shard.title) finalTitle = shard.files[0].name;
                     }
-                    const data = await res.json();
-                    if (data.success && data.shard) {
-                        set((state) => ({
-                            shards: [{
-                                id: data.shard.id, title: data.shard.title, content: data.shard.content,
-                                mastery: 0, isMastered: false, createdAt: data.shard.created_at
-                            }, ...state.shards]
-                        }));
-                    }
+
+                    // 2. Embeddings
+                    const embedding = await getGeminiEmbedding(finalContent, geminiKey);
+
+                    // 3. Supabase Save
+                    const { data: newShard, error: shardError } = await supabase
+                        .from('shards')
+                        .insert([{ user_id: session.user.id, title: finalTitle, content: finalContent }])
+                        .select().single();
+
+                    if (shardError) throw shardError;
+
+                    await supabase.from('shard_embeddings').insert([{ shard_id: newShard.id, embedding }]);
+
+                    set((state) => ({
+                        shards: [{
+                            id: newShard.id, title: newShard.title, content: newShard.content,
+                            mastery: 0, isMastered: false, createdAt: newShard.created_at
+                        }, ...state.shards]
+                    }));
                 } catch (error: any) {
                     alert(`Failed to forge shard: ${error.message}`);
                 }
@@ -1499,6 +1564,7 @@ export const useStudyStore = create<StudyState>()(
                     if (keys.openrouter !== undefined) dbUpdates.openrouter_key = keys.openrouter;
                     if (keys.gemini !== undefined) dbUpdates.gemini_key = keys.gemini;
                     if (keys.groq !== undefined) dbUpdates.groq_key = keys.groq;
+                    if (keys.llama !== undefined) dbUpdates.llama_key = keys.llama;
                     await supabase.from('profiles').update(dbUpdates).eq('id', user.id);
                 }
             },
@@ -1512,35 +1578,48 @@ export const useStudyStore = create<StudyState>()(
                 if (typeof localStorage !== 'undefined') localStorage.setItem("appTheme", themeId);
             },
 
-            // 🌐 SOCIAL FEATURE METHODS
+            // 🌐 SOCIAL FEATURE METHODS (CLIENT-DIRECT)
             addBroadcast: async (content, broadcastType = 'custom-status', metadata = {}) => {
-                const authHeaders = await getAuthHeaders();
-                const response = await fetch('/api/broadcasts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders },
-                    body: JSON.stringify({ content, broadcastType, metadata }),
-                });
-                if (!response.ok) throw new Error('Failed to create broadcast');
-                const data = await response.json();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                if (typeof navigator !== 'undefined' && !navigator.onLine) {
+                    get().addToOfflineQueue('addBroadcast', { content, type: broadcastType, metadata });
+                    get().triggerChumToast?.('Offline: Broadcast queued for sync.', 'info');
+                    return;
+                }
+
+                const { data, error } = await supabase
+                    .from('synthetic_logs')
+                    .insert([{ 
+                        user_id: user.id, 
+                        content, 
+                        broadcast_type: broadcastType,
+                        metadata 
+                    }])
+                    .select('*, profiles(display_name, avatar_url)')
+                    .single();
+
+                if (error) {
+                    console.error("Add broadcast error:", error);
+                    get().addToOfflineQueue('addBroadcast', { content, type: broadcastType, metadata });
+                    return;
+                }
                 set((state) => ({ broadcasts: [data, ...state.broadcasts] }));
                 get().triggerChumToast?.('Your message has been shared with the network!', 'success');
             },
 
             fetchBroadcasts: async (limit = 50, offset = 0) => {
-                const authHeaders = await getAuthHeaders();
-                if (!authHeaders.Authorization) {
-                    set((state) => ({ broadcasts: offset === 0 ? [] : state.broadcasts }));
+                const { data, error } = await supabase
+                    .from('synthetic_logs')
+                    .select('*, profiles(display_name, avatar_url)')
+                    .order('created_at', { ascending: false })
+                    .range(offset, offset + limit - 1);
+
+                if (error) {
+                    console.error("Fetch broadcasts error:", error);
                     return;
                 }
-                const response = await fetch(`/api/broadcasts?limit=${limit}&offset=${offset}`, {
-                    headers: authHeaders,
-                });
-                if (response.status === 401) {
-                    set((state) => ({ broadcasts: offset === 0 ? [] : state.broadcasts }));
-                    return;
-                }
-                if (!response.ok) throw new Error('Failed to fetch broadcasts');
-                const data = await response.json();
                 set((state) => ({ broadcasts: offset === 0 ? data : [...state.broadcasts, ...data] }));
             },
 
@@ -1552,146 +1631,205 @@ export const useStudyStore = create<StudyState>()(
                     )
                 }));
 
-                const authHeaders = await getAuthHeaders();
-                await fetch('/api/broadcasts', {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders },
-                    body: JSON.stringify({ broadcastId }),
-                });
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                // We use an RPC call for atomic increment to avoid race conditions
+                const { error } = await supabase.rpc('increment_broadcast_reaction', { broadcast_id: broadcastId });
+                if (error) console.error("Spark error:", error);
             },
 
             sendFriendRequest: async (targetUserId) => {
-                const authHeaders = await getAuthHeaders();
-                const response = await fetch('/api/friends', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders },
-                    body: JSON.stringify({ targetUserId }),
-                });
-                if (response.status === 409) {
-                    get().triggerChumToast?.('Friend request already sent.', 'warning');
-                    await get().fetchFriendRequests();
-                    return;
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const user_id_1 = user.id < targetUserId ? user.id : targetUserId;
+                const user_id_2 = user.id < targetUserId ? targetUserId : user.id;
+
+                const { data, error } = await supabase
+                    .from('user_friendships')
+                    .insert([{ user_id_1, user_id_2, status: 'pending' }])
+                    .select();
+
+                if (error) {
+                    if (error.code === '23505') {
+                        get().triggerChumToast?.('Friend request already sent.', 'warning');
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    get().triggerChumToast?.('Friend request sent!', 'success');
                 }
-                if (!response.ok) throw new Error('Failed to send friend request');
-                get().triggerChumToast?.('Friend request sent!', 'success');
                 await get().fetchFriendRequests();
             },
 
             fetchFriends: async () => {
-                const authHeaders = await getAuthHeaders();
-                const response = await fetch('/api/friends?type=friends', { headers: authHeaders });
-                if (response.status === 401) {
-                    set({ friends: [] });
-                    return;
-                }
-                if (!response.ok) throw new Error('Failed to fetch friends');
-                const data = await response.json();
-                set({ friends: data });
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const { data, error } = await supabase
+                    .from('user_friendships')
+                    .select(`
+                        id,
+                        user_id_1,
+                        user_id_2,
+                        status,
+                        profiles_1:user_id_1(id, display_name, avatar_url),
+                        profiles_2:user_id_2(id, display_name, avatar_url)
+                    `)
+                    .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+                    .eq('status', 'accepted');
+
+                if (error) throw error;
+                
+                const formatted = data.map(f => {
+                    const otherProfile = f.user_id_1 === user.id ? f.profiles_2 : f.profiles_1;
+                    return { ...f, friend_profile: otherProfile };
+                });
+
+                set({ friends: formatted });
             },
 
             fetchFriendRequests: async () => {
-                const authHeaders = await getAuthHeaders();
-                const response = await fetch('/api/friends?type=pending', { headers: authHeaders });
-                if (response.status === 401) {
-                    set({ friendRequests: [] });
-                    return;
-                }
-                if (!response.ok) throw new Error('Failed to fetch friend requests');
-                const data = await response.json();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const { data, error } = await supabase
+                    .from('user_friendships')
+                    .select(`
+                        id,
+                        user_id_1,
+                        user_id_2,
+                        status,
+                        profiles_1:user_id_1(id, display_name, avatar_url),
+                        profiles_2:user_id_2(id, display_name, avatar_url)
+                    `)
+                    .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+                    .eq('status', 'pending');
+
+                if (error) throw error;
                 set({ friendRequests: data });
             },
 
             acceptFriendRequest: async (friendshipId) => {
-                const authHeaders = await getAuthHeaders();
-                const response = await fetch(`/api/friends/${friendshipId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders },
-                    body: JSON.stringify({ action: 'accept' }),
-                });
-                if (!response.ok) throw new Error('Failed to accept friend request');
+                const { error } = await supabase
+                    .from('user_friendships')
+                    .update({ status: 'accepted' })
+                    .eq('id', friendshipId);
+
+                if (error) throw error;
                 get().triggerChumToast?.('Friend request accepted!', 'success');
                 await Promise.all([get().fetchFriends(), get().fetchFriendRequests()]);
             },
 
             rejectFriendRequest: async (friendshipId) => {
-                const authHeaders = await getAuthHeaders();
-                const response = await fetch(`/api/friends/${friendshipId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders },
-                    body: JSON.stringify({ action: 'reject' }),
-                });
-                if (!response.ok) throw new Error('Failed to reject friend request');
+                const { error } = await supabase
+                    .from('user_friendships')
+                    .delete()
+                    .eq('id', friendshipId);
+
+                if (error) throw error;
                 await get().fetchFriendRequests();
             },
 
             removeFriend: async (friendshipId) => {
-                const authHeaders = await getAuthHeaders();
-                const response = await fetch(`/api/friends/${friendshipId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders },
-                    body: JSON.stringify({ action: 'remove' }),
-                });
-                if (!response.ok) throw new Error('Failed to remove friend');
+                const { error } = await supabase
+                    .from('user_friendships')
+                    .delete()
+                    .eq('id', friendshipId);
+
+                if (error) throw error;
                 await get().fetchFriends();
             },
 
             createPact: async (pactName, memberIds) => {
-                const authHeaders = await getAuthHeaders();
-                const response = await fetch('/api/pacts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders },
-                    body: JSON.stringify({ pactName, memberIds }),
-                });
-                if (!response.ok) {
-                    const errorPayload = await response.json().catch(() => ({}));
-                    throw new Error(errorPayload?.error || 'Failed to create pact');
-                }
-                await response.json();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const { data: pact, error: pactError } = await supabase
+                    .from('pacts')
+                    .insert([{ pact_name: pactName, created_by: user.id }])
+                    .select()
+                    .single();
+
+                if (pactError) throw pactError;
+
+                const members = [user.id, ...memberIds].map(uid => ({
+                    pact_id: pact.id,
+                    user_id: uid
+                }));
+
+                const { error: memberError } = await supabase
+                    .from('pact_members')
+                    .insert(members);
+
+                if (memberError) throw memberError;
+
                 await get().fetchPacts();
                 get().triggerChumToast?.(`Pact "${pactName}" created! Your lanterns are now connected.`, 'success');
             },
 
             addPactMembers: async (pactId: string, memberIds: string[]) => {
-                const authHeaders = await getAuthHeaders();
-                const response = await fetch(`/api/pacts/${pactId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders },
-                    body: JSON.stringify({ memberIds }),
-                });
-                if (!response.ok) {
-                    const errorPayload = await response.json().catch(() => ({}));
-                    throw new Error(errorPayload?.error || 'Failed to add pact members');
-                }
+                const members = memberIds.map(uid => ({
+                    pact_id: pactId,
+                    user_id: uid
+                }));
+
+                const { error } = await supabase
+                    .from('pact_members')
+                    .insert(members);
+
+                if (error) throw error;
                 await get().fetchPacts();
                 get().triggerChumToast?.('Pact members added.', 'success');
             },
 
             fetchPacts: async () => {
-                const authHeaders = await getAuthHeaders();
-                const response = await fetch('/api/pacts', { headers: authHeaders });
-                if (!response.ok) throw new Error('Failed to fetch pacts');
-                const data = await response.json();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const { data, error } = await supabase
+                    .from('pacts')
+                    .select(`
+                        *,
+                        pact_members (
+                            user_id,
+                            profiles (id, display_name, avatar_url)
+                        )
+                    `)
+                    .in('id', (
+                        await supabase
+                            .from('pact_members')
+                            .select('pact_id')
+                            .eq('user_id', user.id)
+                    ).data?.map(pm => pm.pact_id) || []);
+
+                if (error) throw error;
                 set({ pacts: data });
             },
 
             leavePact: async (pactId: string) => {
-                const authHeaders = await getAuthHeaders();
-                const response = await fetch(`/api/pacts/${pactId}`, {
-                    method: 'DELETE',
-                    headers: authHeaders,
-                });
-                if (!response.ok) throw new Error('Failed to leave pact');
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const { error } = await supabase
+                    .from('pact_members')
+                    .delete()
+                    .eq('pact_id', pactId)
+                    .eq('user_id', user.id);
+
+                if (error) throw error;
                 await get().fetchPacts();
                 get().triggerChumToast?.('You have left the pact.', 'info');
             },
 
             deletePact: async (pactId: string) => {
-                const authHeaders = await getAuthHeaders();
-                const response = await fetch(`/api/pacts/${pactId}?action=delete`, {
-                    method: 'DELETE',
-                    headers: authHeaders,
-                });
-                if (!response.ok) throw new Error('Failed to delete pact');
+                const { error } = await supabase
+                    .from('pacts')
+                    .delete()
+                    .eq('id', pactId);
+
+                if (error) throw error;
                 await get().fetchPacts();
                 get().triggerChumToast?.('Pact deleted.', 'info');
             },
@@ -1730,6 +1868,20 @@ export const useStudyStore = create<StudyState>()(
                 requireCompletionConfirmation: state.requireCompletionConfirmation,
                 performanceSettings: state.performanceSettings,
                 accessibilitySettings: state.accessibilitySettings,
+                // 📦 OFFLINE ESSENTIALS
+                tasks: state.tasks,
+                shards: state.shards,
+                totalSecondsTracked: state.totalSecondsTracked,
+                displayName: state.displayName,
+                fullName: state.fullName,
+                avatarUrl: state.avatarUrl,
+                focusScore: state.focusScore,
+                totalSessions: state.totalSessions,
+                dailyStreak: state.dailyStreak,
+                activeAppTheme: state.activeAppTheme,
+                mindDumpContent: state.mindDumpContent,
+                offlineQueue: state.offlineQueue,
+                broadcasts: state.broadcasts,
             }),
             onRehydrateStorage: () => (state) => {
                 if (state) {

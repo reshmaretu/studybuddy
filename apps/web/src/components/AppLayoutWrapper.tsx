@@ -36,7 +36,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     const [isMounted, setIsMounted] = useState(false);
     const { user, isLoading: isUserLoading } = useUser();
 
-    const isRoomPage = pathname.startsWith("/room/");
+    const isRoomPage = pathname.startsWith("/room");
     const isCanvasPage = pathname.startsWith("/canvas");
     const isCanvasRoom = isCanvasPage && !!searchParams.get("room");
     const appPages = ["/dashboard", "/garden", "/insights", "/lantern", "/account", "/cafe", "/canvas", "/wardrobe", "/archive", "/calendar"];
@@ -112,8 +112,8 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             <ContextualBrain />
             <div className={`flex flex-col md:flex-row h-screen w-full overflow-hidden bg-[var(--bg-dark)]`}>
                 {!isSidebarHidden && !isCanvasRoom && <Sidebar />}
-                <main className={`flex-1 min-w-0 ${isCanvasPage ? 'p-0' : 'p-4 md:p-8 pb-24 md:pb-12'} h-screen relative z-[1] 
-                    ${['/dashboard', '/insights', '/account', '/wardrobe', '/archive', '/calendar', '/garden'].includes(pathname) 
+                <main className={`flex-1 min-w-0 ${isCanvasPage || isSidebarHidden ? 'p-0' : 'p-4 md:p-8 pb-24 md:pb-12'} h-screen relative z-[1] 
+                    ${['/dashboard', '/insights', '/account', '/wardrobe', '/archive', '/calendar', '/garden', '/lantern'].includes(pathname) 
                         ? 'overflow-y-auto no-scrollbar' 
                         : 'overflow-hidden'}`}
                 >

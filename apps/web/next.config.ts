@@ -1,6 +1,10 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  output: 'export',
+  images: {
+    unoptimized: true,
+  },
   transpilePackages: ['@studybuddy/api', '@studybuddy/ui', '@studybuddy/canvas-engine'],
   async headers() {
     return [

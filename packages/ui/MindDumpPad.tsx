@@ -6,8 +6,7 @@ import { Edit3, X, CheckSquare, Hammer } from "lucide-react";
 import { useStudyStore } from "@studybuddy/api";
 
 export const MindDumpPad = () => {
-    const { isMindDumpOpen, toggleMindDump, addTask, forgeShard } = useStudyStore();
-    const [content, setContent] = useState("");
+    const { isMindDumpOpen, toggleMindDump, addTask, forgeShard, mindDumpContent, setMindDumpContent } = useStudyStore();
 
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
@@ -20,16 +19,16 @@ export const MindDumpPad = () => {
     if (!isMindDumpOpen) return null;
 
     const handleSaveAsTask = () => {
-        if (!content.trim()) return;
-        addTask({ title: "Mind Dump: Review", description: content, load: 'medium' });
-        setContent("");
+        if (!mindDumpContent.trim()) return;
+        addTask({ title: "Mind Dump: Review", description: mindDumpContent, load: 'medium' });
+        setMindDumpContent("");
         toggleMindDump();
     };
 
     const handleSaveAsShard = () => {
-        if (!content.trim()) return;
-        forgeShard({ title: "Mind Dump Shard", content: content, files: [] });
-        setContent("");
+        if (!mindDumpContent.trim()) return;
+        forgeShard({ title: "Mind Dump Shard", content: mindDumpContent, files: [] });
+        setMindDumpContent("");
         toggleMindDump();
     };
 
@@ -54,17 +53,17 @@ export const MindDumpPad = () => {
                     <div className="p-4 flex-1">
                         <textarea
                             autoFocus
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
+                            value={mindDumpContent}
+                            onChange={(e) => setMindDumpContent(e.target.value)}
                             placeholder="Get it out of your head..."
                             className="w-full h-48 bg-transparent text-(--text-main) text-sm resize-none outline-none custom-scrollbar placeholder:text-(--text-muted)/50 leading-relaxed"
                         />
                     </div>
                     <div className="p-3 border-t border-(--border-color) bg-(--bg-sidebar)/50 flex gap-2">
-                        <button onClick={handleSaveAsTask} disabled={!content.trim()} className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-(--bg-dark) border border-(--border-color) text-xs font-bold transition-all disabled:opacity-50">
+                        <button onClick={handleSaveAsTask} disabled={!mindDumpContent.trim()} className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-(--bg-dark) border border-(--border-color) text-xs font-bold transition-all disabled:opacity-50">
                             <CheckSquare size={14} /> To Task
                         </button>
-                        <button onClick={handleSaveAsShard} disabled={!content.trim()} className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-(--accent-yellow)/10 border border-(--accent-yellow)/30 text-(--accent-yellow) text-xs font-bold transition-all disabled:opacity-50 hover:bg-(--accent-yellow) hover:text-black">
+                        <button onClick={handleSaveAsShard} disabled={!mindDumpContent.trim()} className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-(--accent-yellow)/10 border border-(--accent-yellow)/30 text-(--accent-yellow) text-xs font-bold transition-all disabled:opacity-50 hover:bg-(--accent-yellow) hover:text-black">
                             <Hammer size={14} /> To Shard
                         </button>
                     </div>

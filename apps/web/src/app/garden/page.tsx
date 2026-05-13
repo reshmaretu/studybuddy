@@ -1371,8 +1371,8 @@ export default function CrystalGarden() {
                                 transition={{ duration: 0.3 }}
                                 className="h-[400px] lg:h-full relative flex flex-col pt-0 shrink-0"
                             >
-                        <div ref={setGeodeRef} className={`flex-1 relative rounded-[2.5rem] p-1 transition-colors duration-300 ${isGeodeOver ? 'bg-[var(--accent-teal)] shadow-[0_0_30px_rgba(20,184,166,0.3)]' : 'bg-[#111] shadow-[inset_0_4px_20px_rgba(0,0,0,0.6),0_0_0_1px_var(--border-color)]'}`}>
-                            <div className={`w-full h-full rounded-[1.8rem] overflow-hidden relative shadow-[inset_0_0_60px_rgba(0,0,0,0.9)] transition-all ${isGeodeOver ? 'border-2 border-[var(--bg-dark)]' : 'border border-white/10'}`}>
+                        <div ref={setGeodeRef} className={`flex-1 relative rounded-2xl md:rounded-[2.5rem] p-0.5 md:p-1 transition-colors duration-300 ${isGeodeOver ? 'bg-[var(--accent-teal)] shadow-[0_0_30px_rgba(20,184,166,0.3)]' : 'bg-[#111] shadow-[inset_0_4px_20px_rgba(0,0,0,0.6),0_0_0_1px_var(--border-color)]'}`}>
+                            <div className={`w-full h-full rounded-xl md:rounded-[1.8rem] overflow-hidden relative shadow-[inset_0_0_60px_rgba(0,0,0,0.9)] transition-all ${isGeodeOver ? 'border-2 border-[var(--bg-dark)]' : 'border border-white/10'}`}>
                                 <div className="absolute top-5 left-5 z-10 pointer-events-none">
                                     <h2 className="text-xl font-black text-white drop-shadow-lg tracking-wide">Daily Synthesization</h2>
                                     <p className="text-xs font-bold text-white/80 uppercase tracking-widest mt-1 drop-shadow-md">

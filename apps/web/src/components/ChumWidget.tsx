@@ -455,7 +455,7 @@ export default function ChumWidget() {
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.8 }}
-                            className={`absolute ${chatboxYPos} ${chatboxOrigin} w-80 sm:w-96 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-2xl overflow-hidden cursor-default flex flex-col`}
+                            className={`absolute ${chatboxYPos} ${chatboxOrigin} w-[min(320px,90vw)] sm:w-96 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-2xl overflow-hidden cursor-default flex flex-col`}
                             style={{ height: '480px' }}
                             onPointerDown={(e) => e.stopPropagation()}
                         >
@@ -805,7 +805,7 @@ export default function ChumWidget() {
                                         setIsOpen(true);
                                     }
                                 }}
-                                className={`w-[320px] min-h-[60px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-5 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer pointer-events-auto flex flex-col justify-center relative ${toast.type === 'warning' ? 'border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.1)]' :
+                                className={`w-[min(320px,90vw)] min-h-[60px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-5 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer pointer-events-auto flex flex-col justify-center relative ${toast.type === 'warning' ? 'border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.1)]' :
                                     toast.type === 'success' ? 'border-emerald-500/40 shadow-[0_0_20_rgba(16,185,129,0.1)]' :
                                         toast.type === 'info' ? 'border-sky-500/40 shadow-[0_0_20px_rgba(14,165,233,0.1)]' :
                                             'border-[var(--border-color)]'
@@ -839,7 +839,7 @@ export default function ChumWidget() {
                                 exit={{ opacity: 0, scale: 0 }}
                                 style={{ rotate: '1deg' }}
                                 onClick={() => setIsOpen(true)}
-                                className="w-[320px] min-h-[60px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 border-[var(--border-color)] p-4 rounded-[28px] shadow-[0_15px_40px_rgba(0,0,0,0.4)] cursor-pointer pointer-events-auto flex flex-col justify-center hover:border-[var(--accent-teal)] transition-colors relative"
+                                className="w-[min(320px,90vw)] min-h-[60px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 border-[var(--border-color)] p-4 rounded-[28px] shadow-[0_15px_40px_rgba(0,0,0,0.4)] cursor-pointer pointer-events-auto flex flex-col justify-center hover:border-[var(--accent-teal)] transition-colors relative"
                             >
                                 <p className="text-sm text-[var(--text-main)] leading-relaxed font-bold line-clamp-2">
                                     {currentHistory[currentHistory.length - 1]?.text}
