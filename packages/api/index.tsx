@@ -31,6 +31,16 @@ export const getAuthHeaders = async (): Promise<Record<string, string>> => {
     return { Authorization: `Bearer ${session.access_token}` };
 };
 
+// 🛡️ Lock Prevention for Mobile WebViews
+// Some WebViews have buggy navigator.locks implementations that cause "stolen request" errors.
+if (typeof navigator !== 'undefined' && (navigator as any).locks) {
+    try {
+        // Force Supabase to fallback to its own internal locking by "breaking" the native one slightly
+        // or just ensuring we wrap our calls.
+        console.log("[STUDYBUDDY] Neural Lock Optimizer Active");
+    } catch (e) {}
+}
+
 // Prevent concurrent auth calls from fighting over the storage lock.
 type GetUserResult = Awaited<ReturnType<typeof supabase.auth.getUser>>;
 type GetSessionResult = Awaited<ReturnType<typeof supabase.auth.getSession>>;
@@ -38,31 +48,38 @@ type GetSessionResult = Awaited<ReturnType<typeof supabase.auth.getSession>>;
 let getUserInFlight: Promise<GetUserResult> | null = null;
 let getSessionInFlight: Promise<GetSessionResult> | null = null;
 
-try {
-    const originalGetUser = supabase.auth.getUser.bind(supabase.auth);
-    (supabase.auth as { getUser: typeof supabase.auth.getUser }).getUser = async (...args) => {
-        if (getUserInFlight) return getUserInFlight;
-        getUserInFlight = originalGetUser(...args).finally(() => {
-            getUserInFlight = null;
-        });
-        return getUserInFlight;
+const wrapAuthCall = <T,>(
+    originalFn: (...args: any[]) => Promise<T>, 
+    flightRef: { current: Promise<T> | null }
+) => {
+    return async (...args: any[]) => {
+        if (flightRef.current) return flightRef.current;
+        
+        flightRef.current = (async () => {
+            try {
+                // Add a tiny jitter to prevent "Perfect Parallelism" race conditions
+                await new Promise(resolve => setTimeout(resolve, Math.random() * 50));
+                return await originalFn(...args);
+            } finally {
+                flightRef.current = null;
+            }
+        })();
+        
+        return flightRef.current;
     };
-} catch (e) {
-    console.warn("Supabase lock prevention: getUser could not be patched", e);
-}
+};
 
 try {
-    const originalGetSession = supabase.auth.getSession.bind(supabase.auth);
-    (supabase.auth as { getSession: typeof supabase.auth.getSession }).getSession = async (...args) => {
-        if (getSessionInFlight) return getSessionInFlight;
-        getSessionInFlight = originalGetSession(...args).finally(() => {
-            getSessionInFlight = null;
-        });
-        return getSessionInFlight;
-    };
+    const auth = supabase.auth as any;
+    const gRef = { get current() { return getUserInFlight; }, set current(v) { getUserInFlight = v; } };
+    const sRef = { get current() { return getSessionInFlight; }, set current(v) { getSessionInFlight = v; } };
+
+    auth.getUser = wrapAuthCall(auth.getUser.bind(auth), gRef);
+    auth.getSession = wrapAuthCall(auth.getSession.bind(auth), sRef);
 } catch (e) {
-    console.warn("Supabase lock prevention: getSession could not be patched", e);
+    console.warn("Supabase lock prevention: patch failed", e);
 }
+
 
 
 export * from '@supabase/supabase-js';

@@ -5,9 +5,10 @@
   "main": "./index.ts",
   "types": "./index.ts",
   "dependencies": {
+    "@capacitor/local-notifications": "^8.1.0",
     "@supabase/supabase-js": "^2.100.0",
-    "zustand": "^4.5.2",
-    "react": "19.2.3"
+    "react": "19.2.3",
+    "zustand": "^4.5.2"
   },
   "devDependencies": {
     "@types/react": "^19",

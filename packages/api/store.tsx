@@ -365,27 +365,57 @@ export const useStudyStore = create<StudyState>()(
             pacts: [],
             isGhostModeActive: false,
             setGhostMode: (val) => set({ isGhostModeActive: val }),
-            sendLocalNotification: (title, body) => {
+            sendLocalNotification: async (title, body) => {
                 if (typeof window === 'undefined') return;
                 
-                // 1. Browser Notification API
-                if (Notification.permission === 'granted') {
-                    // Try SW first for background support
-                    if ('serviceWorker' in navigator) {
-                        navigator.serviceWorker.ready.then(reg => {
+                // 1. 📱 CAPACITOR NATIVE (APK)
+                try {
+                    // @ts-ignore
+                    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                        const { LocalNotifications } = await import('@capacitor/local-notifications');
+                        const canSend = await LocalNotifications.checkPermissions();
+                        if (canSend.display !== 'granted') {
+                            await LocalNotifications.requestPermissions();
+                        }
+                        await LocalNotifications.schedule({
+                            notifications: [{
+                                title,
+                                body,
+                                id: Math.floor(Math.random() * 10000),
+                                schedule: { at: new Date(Date.now() + 100) },
+                                sound: 'beep.wav',
+                                attachments: [],
+                                actionTypeId: '',
+                                extra: null
+                            }]
+                        });
+                        return;
+                    }
+                } catch (e) {
+                    console.warn("[STUDYBUDDY] Capacitor Notifications failed:", e);
+                }
+
+                // 2. 🌐 BROWSER FALLBACK
+                try {
+                    const NotificationAPI = (window as any).Notification;
+                    if (NotificationAPI && NotificationAPI.permission === 'granted') {
+                        if ('serviceWorker' in navigator) {
+                            const reg = await navigator.serviceWorker.ready;
                             reg.showNotification(title, {
                                 body,
-                                icon: '/next.svg',
-                                badge: '/next.svg',
+                                icon: '/assets/favicon.png',
                                 vibrate: [200, 100, 200]
                             } as any);
-                        });
-                    } else {
-                        new Notification(title, { body, icon: '/next.svg' });
+
+                        } else {
+                            new NotificationAPI(title, { body, icon: '/assets/favicon.png' });
+                        }
                     }
+                } catch (e) {
+                    console.warn("[STUDYBUDDY] Browser Notifications failed:", e);
                 }
                 
-                // 2. Internal App Notification
+                // 3. Internal App Notification
                 get().addNotification({
                     title,
                     message: body,
@@ -535,17 +565,19 @@ export const useStudyStore = create<StudyState>()(
             },
             notifications: [],
             notificationsEnabled: typeof window !== 'undefined'
-                && "Notification" in window
-                && Notification.permission === "granted",
+                && typeof (window as any).Notification !== 'undefined'
+                && (window as any).Notification.permission === "granted",
+
             addNotification: (notif) => {
                 const id = Math.random().toString(36).substring(7);
                 const timestamp = new Date().toISOString();
 
                 if (typeof window !== 'undefined'
-                    && "Notification" in window
-                    && Notification.permission === "granted"
+                    && typeof (window as any).Notification !== 'undefined'
+                    && (window as any).Notification.permission === "granted"
                     && get().notificationsEnabled
                 ) {
+
                     navigator.serviceWorker.ready.then(registration => {
                         registration.showNotification(notif.title, {
                             body: notif.message,
@@ -582,12 +614,32 @@ export const useStudyStore = create<StudyState>()(
                 })();
             },
             requestNotificationPermission: async () => {
-                if (typeof window === 'undefined' || !("Notification" in window)) return false;
-                const permission = await Notification.requestPermission();
+                if (typeof window === 'undefined') return false;
+
+                // 📱 Capacitor Native Path
+                // @ts-ignore
+                if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                    try {
+                        const { LocalNotifications } = await import('@capacitor/local-notifications');
+                        const result = await LocalNotifications.requestPermissions();
+                        const granted = result.display === 'granted';
+                        set({ notificationsEnabled: granted });
+                        return granted;
+                    } catch (e) {
+                        console.warn("[STUDYBUDDY] Capacitor permission request failed:", e);
+                    }
+                }
+
+                // 🌐 Browser Path
+                const BrowserNotification = typeof window !== 'undefined' ? (window as any).Notification : undefined;
+                if (!BrowserNotification) return false;
+                const permission = await BrowserNotification.requestPermission();
+
                 const enabled = permission === "granted";
                 set({ notificationsEnabled: enabled });
                 return enabled;
             },
+
             setNotificationsEnabled: (enabled) => set({ notificationsEnabled: enabled }),
 
             crystalGrowth: 0,
@@ -1096,7 +1148,7 @@ export const useStudyStore = create<StudyState>()(
 
                 const maybeSendWebPush = (notif: AppNotification) => {
                     if (typeof window === 'undefined'
-                        || !("Notification" in window)
+                        || typeof Notification === 'undefined'
                         || Notification.permission !== "granted"
                         || !get().notificationsEnabled
                     ) {
@@ -2037,13 +2089,18 @@ export const useStudyStore = create<StudyState>()(
                 broadcasts: state.broadcasts,
             }),
             onRehydrateStorage: () => (state) => {
-                if (state) {
-                    setSoundConfig({ 
-                        tickEnabled: state.playTickEnabled,
-                        chimeEnabled: state.playChimeEnabled
-                    });
+                try {
+                    if (state) {
+                        setSoundConfig({ 
+                            tickEnabled: state.playTickEnabled,
+                            chimeEnabled: state.playChimeEnabled
+                        });
+                    }
+                } catch (e) {
+                    console.error("[STUDYBUDDY] Rehydration Logic Failure:", e);
                 }
             }
+
         }
     )
 );
