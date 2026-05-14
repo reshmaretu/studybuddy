@@ -657,13 +657,19 @@ export default function StudyRoom() {
 
         initRoom();
         return () => { 
-            if (activeChannel) supabase.removeChannel(activeChannel);
-            // ⚡ CLEANUP: Reset status to idle when leaving the sanctuary
-            if (currentUserId) {
-                supabase.from('profiles').update({ status: 'idle', joined_room_code: null }).eq('id', currentUserId).then();
+            if (activeChannel) {
+                console.log('📡 ROOM CLEANUP: Removing active channel...');
+                supabase.removeChannel(activeChannel);
             }
+            // ⚡ CLEANUP: Reset status to idle when leaving the sanctuary
+            supabase.auth.getUser().then(({ data: { user } }) => {
+                if (user) {
+                    supabase.from('profiles').update({ status: 'idle', joined_room_code: null }).eq('id', user.id).then();
+                }
+            });
         };
-    }, [roomCode, currentUserId]);
+    }, [roomCode, router]); // 🛡️ BREAK THE LOOP: Removed currentUserId
+
 
     // ⚡ RE-TRACK PRESENCE ON STATUS CHANGE
     useEffect(() => {
