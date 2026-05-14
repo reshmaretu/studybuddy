@@ -340,7 +340,9 @@ export default function StudyRoom() {
     const {
         isPremiumUser,
         enableDevRoomOptions,
-        triggerChumToast
+        triggerChumToast,
+        avatarUrl: storeAvatarUrl,
+        useChumAvatar: storeUseChumAvatar
     } = useStudyStore();
 
     // 🛡️ Safety Guard: Redirect if no room code is present

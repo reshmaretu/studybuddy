@@ -667,13 +667,9 @@ export default function CrystalGarden() {
     const [newTask, setNewTask] = useState<{ title: string, description: string, load: TaskLoad, deadline: string, estimatedPomos?: number }>({ title: "", description: "", load: "medium", deadline: "" });
     const [isScheduled, setIsScheduled] = useState(false);
     
-    // Widget visibility toggles
-    const [showCurrentFocus, setShowCurrentFocus] = useState(true);
-    const [showGarden3D, setShowGarden3D] = useState(true);
-    const [showHallOfMastery, setShowHallOfMastery] = useState(true);
-    
     // 3D Garden maximize state
     const [isGarden3DMaximized, setIsGarden3DMaximized] = useState(false);
+
 
     // Ensure sidebar is hidden when maximized
     useEffect(() => {
@@ -685,9 +681,7 @@ export default function CrystalGarden() {
     }, [isGarden3DMaximized, setSettings]);
     
     // View menu and task load filter state
-    const [showViewMenu, setShowViewMenu] = useState(false);
-    const [taskLoadFilters, setTaskLoadFilters] = useState<TaskLoad[]>(['light', 'medium', 'heavy']);
-    const viewMenuRef = useRef<HTMLDivElement | null>(null);
+
     
     // Close view menu when clicking outside
     useEffect(() => {
@@ -709,15 +703,7 @@ export default function CrystalGarden() {
     // Helper: Check if at least one widget is visible
     const visibleWidgetCount = [showCurrentFocus, showGarden3D, showHallOfMastery].filter(Boolean).length;
     
-    // Helper: Check if a widget is the only one visible
-    const isOnlyWidgetVisible = (type: 'focus' | 'garden' | 'mastery') => {
-        const visibility = {
-            focus: showCurrentFocus,
-            garden: showGarden3D,
-            mastery: showHallOfMastery
-        };
-        return visibleWidgetCount === 1 && visibility[type];
-    };
+
     
     // Filter tasks by load type
     const filteredTasksByLoad = activeQuests.filter(t => taskLoadFilters.includes(t.load));
@@ -1063,7 +1049,7 @@ export default function CrystalGarden() {
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
                             <input
                                 type="text"
-                                placeholder={terms.searchQuests}
+                                placeholder="Search quests..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="w-full md:w-80 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl pl-12 pr-6 py-4 text-sm font-medium focus:outline-none focus:border-[var(--accent-teal)] transition-colors placeholder:text-[var(--text-muted)]/50"
@@ -1662,18 +1648,9 @@ export default function CrystalGarden() {
                     )}
                 </AnimatePresence>
 
-                <ConfirmationModal
-                    isOpen={showBulkDeleteConfirm}
-                    title="Release All Selected?"
-                    message={`Are you sure you want to release ${selectedTaskIds.length} quests? This action cannot be undone.`}
-                    confirmText="Release All"
-                    cancelText="Keep Quests"
-                    isDangerous={true}
-                    onConfirm={confirmBulkDelete}
-                    onCancel={() => setShowBulkDeleteConfirm(false)}
-                />
                 </div>
-            </div>
+                </div>
+
 
             {/* Maximized 3D Garden View (OUTSIDE main zone to prevent display:none issues) */}
 
