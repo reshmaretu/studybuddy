@@ -206,7 +206,8 @@ export default function WardrobePage() {
             <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
 
                 {/* LEFT PANEL: Character Preview & Base Colors */}
-                <section id="wardrobe-avatar-preview" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 flex flex-col relative overflow-hidden shadow-sm">
+                <section id="wardrobe-avatar-preview" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 flex flex-col relative shadow-sm">
+
                     <div className="absolute top-6 left-6 z-10">
                         <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">Character Preview</span>
                     </div>

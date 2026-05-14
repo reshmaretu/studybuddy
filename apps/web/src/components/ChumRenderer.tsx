@@ -16,8 +16,10 @@ export default function ChumRenderer({
     const { activeAccessories, activeBaseColor } = useStudyStore();
 
     // ✅ Explicitly check if override was provided to avoid falling back to local state for remote users
-    const baseColorId = baseColorIdOverride !== undefined ? (baseColorIdOverride || 'base7') : (activeBaseColor || 'base7');
-    const accessories = activeAccessoriesOverride !== undefined ? (activeAccessoriesOverride || []) : activeAccessories;
+    const rawBaseColorId = baseColorIdOverride !== undefined ? (baseColorIdOverride || 'base7') : (activeBaseColor || 'base7');
+    const baseColorId = rawBaseColorId.trim() === "" ? 'base7' : rawBaseColorId;
+    const accessories = activeAccessoriesOverride !== undefined ? (activeAccessoriesOverride || []) : (activeAccessories || []);
+
 
     return (
         <div className={`relative ${size}`}>

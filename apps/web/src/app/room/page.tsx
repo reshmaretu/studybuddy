@@ -566,40 +566,7 @@ export default function StudyRoom() {
 
             console.log('📡 ROOM INIT: Creating realtime channel...');
             const channel = supabase.channel(`room:${roomCode}`, { config: { presence: { key: user.id } } });
-            activeChannel = channel;
-            channelRef.current = channel;
-
-            channel.subscribe(async (status) => {
-                console.log('📡 ROOM REALTIME: Subscription status:', status);
-                if (status === 'SUBSCRIBED') {
-                    console.log('✅ ROOM REALTIME: Successfully subscribed. Tracking presence...');
-                    await channel.track({
-                        id: user.id,
-                        name: finalName,
-                        avatar: finalAvatar,
-                        avatar_url: finalAvatarUrl,
-                        is_premium: myProfile.is_premium || false,
-                        joined_at: new Date().toISOString(),
-                        status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
-                        roomCode: roomCode,
-                        roomTitle: settings.name,
-                        focusScore: myStats.focus_score || 0,
-                        totalHours: 0,
-                    });
-                    
-                    // Joiner handshakes host
-                    if (!isActuallyHost) {
-                        console.log('📡 ROOM REALTIME: Sending sync request...');
-                        channel.send({ type: 'broadcast', event: 'request_sync', payload: {} });
-                    }
-                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                    console.error('❌ ROOM REALTIME: Subscription error!', status);
-                    triggerChumToast?.("Sync Relay Failed. Retrying...", "warning");
-
-                }
-            });
-
-            console.log('📡 ROOM INIT: Setting up channel listeners...');
+             console.log('📡 ROOM INIT: Setting up channel listeners...');
             channel
                 .on('presence', { event: 'sync' }, () => {
                     const state = channel.presenceState();
@@ -646,7 +613,36 @@ export default function StudyRoom() {
                         }));
                         setIsSyncing(false); // Remove loading modal!
                     }
+                })
+                .subscribe(async (status) => {
+                    console.log('📡 ROOM REALTIME: Subscription status:', status);
+                    if (status === 'SUBSCRIBED') {
+                        console.log('✅ ROOM REALTIME: Successfully subscribed. Tracking presence...');
+                        await channel.track({
+                            id: user.id,
+                            name: finalName,
+                            avatar: finalAvatar,
+                            avatar_url: finalAvatarUrl,
+                            is_premium: myProfile.is_premium || false,
+                            joined_at: new Date().toISOString(),
+                            status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
+                            roomCode: roomCode,
+                            roomTitle: settings.name,
+                            focusScore: myStats.focus_score || 0,
+                            totalHours: 0,
+                        });
+                        
+                        // Joiner handshakes host
+                        if (!isActuallyHost) {
+                            console.log('📡 ROOM REALTIME: Sending sync request...');
+                            channel.send({ type: 'broadcast', event: 'request_sync', payload: {} });
+                        }
+                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                        console.error('❌ ROOM REALTIME: Subscription error!', status);
+                        triggerChumToast?.("Sync Relay Failed. Retrying...", "warning");
+                    }
                 });
+
 
             } catch (error) {
                 console.error('❌ ROOM INIT FATAL ERROR:', error);
