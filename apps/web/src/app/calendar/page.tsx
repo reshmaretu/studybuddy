@@ -100,9 +100,10 @@ export default function TactileCalendar() {
         useSensor(PointerSensor, {
             activationConstraint: (typeof window !== 'undefined' && 
                 ((window as any).Capacitor?.isNativePlatform?.() || 'ontouchstart' in window)) 
-                ? { delay: 250, tolerance: 5 }
-                : { distance: 8 }
+                ? { delay: 250, tolerance: 20 }
+                : { distance: 10 }
         }),
+
 
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,

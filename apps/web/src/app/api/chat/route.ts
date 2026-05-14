@@ -4,6 +4,12 @@ import { createClient } from '@supabase/supabase-js';
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
+    const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    };
+
     try {
         const body = await req.json();
         const { messages, user_id, openrouter_key, groq_key, gemini_key, selected_model, stream } = body;
@@ -24,7 +30,10 @@ export async function POST(req: Request) {
         const isTutorRequest = messages.some((m: { content: string }) => m.content.includes("You are Chum, a cozy lo-fi tutor AI"));
 
         if (isTutorRequest && !isPremium) {
-            return NextResponse.json({ error: "Premium subscription required to access the Pro Tutor." }, { status: 403 });
+            return NextResponse.json(
+                { error: "Premium subscription required to access the Pro Tutor." }, 
+                { status: 403, headers: corsHeaders }
+            );
         }
 
         // ==========================================
@@ -88,9 +97,20 @@ export async function POST(req: Request) {
 
                     const contentType = response.headers.get('content-type');
                     if (!response.ok || !contentType?.includes('application/json')) {
-                        const errorData = await response.json().catch(() => ({}));
-                        const text = !response.ok ? (errorData.error?.message || response.statusText) : "Invalid Content-Type";
-                        throw new Error(`OpenRouter (${modelToUse}) failed: ${text}`);
+                        let errorMessage = `HTTP ${response.status} ${response.statusText}`;
+                        try {
+                            const text = await response.text();
+                            if (text.includes('<title>')) {
+                                const titleMatch = text.match(/<title>(.*?)<\/title>/);
+                                if (titleMatch) errorMessage = `Node Error: ${titleMatch[1]}`;
+                            } else {
+                                const errorData = JSON.parse(text);
+                                errorMessage = errorData.error?.message || errorMessage;
+                            }
+                        } catch (e) {
+                            // If we can't parse it, stick with the status text
+                        }
+                        throw new Error(`OpenRouter (${modelToUse}) failed: ${errorMessage}`);
                     }
 
                     const data = await response.json();
@@ -118,9 +138,13 @@ export async function POST(req: Request) {
 
                     const contentType = response.headers.get('content-type');
                     if (!response.ok || !contentType?.includes('application/json')) {
-                        const errorData = await response.json().catch(() => ({}));
-                        const text = !response.ok ? (errorData.error?.message || response.statusText) : "Invalid Content-Type";
-                        throw new Error(`Groq failed: ${text}`);
+                        let errorMessage = `HTTP ${response.status} ${response.statusText}`;
+                        try {
+                            const text = await response.text();
+                            const errorData = JSON.parse(text);
+                            errorMessage = errorData.error?.message || errorMessage;
+                        } catch (e) {}
+                        throw new Error(`Groq failed: ${errorMessage}`);
                     }
 
                     const data = await response.json();
@@ -151,9 +175,13 @@ export async function POST(req: Request) {
 
                     const contentType = response.headers.get('content-type');
                     if (!response.ok || !contentType?.includes('application/json')) {
-                        const errorData = await response.json().catch(() => ({}));
-                        const text = !response.ok ? (errorData.error?.message || response.statusText) : "Invalid Content-Type";
-                        throw new Error(`Gemini failed: ${text}`);
+                        let errorMessage = `HTTP ${response.status} ${response.statusText}`;
+                        try {
+                            const text = await response.text();
+                            const errorData = JSON.parse(text);
+                            errorMessage = errorData.error?.message || errorMessage;
+                        } catch (e) {}
+                        throw new Error(`Gemini failed: ${errorMessage}`);
                     }
 
                     const data = await response.json();
@@ -167,10 +195,11 @@ export async function POST(req: Request) {
             }
         }
 
+
         if (!result) {
             return NextResponse.json({ 
                 error: "Neural connection failed. All AI nodes (OpenRouter, Groq, Gemini) are either unavailable or keys are missing. Please check your Neural Link settings." 
-            }, { status: 503 });
+            }, { status: 503, headers: corsHeaders });
         }
 
         // Final safety check against HTML leakage
@@ -178,15 +207,18 @@ export async function POST(req: Request) {
             console.error("[CRITICAL] HTML Leaked into AI response:", result.substring(0, 100));
             return NextResponse.json({ 
                 error: "The AI node returned an incompatible response format (HTML). This usually happens when an API endpoint is behind a login page or experiencing a server-level crash." 
-            }, { status: 502 });
+            }, { status: 502, headers: corsHeaders });
         }
 
-        return NextResponse.json({ response: result }, { headers: { 'X-Node-Used': usedNode } });
+        return NextResponse.json({ response: result }, { status: 200, headers: { ...corsHeaders, 'X-Node-Used': usedNode } });
 
     } catch (error: unknown) {
         const err = error as Error;
         console.error("Chat API Fatal Error:", err.message);
-        return NextResponse.json({ error: "System encountered a neural desync error. Please try again." }, { status: 500 });
+        return NextResponse.json(
+            { error: "System encountered a neural desync error. Please try again." }, 
+            { status: 500, headers: corsHeaders }
+        );
     }
 }
 

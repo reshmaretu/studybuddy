@@ -107,9 +107,10 @@ export default function Dashboard() {
         useSensor(PointerSensor, {
             activationConstraint: (typeof window !== 'undefined' && 
                 ((window as any).Capacitor?.isNativePlatform?.() || 'ontouchstart' in window)) 
-                ? { delay: 250, tolerance: 5 }
-                : { distance: 8 }
+                ? { delay: 250, tolerance: 20 }
+                : { distance: 10 }
         }),
+
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         })
@@ -384,6 +385,9 @@ export default function Dashboard() {
     };
 
     return (
+    const [activeTab, setActiveTab] = useState<'focus' | 'garden' | 'mastery'>('focus');
+
+    return (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragEnd}>
             {/* 🌌 AMBIENT PARALLAX BACKGROUND */}
             <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -392,7 +396,7 @@ export default function Dashboard() {
                 <div className="absolute bottom-[-10%] left-[20%] w-[40vw] h-[40vw] bg-[var(--accent-cyan)] mix-blend-screen filter blur-[120px] opacity-[0.02] rounded-full animate-pulse" style={{ animationDuration: '12s' }} />
             </div>
 
-            <div className={`relative z-10 max-w-[1400px] mx-auto pb-24 md:pb-12 space-y-6 px-4 md:px-0 transition-all duration-500 ${confirmationModal.isOpen ? 'opacity-30 blur-md pointer-events-none' : 'opacity-100 blur-0'}`}>
+            <div className={`relative z-10 max-w-[1400px] mx-auto pb-24 md:pb-12 space-y-4 md:space-y-6 px-4 md:px-0 transition-all duration-500 ${confirmationModal.isOpen ? 'opacity-30 blur-md pointer-events-none' : 'opacity-100 blur-0'}`}>
 
                 {/* HEADER */}
                 <header className="flex justify-between items-center gap-6 mb-4 pt-4 md:pt-0">
@@ -429,244 +433,240 @@ export default function Dashboard() {
                     </div>
                 </header>
 
-                {/* SPARKS FEED */}
-                <fieldset id="sparks-feed" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 pb-5 pt-2 mt-4 mb-4">
-                    <legend className="ml-4 px-2 flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
-                        <Zap size={14} className="text-[var(--accent-yellow)]" /> {terms.sparksFeed}
-                    </legend>
-                    <div className="text-center mt-1">
-                        <p className="text-[var(--text-main)] italic text-sm">"{sparkQuote}"</p>
-                        <p className="text-[var(--accent-teal)] text-xs font-bold mt-2">— Chum</p>
-                    </div>
-                </fieldset>
+                {/* MOBILE TAB NAVIGATION */}
+                <nav className="flex md:hidden bg-[var(--bg-sidebar)]/80 backdrop-blur-md border border-[var(--border-color)] rounded-2xl p-1 mb-2 sticky top-4 z-[100] shadow-xl">
+                    <button onClick={() => setActiveTab('focus')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'focus' ? 'bg-[var(--accent-teal)] text-black shadow-lg shadow-[var(--accent-teal)]/20' : 'text-[var(--text-muted)] hover:text-white'}`}>Focus</button>
+                    <button onClick={() => setActiveTab('garden')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'garden' ? 'bg-[var(--accent-teal)] text-black shadow-lg shadow-[var(--accent-teal)]/20' : 'text-[var(--text-muted)] hover:text-white'}`}>Garden</button>
+                    <button onClick={() => setActiveTab('mastery')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'mastery' ? 'bg-[var(--accent-teal)] text-black shadow-lg shadow-[var(--accent-teal)]/20' : 'text-[var(--text-muted)] hover:text-white'}`}>Mastery</button>
+                </nav>
+
+                {/* SPARKS FEED (Hidden on mobile mastery/garden tabs) */}
+                {(activeTab === 'focus' || typeof window === 'undefined' || window.innerWidth >= 768) && (
+                    <fieldset id="sparks-feed" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 pb-5 pt-2 mt-4 mb-4">
+                        <legend className="ml-4 px-2 flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
+                            <Zap size={14} className="text-[var(--accent-yellow)]" /> {terms.sparksFeed}
+                        </legend>
+                        <div className="text-center mt-1">
+                            <p className="text-[var(--text-main)] italic text-sm">"{sparkQuote}"</p>
+                            <p className="text-[var(--accent-teal)] text-xs font-bold mt-2">— Chum</p>
+                        </div>
+                    </fieldset>
+                )}
 
                 {/* TOP ROW: Score, Reset, Timer */}
-                <section id="dashboard-timer-core" className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-center gap-8 shadow-sm relative overflow-hidden">
-                        {!isInitialized ? (
-                            <div className="w-full h-full flex items-center gap-4 animate-pulse">
-                                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-(--border-color)" />
-                                <div className="flex-1 space-y-3">
-                                    <div className="h-4 bg-(--border-color) rounded w-1/2" />
-                                    <div className="h-8 bg-(--border-color) rounded w-full" />
-                                </div>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="relative w-28 h-20 md:w-32 md:h-24 flex flex-col items-center justify-end">
+                {(activeTab === 'focus' || typeof window === 'undefined' || window.innerWidth >= 768) && (
+                    <section id="dashboard-timer-core" className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
+                        {/* UNIFIED WIDGET FOR MOBILE */}
+                        <div className="md:hidden bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 flex flex-col gap-4 shadow-sm">
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="relative w-20 h-16 flex flex-col items-center justify-end">
                                     <svg viewBox="0 0 100 50" className="absolute top-0 w-full h-full overflow-visible">
-                                        {/* The magical pathLength="100" standardizes the stroke calculation perfectly */}
                                         <path d="M 10 45 A 35 35 0 0 1 90 45" stroke="var(--border-color)" strokeWidth="10" fill="none" strokeLinecap="round" pathLength="100" />
-                                        <path
-                                            d="M 10 45 A 35 35 0 0 1 90 45"
-                                            stroke="var(--accent-teal)"
-                                            strokeWidth="10" fill="none" strokeLinecap="round"
-                                            pathLength="100"
-                                            strokeDasharray="100"
-                                            strokeDashoffset={100 - focusScore}
-                                            style={{
-                                                filter: focusGlowing ? 'drop-shadow(0px 0px 16px var(--accent-teal))' : 'drop-shadow(0px 0px 8px var(--accent-teal))',
-                                                transition: focusGlowing ? 'filter 0.5s ease-out' : 'stroke-dashoffset 1s ease-out, filter 0.5s ease-out'
-                                            }}
-                                        />
+                                        <path d="M 10 45 A 35 35 0 0 1 90 45" stroke="var(--accent-teal)" strokeWidth="10" fill="none" strokeLinecap="round" pathLength="100" strokeDasharray="100" strokeDashoffset={100 - focusScore} />
                                     </svg>
-                                    {/* Glitter effect container */}
-                                    <div className="absolute inset-0 pointer-events-none">
-                                        {focusGlitter && <GlitterEffect x={90} y={50} count={12} color="var(--accent-teal)" duration={0.8} />}
-                                    </div>
-                                    <div className="flex flex-col items-center z-10 mb-[-5px]">
-                                        <span className="text-2xl md:text-3xl font-bold text-[var(--text-main)] leading-none">{focusScore}</span>
-                                        <span className="text-[8px] md:text-[9px] text-[var(--text-muted)] font-bold tracking-widest uppercase mt-1">{terms.focusScore}</span>
+                                    <div className="flex flex-col items-center z-10 mb-[-2px]">
+                                        <span className="text-xl font-bold text-[var(--text-main)]">{focusScore}</span>
+                                        <span className="text-[7px] text-[var(--text-muted)] font-black uppercase tracking-widest">Focus</span>
                                     </div>
                                 </div>
-                                <div className="flex flex-col sm:flex-row sm:items-center items-center gap-3 sm:gap-4 min-w-0 text-center">
-                                    <div className="flex items-center gap-2 text-[var(--text-main)] font-bold text-xs md:text-sm">
-                                        <Flame size={16} className="text-[var(--accent-cyan)] md:size-8" /> {totalSessions} Focus Flows
-                                    </div>
-                                    <SquishyButton
-                                        onClick={() => useStudyStore.getState().openFocusModal()}
-                                        className="px-4 py-2 md:py-2.5 rounded-lg bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] font-bold hover:bg-[var(--accent-teal)] hover:text-[#0b1211] transition-all text-xs md:text-sm border border-[var(--accent-teal)]/30 flex items-center justify-center gap-2 shadow-sm whitespace-nowrap"
-                                    >
-                                        <Pin size={14} /> Focus
+                                <div className="flex-1 flex flex-col gap-2">
+                                    <SquishyButton onClick={() => useStudyStore.getState().openFocusModal()} className="w-full py-2.5 rounded-xl bg-[var(--accent-teal)] text-black font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(45,212,191,0.2)]">
+                                        <Pin size={12} /> Start Session
+                                    </SquishyButton>
+                                    <SquishyButton onClick={() => setIsBrainResetOpen(true)} className={`w-full py-2.5 rounded-xl border font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${isResetHighlighted ? "border-[var(--accent-teal)] bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] shadow-[0_0_10px_rgba(45,212,191,0.2)]" : "border-[var(--border-color)] text-[var(--text-muted)] bg-[var(--bg-dark)]/50"}`}>
+                                        <Brain size={12} /> Brain Reset
                                     </SquishyButton>
                                 </div>
-                            </>
-                        )}
-                    </div>
-
-                    <SquishyButton
-                        id="dashboard-brain-reset"
-                        onClick={() => setIsBrainResetOpen(true)}
-                        className={`bg-[var(--bg-card)] border-2 border-[var(--border-color)] rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer group relative overflow-hidden transition-all duration-700 w-full ${isResetHighlighted
-                            ? "border-[var(--accent-teal)] shadow-[0_0_30px_rgba(45,212,191,0.4)] ring-4 ring-[var(--accent-teal)]/20 ring-offset-4 ring-offset-[var(--bg-dark)]"
-                            : "hover:border-[var(--accent-teal)]/50"
-                            }`}
-                    >
-                        {isResetHighlighted && (
-                            <div className="absolute inset-0 bg-gradient-to-t from-[var(--accent-teal)]/10 to-transparent animate-pulse" />
-                        )}
-                        <div className="absolute inset-0 bg-[var(--accent-teal)] opacity-0 group-hover:opacity-5 transition-opacity duration-700"></div>
-                        <Brain size={48} className={`text-[var(--accent-teal)] mb-3 group-hover:scale-110 transition-transform duration-500 ${isResetHighlighted ? "animate-bounce" : ""}`} style={{ filter: 'drop-shadow(0px 0px 10px var(--accent-teal))' }} />
-                        <h2 className="text-lg font-bold text-[var(--text-main)] mb-1">{terms.brainReset}</h2>
-                        <p className="text-[var(--text-muted)] text-xs font-medium">
-                            {isResetHighlighted ? "Time for a brain reset!" : "Breathe deeply"}
-                        </p>
-                    </SquishyButton>
-
-                </section>
-
-                {/* MIDDLE ROW: Pet */}
-                <section id="dashboard-ascension-module" className="grid grid-cols-1 lg:grid-cols-1 gap-5">
-                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 shadow-sm cursor-pointer hover:border-[var(--accent-teal)]/50 transition-colors">
-
-                        {/* Strictly locked 24x24 container */}
-                        <div className="relative w-20 h-20 md:w-24 md:h-24 min-w-[5rem] md:min-w-[6rem] min-h-[5rem] md:min-h-[6rem] bg-black/20 rounded-2xl flex items-center justify-center border border-[var(--border-color)] flex-shrink-0">
-
-                            {/* Bulletproof wrapper */}
-                            <div className="absolute inset-0 flex items-center justify-center rounded-2xl overflow-hidden pointer-events-none">
-                                <ChumRenderer size="w-14 h-14 md:w-16 md:h-16 scale-125 translate-y-1.5" />
                             </div>
-                            <motion.div
-                                key={level}
-                                initial={{ scale: 0.5, rotate: -20, opacity: 0 }}
-                                animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                                transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                                className="absolute -bottom-3 bg-gradient-to-r from-[var(--accent-yellow)] to-orange-400 text-black text-[9px] md:text-[10px] font-black px-3 py-1 rounded-full shadow-[0_0_15px_rgba(250,204,21,0.5)] z-10"
-                            >
-                                {terms.level} {level}
-                            </motion.div>
                         </div>
 
-                        {/* Added min-w-0 here to ensure the text doesn't overflow */}
-                        <div className="flex-1 min-w-0 w-full">
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-2 gap-2 sm:gap-0">
-                                <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                                    <AnimatePresence mode="wait">
-                                        <motion.h3
-                                            key={level}
-                                            initial={{ y: 20, opacity: 0, filter: 'blur(10px)' }}
-                                            animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
-                                            exit={{ y: -20, opacity: 0, filter: 'blur(10px)' }}
-                                            transition={{ duration: 0.5, ease: "backOut" }}
-                                            className="text-lg md:text-xl font-black bg-gradient-to-r from-[var(--text-main)] via-[var(--accent-teal)] to-[var(--text-main)] bg-[length:200%_auto] animate-gradient-x bg-clip-text text-transparent truncate max-w-[200px] md:max-w-none"
-                                        >
-                                            {getTitleForLevel(level)}
-                                        </motion.h3>
-                                    </AnimatePresence>
-                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--accent-yellow)]/10 border border-[var(--accent-yellow)]/20 text-[var(--accent-yellow)] font-bold text-[9px] md:text-[10px] uppercase tracking-wide whitespace-nowrap">
-                                        <Flame size={12} /> {dailyStreak} {terms.dayStreak}
+
+                        {/* DESKTOP WIDGETS (Hidden on mobile) */}
+                        <div className="hidden md:flex bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-6 flex-row items-center justify-center gap-8 shadow-sm relative overflow-hidden">
+                            {!isInitialized ? (
+                                <div className="w-full h-full flex items-center gap-4 animate-pulse">
+                                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-(--border-color)" />
+                                    <div className="flex-1 space-y-3">
+                                        <div className="h-4 bg-(--border-color) rounded w-1/2" />
+                                        <div className="h-8 bg-(--border-color) rounded w-full" />
                                     </div>
                                 </div>
-                                <motion.span
-                                    key={xp}
-                                    initial={{ scale: 1.1, color: "var(--accent-teal)" }}
-                                    animate={{ scale: 1, color: "var(--text-muted)" }}
-                                    className="text-[9px] md:text-[10px] font-mono text-[var(--text-muted)] font-bold tracking-widest whitespace-nowrap"
-                                >
-                                    {terms.xp}: {xp}/{xpRequirement}
-                                </motion.span>
-                            </div>
-                            <div className="h-2 w-full bg-black/30 rounded-full overflow-hidden mb-2 relative">
-                                <motion.div
-                                    className="h-full bg-[var(--accent-teal)] rounded-full"
-                                    style={{
-                                        filter: xpGlowing ? 'drop-shadow(0px 0px 12px var(--accent-teal))' : 'drop-shadow(0px 0px 4px var(--accent-teal))',
-                                    }}
-                                    animate={{
-                                        width: `${xpProgress}%`,
-                                        boxShadow: xpGlowing
-                                            ? '0 0 12px rgba(45, 212, 191, 0.8), inset 0 0 8px rgba(45, 212, 191, 0.6)'
-                                            : '0 0 4px rgba(45, 212, 191, 0.3), inset 0 0 4px rgba(45, 212, 191, 0.2)'
-                                    }}
-                                    transition={{ duration: 0.6, ease: "easeOut" }}
-                                />
-                                {/* Glitter effect at the end of the XP bar */}
-                                {xpGlitter && (
-                                    <div className="absolute inset-0 pointer-events-none">
-                                        <GlitterEffect
-                                            x={xpProgress}
-                                            y={50}
-                                            count={10}
-                                            color="var(--accent-teal)"
-                                            duration={0.8}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                            <p className="text-xs md:text-sm text-[var(--text-muted)] italic truncate">"Nurture your blooms, grow your soul."</p>
-                        </div>
-                    </div>
-
-                </section>
-
-                {/* CURRENT FOCUS */}
-                <section className="pt-2 relative">
-                    <div className="flex items-center gap-3 mb-4">
-                        <h2 className="text-xl font-bold text-[var(--text-main)]">Current Focus</h2>
-                        <span className="bg-[var(--bg-card)] border border-[var(--border-color)] px-2 py-1 rounded-md text-[11px] text-[var(--text-muted)] font-mono flex items-center gap-1.5">
-                            <Calendar size={12} /> {formattedDate}
-                        </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-
-                        <AnimatePresence>
-                            {!isInitialized ? (
-                                Array.from({ length: 3 }).map((_, i) => (
-                                    <div key={i} className="h-32 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl animate-pulse p-4 flex flex-col gap-3">
-                                        <div className="h-4 bg-[var(--border-color)] rounded w-3/4" />
-                                        <div className="h-3 bg-[var(--border-color)] rounded w-1/2" />
-                                        <div className="mt-auto flex gap-2">
-                                            <div className="h-6 w-12 bg-[var(--border-color)] rounded" />
-                                            <div className="h-6 w-12 bg-[var(--border-color)] rounded" />
-                                        </div>
-                                    </div>
-                                ))
                             ) : (
                                 <>
-                                    {activeTasks.slice(0, 3).map((task) => (
-                                        <TaskCard
-                                            key={task.id}
-                                            task={task}
-                                            onToggleSelect={onToggleSelect}
-                                            selected={selectedIds.includes(task.id)}
-                                            isAnimating={animatingTaskId === task.id}
-                                        />
-                                    ))}
-
-                                    {Array.from({ length: Math.max(0, 3 - activeTasks.length) }).map((_, i) => (
-                                        <div key={`empty-${i}`} className="min-h-[100px] md:min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
-                                            + Open Slot
+                                    <div className="relative w-28 h-20 md:w-32 md:h-24 flex flex-col items-center justify-end">
+                                        <svg viewBox="0 0 100 50" className="absolute top-0 w-full h-full overflow-visible">
+                                            <path d="M 10 45 A 35 35 0 0 1 90 45" stroke="var(--border-color)" strokeWidth="10" fill="none" strokeLinecap="round" pathLength="100" />
+                                            <path d="M 10 45 A 35 35 0 0 1 90 45" stroke="var(--accent-teal)" strokeWidth="10" fill="none" strokeLinecap="round" pathLength="100" strokeDasharray="100" strokeDashoffset={100 - focusScore} style={{ filter: focusGlowing ? 'drop-shadow(0px 0px 16px var(--accent-teal))' : 'drop-shadow(0px 0px 8px var(--accent-teal))' }} />
+                                        </svg>
+                                        <div className="flex flex-col items-center z-10 mb-[-5px]">
+                                            <span className="text-2xl md:text-3xl font-bold text-[var(--text-main)] leading-none">{focusScore}</span>
+                                            <span className="text-[8px] md:text-[9px] text-[var(--text-muted)] font-bold tracking-widest uppercase mt-1">{terms.focusScore}</span>
                                         </div>
-                                    ))}
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row sm:items-center items-center gap-3 sm:gap-4 min-w-0 text-center">
+                                        <div className="flex items-center gap-2 text-[var(--text-main)] font-bold text-xs md:text-sm">
+                                            <Flame size={16} className="text-[var(--accent-cyan)] md:size-8" /> {totalSessions} Focus Flows
+                                        </div>
+                                        <SquishyButton onClick={() => useStudyStore.getState().openFocusModal()} className="px-4 py-2 md:py-2.5 rounded-lg bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] font-bold hover:bg-[var(--accent-teal)] hover:text-[#0b1211] transition-all text-xs md:text-sm border border-[var(--accent-teal)]/30 flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
+                                            <Pin size={14} /> Focus
+                                        </SquishyButton>
+                                    </div>
                                 </>
                             )}
-                        </AnimatePresence>
+                        </div>
 
-                        {showFourthTask ? (
-                            <TaskCard
-                                key={activeTasks[3].id}
-                                task={activeTasks[3]}
-                                onToggleSelect={onToggleSelect}
-                                selected={selectedIds.includes(activeTasks[3].id)}
-                                isAnimating={animatingTaskId === activeTasks[3].id}
-                            />
-                        ) : showGardenShortcut ? (
-                            <button
-                                type="button"
-                                onClick={() => router.push("/garden")}
-                                className="min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex flex-col items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--accent-teal)]"
-                            >
-                                <span className="text-lg md:text-xl mb-1">✨</span>
-                                <span className="text-[10px] md:text-xs font-bold tracking-wide uppercase">{terms.crystalGarden}</span>
-                                <span className="text-[9px] md:text-[10px] opacity-70 mt-1">+{hiddenTaskCount} hidden blooms</span>
-                            </button>
-                        ) : (
-                            <div className="min-h-[100px] md:min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
-                                + Open Slot
+                        <SquishyButton
+                            id="dashboard-brain-reset"
+                            onClick={() => setIsBrainResetOpen(true)}
+                            className={`hidden md:flex bg-[var(--bg-card)] border-2 border-[var(--border-color)] rounded-2xl p-5 flex-col items-center justify-center shadow-sm cursor-pointer group relative overflow-hidden transition-all duration-700 w-full ${isResetHighlighted ? "border-[var(--accent-teal)] shadow-[0_0_30px_rgba(45,212,191,0.4)]" : "hover:border-[var(--accent-teal)]/50"}`}
+                        >
+                            <Brain size={48} className="text-[var(--accent-teal)] mb-3 group-hover:scale-110 transition-transform duration-500" style={{ filter: 'drop-shadow(0px 0px 10px var(--accent-teal))' }} />
+                            <h2 className="text-lg font-bold text-[var(--text-main)] mb-1">{terms.brainReset}</h2>
+                            <p className="text-[var(--text-muted)] text-xs font-medium">Breathe deeply</p>
+                        </SquishyButton>
+                    </section>
+                )}
+
+                {/* MIDDLE ROW: Pet (Hidden on Mastery tab) */}
+                {(activeTab === 'focus' || activeTab === 'garden' || typeof window === 'undefined' || window.innerWidth >= 768) && (
+                    <section id="dashboard-ascension-module" className="grid grid-cols-1 lg:grid-cols-1 gap-5">
+                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 shadow-sm cursor-pointer hover:border-[var(--accent-teal)]/50 transition-colors">
+
+                            {/* Strictly locked 24x24 container */}
+                            <div className="relative w-20 h-20 md:w-24 md:h-24 min-w-[5rem] md:min-w-[6rem] min-h-[5rem] md:min-h-[6rem] bg-black/20 rounded-2xl flex items-center justify-center border border-[var(--border-color)] flex-shrink-0">
+
+                                {/* Bulletproof wrapper */}
+                                <div className="absolute inset-0 flex items-center justify-center rounded-2xl overflow-hidden pointer-events-none">
+                                    <ChumRenderer size="w-14 h-14 md:w-16 md:h-16 scale-125 translate-y-1.5" />
+                                </div>
+                                <motion.div
+                                    key={level}
+                                    initial={{ scale: 0.5, rotate: -20, opacity: 0 }}
+                                    animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                                    className="absolute -bottom-3 bg-gradient-to-r from-[var(--accent-yellow)] to-orange-400 text-black text-[9px] md:text-[10px] font-black px-3 py-1 rounded-full shadow-[0_0_15px_rgba(250,204,21,0.5)] z-10"
+                                >
+                                    {terms.level} {level}
+                                </motion.div>
                             </div>
-                        )}
-                    </div>
+
+                            {/* Added min-w-0 here to ensure the text doesn't overflow */}
+                            <div className="flex-1 min-w-0 w-full">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-2 gap-2 sm:gap-0">
+                                    <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                                        <AnimatePresence mode="wait">
+                                            <motion.h3
+                                                key={level}
+                                                initial={{ y: 20, opacity: 0, filter: 'blur(10px)' }}
+                                                animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
+                                                exit={{ y: -20, opacity: 0, filter: 'blur(10px)' }}
+                                                transition={{ duration: 0.5, ease: "backOut" }}
+                                                className="text-lg md:text-xl font-black bg-gradient-to-r from-[var(--text-main)] via-[var(--accent-teal)] to-[var(--text-main)] bg-[length:200%_auto] animate-gradient-x bg-clip-text text-transparent truncate max-w-[200px] md:max-w-none"
+                                            >
+                                                {getTitleForLevel(level)}
+                                            </motion.h3>
+                                        </AnimatePresence>
+                                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--accent-yellow)]/10 border border-[var(--accent-yellow)]/20 text-[var(--accent-yellow)] font-bold text-[9px] md:text-[10px] uppercase tracking-wide whitespace-nowrap">
+                                            <Flame size={12} /> {dailyStreak} {terms.dayStreak}
+                                        </div>
+                                    </div>
+                                    <motion.span
+                                        key={xp}
+                                        initial={{ scale: 1.1, color: "var(--accent-teal)" }}
+                                        animate={{ scale: 1, color: "var(--text-muted)" }}
+                                        className="text-[9px] md:text-[10px] font-mono text-[var(--text-muted)] font-bold tracking-widest whitespace-nowrap"
+                                    >
+                                        {terms.xp}: {xp}/{xpRequirement}
+                                    </motion.span>
+                                </div>
+                                <div className="h-2 w-full bg-black/30 rounded-full overflow-hidden mb-2 relative">
+                                    <motion.div
+                                        className="h-full bg-[var(--accent-teal)] rounded-full"
+                                        style={{
+                                            filter: xpGlowing ? 'drop-shadow(0px 0px 12px var(--accent-teal))' : 'drop-shadow(0px 0px 4px var(--accent-teal))',
+                                        }}
+                                        animate={{
+                                            width: `${xpProgress}%`,
+                                            boxShadow: xpGlowing
+                                                ? '0 0 12px rgba(45, 212, 191, 0.8), inset 0 0 8px rgba(45, 212, 191, 0.6)'
+                                                : '0 0 4px rgba(45, 212, 191, 0.3), inset 0 0 4px rgba(45, 212, 191, 0.2)'
+                                        }}
+                                        transition={{ duration: 0.6, ease: "easeOut" }}
+                                    />
+                                </div>
+                                <p className="text-xs md:text-sm text-[var(--text-muted)] italic truncate">"Nurture your blooms, grow your soul."</p>
+                            </div>
+                        </div>
+                    </section>
+                )}
+
+                {/* CURRENT FOCUS (Hidden on Mastery/Garden tabs) */}
+                {(activeTab === 'focus' || typeof window === 'undefined' || window.innerWidth >= 768) && (
+                    <section className="pt-2 relative">
+                        <div className="flex items-center gap-3 mb-4">
+                            <h2 className="text-xl font-bold text-[var(--text-main)]">Current Focus</h2>
+                            <span className="bg-[var(--bg-card)] border border-[var(--border-color)] px-2 py-1 rounded-md text-[11px] text-[var(--text-muted)] font-mono flex items-center gap-1.5">
+                                <Calendar size={12} /> {formattedDate}
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                            <AnimatePresence>
+                                {!isInitialized ? (
+                                    Array.from({ length: 3 }).map((_, i) => (
+                                        <div key={i} className="h-32 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl animate-pulse p-4 flex flex-col gap-3">
+                                            <div className="h-4 bg-[var(--border-color)] rounded w-3/4" />
+                                            <div className="h-3 bg-[var(--border-color)] rounded w-1/2" />
+                                        </div>
+                                    ))
+                                ) : (
+                                    <>
+                                        {activeTasks.slice(0, 3).map((task) => (
+                                            <TaskCard
+                                                key={task.id}
+                                                task={task}
+                                                onToggleSelect={onToggleSelect}
+                                                selected={selectedIds.includes(task.id)}
+                                                isAnimating={animatingTaskId === task.id}
+                                            />
+                                        ))}
+
+                                        {Array.from({ length: Math.max(0, 3 - activeTasks.length) }).map((_, i) => (
+                                            <div key={`empty-${i}`} className="min-h-[110px] sm:min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
+                                                + Open Slot
+                                            </div>
+                                        ))}
+
+                                    </>
+                                )}
+                            </AnimatePresence>
+
+                            {showFourthTask ? (
+                                <TaskCard
+                                    key={activeTasks[3].id}
+                                    task={activeTasks[3]}
+                                    onToggleSelect={onToggleSelect}
+                                    selected={selectedIds.includes(activeTasks[3].id)}
+                                    isAnimating={animatingTaskId === activeTasks[3].id}
+                                />
+                            ) : showGardenShortcut ? (
+                                <button
+                                    type="button"
+                                    onClick={() => router.push("/garden")}
+                                    className="min-h-[110px] sm:min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex flex-col items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--accent-teal)]"
+                                >
+                                    <span className="text-lg md:text-xl mb-1">✨</span>
+                                    <span className="text-[10px] md:text-xs font-bold tracking-wide uppercase">{terms.crystalGarden}</span>
+                                    <span className="text-[9px] md:text-[10px] opacity-70 mt-1">+{hiddenTaskCount} hidden blooms</span>
+                                </button>
+                            ) : (
+                                <div className="min-h-[110px] sm:min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
+                                    + Open Slot
+                                </div>
+                            )}
+                        </div>
+                    </section>
+                )}
 
                     {/* BULK ACTION BAR */}
                     <AnimatePresence>
@@ -742,56 +742,78 @@ export default function Dashboard() {
                         )}
                     </AnimatePresence>
 
-                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-8 shadow-sm">
-                        <h3 className="text-lg font-bold text-[var(--text-main)] mb-4 md:mb-6">Quest Progress</h3>
-                        <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-4 text-center mb-6 md:mb-8 border-b border-[var(--border-color)] pb-6 md:pb-8">
-                            <div className="flex flex-col items-center justify-center">
-                                <span className="text-2xl md:text-4xl font-bold text-[var(--text-main)] mb-0.5 md:mb-1">{activeTasks.length}</span>
-                                <span className="text-[10px] md:text-xs text-[var(--text-muted)] font-medium">{terms.incomplete}</span>
+                {/* 3D GARDEN TAB (Mobile only) */}
+                {(activeTab === 'garden' && typeof window !== 'undefined' && window.innerWidth < 768) && (
+                    <section className="space-y-4">
+                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 flex flex-col items-center text-center gap-4">
+                            <div className="w-20 h-20 bg-[var(--accent-teal)]/10 rounded-full flex items-center justify-center border border-[var(--accent-teal)]/30">
+                                <Sprout size={40} className="text-[var(--accent-teal)]" />
                             </div>
-                            <div className="flex flex-col items-center justify-center border-x border-[var(--border-color)] py-1 sm:py-0">
-                                <span className="text-2xl md:text-4xl font-bold text-[var(--text-main)] mb-0.5 md:mb-1">{completedTasks.length}</span>
-                                <span className="text-[10px] md:text-xs text-[var(--text-muted)] font-medium">{terms.completed}</span>
-                            </div>
-                            <div className="flex flex-col items-center justify-center">
-                                <span className="text-2xl md:text-4xl font-bold text-[var(--text-main)] mb-0.5 md:mb-1">{(totalSecondsTracked / 3600).toFixed(1)}</span>
-                                <span className="text-[10px] md:text-xs text-[var(--text-muted)] font-medium">Flow Hours</span>
-                            </div>
+                            <h2 className="text-xl font-black text-[var(--text-main)]">Crystal Garden</h2>
+                            <p className="text-sm text-[var(--text-muted)]">Your digital sanctuary is blooming. Open the full garden to manage your framework and see your growth.</p>
+                            <SquishyButton onClick={() => router.push("/garden")} className="w-full py-4 bg-[var(--accent-teal)] text-black font-black uppercase tracking-widest rounded-xl">
+                                Enter Garden
+                            </SquishyButton>
                         </div>
-                        <div className={`flex flex-col items-center justify-center text-center py-4 md:py-6 transition-all duration-500 ${confirmationModal.isOpen ? 'opacity-20 blur-xl pointer-events-none' : 'opacity-100 blur-0'}`}>
-                            {!isInitialized ? (
-                                <div className="flex flex-col items-center gap-2 animate-pulse w-full">
-                                    <div className="w-6 h-6 rounded-full bg-[var(--border-color)]" />
-                                    <div className="h-3 bg-[var(--border-color)] rounded w-1/3" />
-                                </div>
-                            ) : (
-                                <div className="w-full">
-                                    {completedTasks.length > 0 ? (
-                                        <div className="flex flex-wrap justify-center gap-3 md:gap-4 w-full">
-                                            {completedTasks
-                                                .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime())
-                                                .slice(0, 4)
-                                                .map((task) => (
-                                                    <div key={task.id} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1rem)] min-w-[240px] md:min-w-[280px]">
-                                                        <TaskCard task={task} locked={true} isMinimized={true} />
-                                                    </div>
-                                                ))
-                                            }
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-[var(--border-color)]" />
-                                            <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-widest">No blooms mastered yet</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    </section>
+                )}
 
-                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 shadow-sm mt-6">
-                        <SyntheticFeed />
-                    </div>
+                {/* MASTERY TAB / QUEST PROGRESS / FEED */}
+                {(activeTab === 'mastery' || typeof window === 'undefined' || window.innerWidth >= 768) && (
+                    <section id="hall-of-mastery-section" className="space-y-4 md:space-y-6">
+                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-8 shadow-sm">
+                            <h3 className="text-lg font-bold text-[var(--text-main)] mb-4 md:mb-6">Quest Progress</h3>
+                            <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center mb-4 md:mb-8 border-b border-[var(--border-color)] pb-4 md:pb-8">
+                                <div className="flex flex-col items-center justify-center">
+                                    <span className="text-xl md:text-4xl font-bold text-[var(--text-main)] leading-none">{activeTasks.length}</span>
+                                    <span className="text-[8px] md:text-xs text-[var(--text-muted)] font-black uppercase tracking-tighter mt-1 whitespace-nowrap">{terms.incomplete}</span>
+                                </div>
+                                <div className="flex flex-col items-center justify-center border-x border-[var(--border-color)]">
+                                    <span className="text-xl md:text-4xl font-bold text-[var(--text-main)] leading-none">{completedTasks.length}</span>
+                                    <span className="text-[8px] md:text-xs text-[var(--text-muted)] font-black uppercase tracking-tighter mt-1 whitespace-nowrap">{terms.completed}</span>
+                                </div>
+                                <div className="flex flex-col items-center justify-center">
+                                    <span className="text-xl md:text-4xl font-bold text-[var(--text-main)] leading-none">{(totalSecondsTracked / 3600).toFixed(1)}</span>
+                                    <span className="text-[8px] md:text-xs text-[var(--text-muted)] font-black uppercase tracking-tighter mt-1 whitespace-nowrap">Hours</span>
+                                </div>
+                            </div>
+
+                            <div className={`flex flex-col items-center justify-center text-center py-4 md:py-6 transition-all duration-500 ${confirmationModal.isOpen ? 'opacity-20 blur-xl pointer-events-none' : 'opacity-100 blur-0'}`}>
+                                {!isInitialized ? (
+                                    <div className="flex flex-col items-center gap-2 animate-pulse w-full">
+                                        <div className="w-6 h-6 rounded-full bg-[var(--border-color)]" />
+                                        <div className="h-3 bg-[var(--border-color)] rounded w-1/3" />
+                                    </div>
+                                ) : (
+                                    <div className="w-full">
+                                        {completedTasks.length > 0 ? (
+                                            <div className="flex flex-wrap justify-center gap-3 md:gap-4 w-full">
+                                                {completedTasks
+                                                    .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime())
+                                                    .slice(0, 4)
+                                                    .map((task) => (
+                                                        <div key={task.id} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1rem)] min-w-[200px] md:min-w-[280px]">
+                                                            <TaskCard task={task} locked={true} isMinimized={true} />
+                                                        </div>
+                                                    ))
+                                                }
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-[var(--border-color)]" />
+                                                <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-widest">No blooms mastered yet</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-6 shadow-sm">
+                            <SyntheticFeed />
+                        </div>
+                    </section>
+                )}
                 </section>
             </div>
 

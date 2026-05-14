@@ -273,7 +273,10 @@ export default function ChumWidget() {
             ];
 
             try {
-                const res = await fetch(`/api/chat`, {
+                const baseUrl = (typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.()) 
+                    ? (process.env.NEXT_PUBLIC_APP_URL || 'https://studybuddy-ai.vercel.app') // Fallback to production URL
+                    : '';
+                const res = await fetch(`${baseUrl}/api/chat`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -291,8 +294,11 @@ export default function ChumWidget() {
 
                 const contentType = res.headers.get('content-type');
                 if (!res.ok || !contentType?.includes('application/json')) {
+                    if (contentType?.includes('text/html')) {
+                        throw new Error("Neural link reached an error page (HTML). The backend service might be unavailable.");
+                    }
                     const errorData = await res.json().catch(() => ({}));
-                    const errorMsg = errorData.error || "Neural connection failed. Please check your AI settings and keys.";
+                    const errorMsg = errorData.error || `Neural link failed (Status ${res.status}).`;
                     throw new Error(errorMsg);
                 }
 

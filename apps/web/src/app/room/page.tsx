@@ -546,8 +546,11 @@ export default function StudyRoom() {
 
             setResolvedName(finalName);
             setResolvedAvatar(finalAvatar);
-            const finalAvatarUrl = myProfile.avatar_url;
-            setResolvedAvatarUrl(finalAvatarUrl);
+            // ⚡ Use store as source of truth for current user if profile data is missing
+            if (!storeAvatarUrl && myProfile.avatar_url) {
+                useStudyStore.setState({ avatarUrl: myProfile.avatar_url });
+            }
+
 
             // 3. ⚡ FETCH HOST PREMIUM STATUS (For Room Capabilities)
             if (isActuallyHost) {
@@ -650,7 +653,8 @@ export default function StudyRoom() {
                             id: user.id,
                             name: finalName,
                             avatar: finalAvatar,
-                            avatarUrl: finalAvatarUrl,
+                            avatarUrl: storeUseChumAvatar ? null : (storeAvatarUrl || myProfile.avatar_url),
+
                             is_premium: myProfile.is_premium || false,
                             joined_at: new Date().toISOString(),
                             status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
@@ -703,11 +707,11 @@ export default function StudyRoom() {
     // ⚡ RE-TRACK PRESENCE ON STATUS CHANGE
     useEffect(() => {
         if (channelRef.current && currentUserId) {
-            channelRef.current.track({
                 id: currentUserId,
                 name: resolvedName,
                 avatar: resolvedAvatar,
-                avatarUrl: resolvedAvatarUrl,
+                avatarUrl: storeUseChumAvatar ? null : storeAvatarUrl,
+
 
                 status: isHost ? ((status === 'ACTIVE' || status === 'LAUNCHING') ? 'hosting' : 'drafting') : 'joined',
                 roomCode: roomCode,
@@ -1286,11 +1290,12 @@ export default function StudyRoom() {
                                 <Users size={18} />
                             </button>
                         )}
-                        <div>
-                            <h1 className="text-2xl font-black tracking-tight text-[var(--text-main)]">{settings.name} <span className="text-[var(--text-muted)] font-mono text-sm ml-2">#{roomCode}</span></h1>
-                            <p className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${isBreak ? 'text-[var(--text-muted)]' : 'text-[var(--accent-teal)]'}`}>
+                        <div className="min-w-0">
+                            <h1 className="text-lg md:text-2xl font-black tracking-tight text-[var(--text-main)] truncate max-w-[200px] sm:max-w-none">{settings.name} <span className="text-[var(--text-muted)] font-mono text-[10px] md:text-sm ml-1 md:ml-2">#{roomCode}</span></h1>
+                            <p className={`text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] mt-0.5 md:mt-1 ${isBreak ? 'text-[var(--text-muted)]' : 'text-[var(--accent-teal)]'}`}>
                                 {status === 'DRAFT' ? "Blueprint Phase" : isBreak ? "☕ Recovery Phase" : "⚡ Focus Protocol Active"}
                             </p>
+
                             {status === 'ACTIVE' && (
                                 <div className="flex gap-4 mt-2">
                                     <div className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-lg border border-white/5">
@@ -1305,9 +1310,10 @@ export default function StudyRoom() {
                             )}
                         </div>
                     </div>
-                    <button onClick={() => setShowAbandonConfirm(true)} className="pointer-events-auto flex items-center gap-2 text-xs font-bold text-(--text-muted) hover:text-red-400 transition-colors bg-(--bg-sidebar)/50 px-4 py-2 rounded-xl border border-(--border-color)">
-                        <LogOut size={14} /> Leave
+                    <button onClick={() => setShowAbandonConfirm(true)} className="pointer-events-auto flex items-center gap-2 text-[10px] md:text-xs font-bold text-[var(--text-muted)] hover:text-red-400 transition-colors bg-[var(--bg-sidebar)]/50 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border border-[var(--border-color)] shrink-0">
+                        <LogOut size={12} className="md:w-3.5 md:h-3.5" /> Leave
                     </button>
+
                 </header>
 
                 <div className={`flex-1 flex flex-col items-center z-10 gap-8 ${settings.showVisualizer ? 'justify-end pb-12' : 'justify-center'}`}>
@@ -1363,8 +1369,7 @@ export default function StudyRoom() {
                             <span className="text-[11px] font-black uppercase tracking-[0.4em] text-[var(--accent-teal)] mb-3 block opacity-60">
                                 {isBreak ? "☕ Recovery Phase" : `Cycle ${settings.currentCycle}`}
                             </span>
-                            <div className="text-[6rem] sm:text-[8rem] md:text-[12rem] font-black tabular-nums leading-[0.75] tracking-tighter text-[var(--text-main)] drop-shadow-[0_0_30px_rgba(255,255,255,0.1)] mb-8">
-
+                            <div className="text-[4.5rem] xs:text-[6rem] sm:text-[8rem] md:text-[12rem] font-black tabular-nums leading-[0.75] tracking-tighter text-[var(--text-main)] drop-shadow-[0_0_30px_rgba(255,255,255,0.1)] mb-6 md:mb-8">
                                 {Math.floor(secondsLeft / 60).toString().padStart(2, '0')}:{(secondsLeft % 60).toString().padStart(2, '0')}
                             </div>
 
@@ -1451,9 +1456,18 @@ export default function StudyRoom() {
                                     <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg overflow-hidden border border-(--border-color) ${isRoomHost ? 'bg-[var(--accent-teal)]/20 shadow-[0_0_10px_rgba(45,212,191,0.2)]' : 'bg-black/20'
                                         }`}>
                                         {p.avatarUrl ? (
-                                            <img src={p.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                                            <img 
+                                                src={p.avatarUrl} 
+                                                alt="" 
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                    (e.target as HTMLImageElement).parentElement!.innerText = isRoomHost ? '👑' : avatarEmoji;
+                                                }}
+                                            />
                                         ) : isRoomHost ? '👑' : avatarEmoji}
                                     </div>
+
 
                                     {/* ⚡ Text Container: Flex-col, min-w-0 prevents breaking parent width */}
                                     <div className="flex flex-col min-w-0 flex-1">
