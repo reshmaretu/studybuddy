@@ -268,8 +268,10 @@ export default function ChumWidget() {
                 { role: "user", content: messageText }
             ];
 
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-            const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+            const wsUrl = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_WEBSOCKET_URL) || 'ws://localhost:1234';
+            const baseUrl = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) || "https://qntlxxnesvekdunsxzwu.supabase.co";
+            const anonKey = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) || "sb_publishable_NVv9ES_PLJRpbpMVuZ7CkQ_BJpNtbvM";
+
 
             for (const provider of providers) {
                 try {

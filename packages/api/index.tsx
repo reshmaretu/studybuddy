@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://qntlxxnesvekdunsxzwu.supabase.co";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_NVv9ES_PLJRpbpMVuZ7CkQ_BJpNtbvM";
+const supabaseUrl = (typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_SUPABASE_URL : undefined) || "https://qntlxxnesvekdunsxzwu.supabase.co";
+const supabaseAnonKey = (typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY : undefined) || "sb_publishable_NVv9ES_PLJRpbpMVuZ7CkQ_BJpNtbvM";
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+if (typeof process === 'undefined' || !process.env?.NEXT_PUBLIC_SUPABASE_URL || !process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+
     if (typeof window !== 'undefined') {
         console.warn("Using fallback Supabase environment variables for mobile/offline support.");
     }
@@ -37,24 +38,32 @@ type GetSessionResult = Awaited<ReturnType<typeof supabase.auth.getSession>>;
 let getUserInFlight: Promise<GetUserResult> | null = null;
 let getSessionInFlight: Promise<GetSessionResult> | null = null;
 
-const originalGetUser = supabase.auth.getUser.bind(supabase.auth);
-const originalGetSession = supabase.auth.getSession.bind(supabase.auth);
+try {
+    const originalGetUser = supabase.auth.getUser.bind(supabase.auth);
+    (supabase.auth as { getUser: typeof supabase.auth.getUser }).getUser = async (...args) => {
+        if (getUserInFlight) return getUserInFlight;
+        getUserInFlight = originalGetUser(...args).finally(() => {
+            getUserInFlight = null;
+        });
+        return getUserInFlight;
+    };
+} catch (e) {
+    console.warn("Supabase lock prevention: getUser could not be patched", e);
+}
 
-(supabase.auth as { getUser: typeof supabase.auth.getUser }).getUser = async (...args) => {
-    if (getUserInFlight) return getUserInFlight;
-    getUserInFlight = originalGetUser(...args).finally(() => {
-        getUserInFlight = null;
-    });
-    return getUserInFlight;
-};
+try {
+    const originalGetSession = supabase.auth.getSession.bind(supabase.auth);
+    (supabase.auth as { getSession: typeof supabase.auth.getSession }).getSession = async (...args) => {
+        if (getSessionInFlight) return getSessionInFlight;
+        getSessionInFlight = originalGetSession(...args).finally(() => {
+            getSessionInFlight = null;
+        });
+        return getSessionInFlight;
+    };
+} catch (e) {
+    console.warn("Supabase lock prevention: getSession could not be patched", e);
+}
 
-(supabase.auth as { getSession: typeof supabase.auth.getSession }).getSession = async (...args) => {
-    if (getSessionInFlight) return getSessionInFlight;
-    getSessionInFlight = originalGetSession(...args).finally(() => {
-        getSessionInFlight = null;
-    });
-    return getSessionInFlight;
-};
 
 export * from '@supabase/supabase-js';
 export * from './types';

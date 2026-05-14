@@ -46,8 +46,9 @@ export default function PresenceSync() {
 
             // ⚡ USE CASE: navigator.sendBeacon is more reliable for "fire and forget" 
             // updates during tab closure than a standard async supabase call.
-            const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://qntlxxnesvekdunsxzwu.supabase.co";
-            const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_NVv9ES_PLJRpbpMVuZ7CkQ_BJpNtbvM";
+            const baseUrl = (typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_SUPABASE_URL : undefined) || "https://qntlxxnesvekdunsxzwu.supabase.co";
+            const anonKey = (typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY : undefined) || "sb_publishable_NVv9ES_PLJRpbpMVuZ7CkQ_BJpNtbvM";
+
             
             const url = `${baseUrl}/rest/v1/profiles?id=eq.${userIdRef.current}`;
             const headers = {
