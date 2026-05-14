@@ -19,8 +19,18 @@ const ROOM_THEMES = [
     { id: 'nordic', name: 'Nordic Frost', premium: true },
     { id: 'e-ink', name: 'E-Ink (Obsidian)', premium: true },
 ];
-const STATIC_BGS = ['Cozy Library',];
-const LIVE_BGS = ['Rainy Window'];
+
+// Background assets with proper URLs
+const STATIC_BG_ASSETS = [
+    { name: 'Cozy Library', url: '/assets/bgs/static/tomoe_mami.jpg' },
+];
+
+const LIVE_BG_ASSETS = [
+    { name: 'Rainy Window', url: '/assets/bgs/live/rainy_window.mp4' },
+];
+
+const STATIC_BGS = STATIC_BG_ASSETS.map(a => a.name);
+const LIVE_BGS = LIVE_BG_ASSETS.map(a => a.name);
 const AUDIO_TRACKS = [
     { name: 'None', pro: false }, { name: 'White Noise', pro: false },
     { name: 'Brown Noise', pro: false }, { name: 'Lofi Beats 1', pro: false },
@@ -83,11 +93,14 @@ const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUse
 
 // --- REUSEABLE COMPONENTS ---
 const AtmosphereVisuals = ({ settings }: { settings: RoomSettings }) => {
+    // Check dev assets first, then production assets
     const devAsset = [...DEV_LIVE_BGS, ...DEV_STATIC_BGS].find(t => t.name === settings.vibeAsset);
+    const prodStaticAsset = STATIC_BG_ASSETS.find(a => a.name === settings.vibeAsset);
+    const prodLiveAsset = LIVE_BG_ASSETS.find(a => a.name === settings.vibeAsset);
 
     if (settings.vibeCategory === 'Live Lo-Fi (Pro)') {
-        const videoName = settings.vibeAsset.replace(' (Pro)', '').toLowerCase().replace(/ /g, '_');
-        const videoSrc = (devAsset as any)?.url || `/assets/bgs/live/${videoName}.mp4`;
+        // Use dev URL if available, otherwise use production asset URL
+        const videoSrc = (devAsset as any)?.url || prodLiveAsset?.url || `/assets/bgs/live/${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.mp4`;
 
         return (
             <video
@@ -95,13 +108,27 @@ const AtmosphereVisuals = ({ settings }: { settings: RoomSettings }) => {
                 autoPlay loop muted playsInline
                 className="w-full h-full object-cover opacity-70 transition-all duration-1000"
                 src={videoSrc}
+                onError={() => console.warn(`Failed to load video: ${videoSrc}`)}
             />
         );
     }
+    
+    // For static backgrounds
     const bgUrl = settings.vibeAsset.includes('Void')
         ? 'none'
-        : `url(${(devAsset as any)?.url || `/assets/bgs/${settings.vibeCategory === 'Static Lo-Fi' ? 'static/' : ''}${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg`})`;
-    return <div className="w-full h-full bg-cover bg-center opacity-70 transition-all duration-1000" style={{ backgroundImage: bgUrl }} />;
+        : `url(${(devAsset as any)?.url || prodStaticAsset?.url || `/assets/bgs/static/${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg`})`;
+    
+    return (
+        <div 
+            className="w-full h-full bg-cover bg-center opacity-70 transition-all duration-1000" 
+            style={{ backgroundImage: bgUrl === 'url(none)' ? 'none' : bgUrl }}
+            onError={() => {
+                if (bgUrl && bgUrl !== 'none') {
+                    console.warn(`Failed to load background: ${bgUrl}`);
+                }
+            }}
+        />
+    );
 };
 
 const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: RoomSettings, isActive: boolean, onAnalyserCreated?: (analyser: AnalyserNode) => void }) => {
@@ -954,15 +981,23 @@ export default function StudyRoom() {
             <AnimatePresence>
                 {status === 'DRAFT' && !isArchitectMinimized && (
                     <motion.aside
-                        initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-                        className="fixed inset-y-0 left-0 w-full sm:w-80 lg:relative flex-shrink-0 bg-[var(--bg-card)] border-r border-[var(--border-color)] z-[1000] lg:z-20 flex flex-col overflow-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] shadow-2xl lg:shadow-none"
+                        initial={{ opacity: 0, x: -300 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -300 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                        className="fixed inset-y-0 left-0 w-[85%] sm:w-80 lg:relative flex-shrink-0 bg-[var(--bg-card)] border-r border-[var(--border-color)] z-[1000] lg:z-20 flex flex-col overflow-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] shadow-2xl lg:shadow-none"
                     >
 
-                        <div className="p-6 border-b border-[var(--border-color)]">
+
+                        <div className="p-6 border-b border-[var(--border-color)] flex justify-between items-center">
                             <h2 className="text-[var(--accent-yellow)] font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
                                 <Sparkles size={14} /> Sanctuary Architect
                             </h2>
+                            <button onClick={() => setIsArchitectMinimized(true)} className="lg:hidden p-2 text-[var(--text-muted)] hover:text-red-400">
+                                <ChevronRight className="rotate-180" size={18} />
+                            </button>
                         </div>
+
 
                         {/* ⚡ FIX: Added Tailwind scrollbar hiding classes */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -1376,8 +1411,16 @@ export default function StudyRoom() {
             </AnimatePresence>
 
             {/* 3. RIGHT PRESENCE SIDEBAR */}
-            {!isSidebarMinimized && (
-                <aside className="fixed inset-y-0 right-0 w-72 lg:relative flex-shrink-0 border-l border-(--border-color) z-[1000] lg:z-20 flex flex-col bg-(--bg-sidebar)/95 lg:bg-(--bg-sidebar)/90 p-8 shadow-2xl lg:shadow-none">
+            <AnimatePresence>
+                {!isSidebarMinimized && (
+                    <motion.aside
+                        initial={{ x: 300, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: 300, opacity: 0 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                        className="fixed inset-y-0 right-0 w-[80%] sm:w-72 lg:relative flex-shrink-0 border-l border-(--border-color) z-[1000] lg:z-20 flex flex-col bg-(--bg-sidebar)/95 lg:bg-(--bg-sidebar)/90 p-8 shadow-2xl lg:shadow-none"
+                    >
+
 
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
@@ -1442,8 +1485,10 @@ export default function StudyRoom() {
                             );
                         })}
                     </div>
-                </aside>
-            )}
+                    </motion.aside>
+                )}
+            </AnimatePresence>
+
 
             {/* 4. LEGACY LOG MODAL */}
             <AnimatePresence>

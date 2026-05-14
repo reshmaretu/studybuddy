@@ -24,7 +24,9 @@ export const viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  interactiveWidget: "resizes-content", // 🛡️ Fix for on-screen keyboard pushing content
 };
+
 
 export default function RootLayout({
   children

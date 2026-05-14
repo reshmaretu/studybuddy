@@ -2107,7 +2107,11 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-screen bg-[#0b1211] overflow-hidden"
+      className="relative w-full bg-[#0b1211] overflow-hidden"
+      style={{
+        height: '100dvh', // Dynamic viewport height - fixes keyboard pushing content
+        minHeight: '100vh', // Fallback for older browsers
+      }}
     >
       {/* Canvas */}
       <canvas

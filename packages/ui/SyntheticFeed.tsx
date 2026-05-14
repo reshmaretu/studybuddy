@@ -9,11 +9,12 @@ import { SquishyButton } from './SquishyButton';
 import { playTick } from '@studybuddy/api';
 
 export const SyntheticFeed = () => {
-  const { broadcasts, fetchBroadcasts, triggerChumToast, sparkBroadcast, setSparkBurst } = useStudyStore();
+  const { broadcasts, fetchBroadcasts, triggerChumToast, sparkBroadcast, setSparkBurst, userId } = useStudyStore();
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(userId ?? null);
   const [sparkedIds, setSparkedIds] = useState<Set<string>>(new Set());
+
   const [cooldownUntil, setCooldownUntil] = useState(0);
 
   useEffect(() => {
@@ -34,12 +35,18 @@ export const SyntheticFeed = () => {
   }, [fetchBroadcasts]);
 
   useEffect(() => {
-    const syncUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id ?? null);
-    };
-    syncUser();
-  }, []);
+    if (userId) {
+      setCurrentUserId(userId);
+    } else {
+      const syncUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        setCurrentUserId(user?.id ?? null);
+      };
+      syncUser();
+    }
+  }, [userId]);
+
+
 
   // 📡 REALTIME BROADCASTS & SPARKS
   useEffect(() => {

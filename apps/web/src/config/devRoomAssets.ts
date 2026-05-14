@@ -8,8 +8,8 @@ export const DEV_AUDIO_TRACKS = [
 ];
 
 export const DEV_LIVE_BGS = [
-    { name: 'Tomoe Mami (Live)', pro: true, asset: 'Tomoe Mami' },
-    { name: 'Dev: Neon Circuit', pro: true, asset: 'Neon Circuit' }
+    { name: 'Tomoe Mami (Live)', pro: true, asset: 'Tomoe Mami', url: '/assets/bgs/live/tomoe_mami.mp4' },
+    { name: 'Dev: Neon Circuit', pro: true, asset: 'Neon Circuit', url: '/assets/bgs/live/dev_neon_circuit.mp4' }
 ];
 
 export const DEV_STATIC_BGS = [
