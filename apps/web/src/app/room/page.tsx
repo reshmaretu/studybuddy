@@ -672,8 +672,9 @@ export default function StudyRoom() {
         const handleUnload = () => {
             if (isHost && roomCode) {
                 // ⚡ Beacon API bypasses the normal async queue to ensure execution
-                const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://qntlxxnesvekdunsxzwu.supabase.co";
-                const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_NVv9ES_PLJRpbpMVuZ7CkQ_BJpNtbvM";
+                const baseUrl = (typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_SUPABASE_URL : undefined) || "https://qntlxxnesvekdunsxzwu.supabase.co";
+                const anonKey = (typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY : undefined) || "sb_publishable_NVv9ES_PLJRpbpMVuZ7CkQ_BJpNtbvM";
+
 
                 const url = `${baseUrl}/rest/v1/rooms?room_code=eq.${roomCode}`;
                 const headers = {
