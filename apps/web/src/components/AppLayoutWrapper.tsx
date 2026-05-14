@@ -49,6 +49,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         if (!isInitialized) {
             initializeData();
         }
+        if (typeof window !== 'undefined') {
+            (window as any).isAppInitialized = true;
+        }
+
 
         // 🛰️ Register Service Worker for Web Push
         if ('serviceWorker' in navigator) {
