@@ -216,7 +216,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                 duration: (isAnimating || externalIsAnimating) ? 0.6 : (isRecentlyCompleted ? 0.8 : 0.3),
                 ease: "easeOut"
             }}
-            className={`group relative bg-(--bg-card) border-2 rounded-2xl p-4 transition-shadow ${selected ? 'border-(--accent-teal) shadow-[0_0_18px_rgba(45,212,191,0.25)]' : ''} ${dlStatus.phase === 3 && !task.isCompleted ? 'ring-1 ring-red-500/20' : ''} ${isOverlay ? 'shadow-2xl border-(--accent-teal)' : dlStatus.border || 'border-(--border-color)'}`}
+            className={`group relative bg-(--bg-card) border-2 rounded-xl md:rounded-2xl p-2 md:p-4 transition-shadow ${selected ? 'border-(--accent-teal) shadow-[0_0_18px_rgba(45,212,191,0.25)]' : ''} ${dlStatus.phase === 3 && !task.isCompleted ? 'ring-1 ring-red-500/20' : ''} ${isOverlay ? 'shadow-2xl border-(--accent-teal)' : dlStatus.border || 'border-(--border-color)'}`}
         >
             {/* ⚡ CLIPPING CONTAINER FOR BG EFFECTS */}
             <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
@@ -226,22 +226,22 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                 )}
             </div>
 
-            <div className="flex justify-between items-start mb-2 relative z-30">
-                <div className="flex gap-2 items-center">
-                    <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-lg border tracking-tighter ${loadColors[task.load]}`}>{task.load}</span>
-                    {task.isPinned && !task.isCompleted && <Pin size={10} className="text-teal-400" />}
+            <div className="flex justify-between items-start mb-1 md:mb-2 relative z-30 gap-1">
+                <div className="flex gap-1 md:gap-2 items-center flex-wrap">
+                    <span className={`text-[7px] md:text-[9px] font-black uppercase px-2 md:px-3 py-0.5 md:py-1 rounded-lg border tracking-tighter ${loadColors[task.load]}`}>{task.load}</span>
+                    {task.isPinned && !task.isCompleted && <Pin size={8} className="text-teal-400 hidden md:block" />}
                     {/* FROG BADGE (Relocated to top-left for zero conflict) */}
                     {task.isFrog && !task.isCompleted && (
                         <motion.div 
                             initial={{ scale: 0 }} animate={{ scale: 1 }}
-                            className="bg-orange-400 text-black px-2 py-1 rounded-lg shadow-sm border border-orange-500/30 flex items-center gap-1 shrink-0"
+                            className="bg-orange-400 text-black px-1.5 md:px-2 py-0.5 md:py-1 rounded-lg shadow-sm border border-orange-500/30 flex items-center gap-0.5 md:gap-1 shrink-0"
                         >
-                            <Flame size={10} className="fill-current" />
-                            <span className="text-[8px] font-black uppercase">Frog</span>
+                            <Flame size={8} className="fill-current" />
+                            <span className="text-[7px] md:text-[8px] font-black uppercase hidden md:inline">Frog</span>
                         </motion.div>
                     )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 md:gap-2">
                     {/* Multi-select Checkbox */}
                     {onToggleSelect && !isOverlay && !locked && (
                         <button
@@ -251,25 +251,25 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                                 e.stopPropagation();
                                 onToggleSelect(task.id);
                             }}
-                            className={`w-6 h-6 rounded-md border flex items-center justify-center transition-all ${
+                            className={`w-4 h-4 md:w-6 md:h-6 rounded-md border flex items-center justify-center transition-all ${
                                 selected
                                     ? 'bg-(--accent-teal) border-(--accent-teal) text-black opacity-100'
                                     : 'bg-(--bg-dark) border-(--border-color) text-(--text-muted) hover:text-(--text-main) opacity-0 group-hover:opacity-100'
                             }`}
                         >
-                            {selected ? <Check size={12} strokeWidth={3} /> : <span className="w-2 h-2 rounded-full bg-current opacity-60" />}
+                            {selected ? <Check size={10} strokeWidth={3} /> : <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />}
                         </button>
                     )}
 
                     {/* Due Label */}
                     {task.isCompleted ? (
-                        <span className="text-[9px] font-black uppercase tracking-widest text-[var(--accent-teal)]">MASTERED</span>
+                        <span className="text-[7px] md:text-[9px] font-black uppercase tracking-widest text-[var(--accent-teal)]">✓</span>
                     ) : dlStatus.phase > 1 && (
-                        <span className={`text-[9px] font-black uppercase tracking-widest ${dlStatus.color}`}>{dlStatus.label}</span>
+                        <span className={`text-[7px] md:text-[9px] font-black uppercase tracking-widest ${dlStatus.color}`}>{dlStatus.label}</span>
                     )}
 
                     {/* Three-dot Button */}
-                    <button id="task-card-menu-trigger" onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-(--text-muted) hover:text-(--text-main) transition-colors relative z-40"><MoreHorizontal size={16} /></button>
+                    <button id="task-card-menu-trigger" onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-(--text-muted) hover:text-(--text-main) transition-colors relative z-40 p-1"><MoreHorizontal size={14} className="md:w-4 md:h-4 w-3 h-3" /></button>
                 </div>
                 <div className="absolute right-0 top-0">
                     {ActionMenu}
@@ -277,27 +277,27 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
             </div>
 
             <div className="relative z-10 flex-1">
-                <h3 className={`text-[15px] font-bold leading-tight mb-1 transition-all ${task.isCompleted ? 'text-[var(--text-muted)]' : 'text-[var(--text-main)]'}`}>
+                <h3 className={`text-[12px] md:text-[15px] font-bold leading-tight mb-0.5 md:mb-1 transition-all ${task.isCompleted ? 'text-[var(--text-muted)]' : 'text-[var(--text-main)]'} line-clamp-2`}>
                     {task.title}
                 </h3>
                 {task.description && !isMinimized && (
-                    <p className="text-[11px] text-(--text-muted) line-clamp-2 leading-relaxed font-medium mb-3">
+                    <p className="text-[9px] md:text-[11px] text-(--text-muted) line-clamp-1 md:line-clamp-2 leading-relaxed font-medium mb-2 md:mb-3">
                         {task.description}
                     </p>
                 )}
 
-                <div className="flex justify-between items-center mt-auto pt-2 border-t border-(--border-color)/30">
-                    <div className="flex items-center gap-4">
+                <div className="flex justify-between items-center mt-auto pt-1 md:pt-2 border-t border-(--border-color)/30 gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 md:gap-4 flex-wrap">
                         {task.deadline && !task.isCompleted && (
-                            <div className={`flex items-center gap-1.5 ${dlStatus.color}`}>
-                                {dlStatus.phase === 3 ? <AlertTriangle size={10} /> : <Clock size={10} />}
-                                <span className="text-[9px] font-black tracking-widest uppercase">{formatDeadline(task.deadline)}</span>
+                            <div className={`flex items-center gap-0.5 md:gap-1.5 ${dlStatus.color}`}>
+                                {dlStatus.phase === 3 ? <AlertTriangle size={8} className="hidden md:block" /> : <Clock size={8} className="hidden md:block" />}
+                                <span className="text-[7px] md:text-[9px] font-black tracking-widest uppercase">{formatDeadline(task.deadline)}</span>
                             </div>
                         )}
                         {task.isCompleted && task.completedAt && (
-                            <div className="flex items-center gap-1.5 text-teal-500/60">
-                                <Check size={10} />
-                                <span className="text-[9px] font-black tracking-widest uppercase">
+                            <div className="flex items-center gap-0.5 md:gap-1.5 text-teal-500/60">
+                                <Check size={8} className="hidden md:block" />
+                                <span className="text-[7px] md:text-[9px] font-black tracking-widest uppercase">
                                     Completed {new Date(task.completedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                                 </span>
                             </div>
@@ -308,16 +308,16 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
 
             {/* FOCUS BUTTON (Hover only, bottom right) */}
             {!task.isCompleted && !isMinimized && (
-                <div className={`absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all z-20 transform translate-y-2 group-hover:translate-y-0 ${showMenu || showCompletionConfirm ? 'pointer-events-none invisible' : ''}`}>
+                <div className={`absolute bottom-2 md:bottom-4 right-2 md:right-4 opacity-0 group-hover:opacity-100 transition-all z-20 transform translate-y-2 group-hover:translate-y-0 ${showMenu || showCompletionConfirm ? 'pointer-events-none invisible' : ''}`}>
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             openFocusModal(task.id);
                         }}
-                        className="w-8 h-8 rounded-full bg-(--accent-teal) text-black flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
+                        className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-(--accent-teal) text-black flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
                         title="Focus on this quest"
                     >
-                        <Zap size={14} fill="currentColor" />
+                        <Zap size={12} fill="currentColor" className="md:w-3.5 md:h-3.5" />
                     </button>
                 </div>
             )}

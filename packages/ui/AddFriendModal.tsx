@@ -97,7 +97,7 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-2 md:p-4">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -109,32 +109,32 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
           initial={{ scale: 0.95, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          className="bg-(--bg-sidebar) border border-(--border-color) rounded-3xl w-full max-w-md overflow-hidden relative z-10 shadow-2xl"
+          className="bg-(--bg-sidebar) border border-(--border-color) rounded-2xl md:rounded-3xl w-full max-w-md overflow-hidden relative z-10 shadow-2xl"
         >
-          <div className="p-6 border-b border-(--border-color) flex items-center justify-between">
+          <div className="p-3 md:p-6 border-b border-(--border-color) flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <UserPlus size={18} className="text-(--accent-teal)" />
-              <h2 className="text-lg font-bold text-(--text-main)">Add Friend</h2>
+              <UserPlus size={16} className="md:w-[18px] md:h-[18px] text-(--accent-teal)" />
+              <h2 className="text-sm md:text-lg font-bold text-(--text-main)">Add Friend</h2>
             </div>
             <SquishyButton
               onClick={onClose}
-              className="text-(--text-muted) hover:text-(--text-main) bg-(--bg-dark) p-2 rounded-full transition-colors border-none shadow-none"
+              className="text-(--text-muted) hover:text-(--text-main) bg-(--bg-dark) p-1 md:p-2 rounded-full transition-colors border-none shadow-none"
             >
-              <X size={16} />
+              <X size={14} className="md:w-4 md:h-4" />
             </SquishyButton>
           </div>
 
-          <div className="p-6 space-y-4">
+          <div className="p-3 md:p-6 space-y-2 md:space-y-4">
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-(--text-muted)" />
+                <Search size={12} className="md:w-[14px] md:h-[14px] absolute left-3 top-1/2 -translate-y-1/2 text-(--text-muted)" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   placeholder="Search by name..."
-                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-(--border-color) focus:outline-none focus:border-(--accent-teal) bg-(--bg-dark) text-(--text-main)"
+                  className="w-full pl-8 md:pl-9 pr-2 md:pr-3 py-1 md:py-2 rounded-lg md:rounded-lg border border-(--border-color) focus:outline-none focus:border-(--accent-teal) bg-(--bg-dark) text-(--text-main) text-xs md:text-sm"
                   disabled={loading}
                 />
               </div>

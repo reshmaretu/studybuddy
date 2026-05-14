@@ -138,9 +138,14 @@ export const SyntheticFeed = () => {
                 const sparkDisabled = isSelf || isSparked || isCoolingDown;
                 
                 const isRoom = broadcast.broadcast_type === 'study-room' || broadcast.broadcast_type === 'canvas-room';
-                const roomCode = broadcast.profiles?.joined_room_code || (broadcast.profiles?.status === 'hosting' ? 'ACTIVE' : null);
-                // Note: We'd ideally need the actual room code from the broadcast metadata, 
-                // but we'll fall back to the host's current status for now.
+                // Get room code from metadata if available (stores actual room status independently)
+                const metadata = broadcast.metadata || {};
+                const roomCode = metadata?.room_code || broadcast.profiles?.joined_room_code || (broadcast.profiles?.status === 'hosting' ? 'ACTIVE' : null);
+                // Room is joinable if it has metadata indicating it's active, or if the host was hosting/in cafe/drafting at broadcast time
+                // Check metadata.room_status if available, otherwise fall back to checking broadcast content timestamp + 4 hour window
+                const isRoomActive = metadata?.room_status === 'ACTIVE' || metadata?.room_status === 'DRAFT' || 
+                  (broadcast.profiles?.status === 'hosting' || broadcast.profiles?.status === 'cafe' || broadcast.profiles?.status === 'drafting') ||
+                  (metadata?.broadcast_time && (Date.now() - new Date(broadcast.created_at).getTime()) < 4 * 60 * 60 * 1000); // 4 hour window
                 
                 return (
               <div
@@ -191,21 +196,21 @@ export const SyntheticFeed = () => {
                         {isRoom && (
                           <button
                             onClick={() => {
-                              const code = broadcast.profiles?.joined_room_code;
+                              const code = roomCode;
                               if (code) {
                                 window.location.href = broadcast.broadcast_type === 'canvas-room' 
                                   ? `/canvas?room=${code}` 
                                   : `/room?code=${code}`;
                               }
                             }}
-                            disabled={!broadcast.profiles?.status || (broadcast.profiles.status !== 'hosting' && broadcast.profiles.status !== 'cafe' && broadcast.profiles.status !== 'drafting')}
+                            disabled={!isRoomActive}
                             className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border transition-all ${
-                              (broadcast.profiles?.status === 'hosting' || broadcast.profiles?.status === 'cafe' || broadcast.profiles?.status === 'drafting')
+                              isRoomActive
                                 ? 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(20,184,166,0.3)]'
                                 : 'bg-[var(--bg-dark)] border-[var(--border-color)] text-[var(--text-muted)] cursor-not-allowed'
                             }`}
                           >
-                            {(broadcast.profiles?.status === 'hosting' || broadcast.profiles?.status === 'cafe' || broadcast.profiles?.status === 'drafting') ? 'Join Now' : 'Expired'}
+                            {isRoomActive ? 'Join Now' : 'Expired'}
                           </button>
                         )}
                       </div>

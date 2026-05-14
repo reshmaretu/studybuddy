@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">studybuddy-v2</string>
-    <string name="title_activity_main">studybuddy-v2</string>
-    <string name="package_name">com.studybuddy.app</string>
-    <string name="custom_url_scheme">com.studybuddy.app</string>
-</resources>

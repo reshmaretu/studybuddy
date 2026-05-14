@@ -1519,24 +1519,34 @@ export const useStudyStore = create<StudyState>()(
                 set((state) => ({ shards: [{ ...shard, id: tempId, mastery: 0, isMastered: false, createdAt: new Date().toISOString() }, ...state.shards] }));
 
                 try {
-                    const geminiKey = get().aiKeys.gemini;
-                    const llamaKey = get().aiKeys.llama || process.env.NEXT_PUBLIC_LLAMA_CLOUD_API_KEY;
-
-                    if (!geminiKey) throw new Error("Gemini API Key missing.");
-
                     let finalContent = shard.content || "";
                     let finalTitle = shard.title || "Untitled Shard";
 
-                    // 1. LlamaParse
-                    if (shard.files && shard.files.length > 0) {
-                        if (!llamaKey) throw new Error("LlamaKey missing for file processing.");
-                        const parsed = await parseDocument(shard.files[0], llamaKey);
-                        finalContent = (finalContent ? finalContent + "\n\n" : "") + parsed;
-                        if (!shard.title) finalTitle = shard.files[0].name;
+                    // Call server-side API endpoint that has access to Gemini and LlamaCloud keys
+                    const parseRes = await fetch('/api/parse-file', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            file: shard.files && shard.files.length > 0 ? shard.files[0].content : null,
+                            content: shard.content || "",
+                            title: shard.title || (shard.files?.length ? shard.files[0].name : "Untitled Shard")
+                        })
+                    });
+
+                    if (!parseRes.ok) {
+                        const errorData = await parseRes.json().catch(() => ({ error: 'Unknown error' }));
+                        throw new Error(errorData.error || `File processing failed: ${parseRes.statusText}`);
                     }
 
-                    // 2. Embeddings
-                    const embedding = await getGeminiEmbedding(finalContent, geminiKey);
+                    const parseData = await parseRes.json();
+                    finalContent = parseData.content;
+                    const embedding = parseData.embedding;
+
+                    if (!embedding || embedding.length === 0) {
+                        throw new Error("Failed to generate embedding for shard content");
+                    }
 
                     // 3. Supabase Save
                     const { data: newShard, error: shardError } = await supabase

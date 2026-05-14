@@ -78,7 +78,7 @@ export const ProfileModal = () => {
     return (
         <AnimatePresence>
             {isProfileModalOpen && (
-                <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[100000] flex items-center justify-center p-2 md:p-4">
                     <motion.div 
                         initial={{ opacity: 0 }} 
                         animate={{ opacity: 1 }} 
@@ -90,64 +90,64 @@ export const ProfileModal = () => {
                         initial={{ scale: 0.9, opacity: 0, y: 20 }} 
                         animate={{ scale: 1, opacity: 1, y: 0 }} 
                         exit={{ scale: 0.9, opacity: 0, y: 20 }} 
-                        className="bg-(--bg-card) border-2 border-(--border-color) rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl relative z-10"
+                        className="bg-(--bg-card) border-2 border-(--border-color) rounded-xl md:rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl relative z-10"
                         onPointerDown={(e) => e.stopPropagation()}
                     >
-                        <div className="p-6 border-b border-(--border-color) flex justify-between items-center bg-(--bg-sidebar)/30">
-                            <h3 className="text-xl font-black flex items-center gap-3">
-                                <Camera size={20} className="text-(--accent-teal)" /> 
-                                {terms.neurallinkAscended === "Neural Link Ascended" ? "Identity Mask" : "Profile Settings"}
+                        <div className="p-3 md:p-6 border-b border-(--border-color) flex justify-between items-center gap-2 bg-(--bg-sidebar)/30">
+                            <h3 className="text-sm md:text-xl font-black flex items-center gap-2 md:gap-3">
+                                <Camera size={16} className="md:w-5 md:h-5 text-(--accent-teal)" /> 
+                                {terms.neurallinkAscended === "Neural Link Ascended" ? "Identity Mask" : "Profile"}
                             </h3>
-                            <button onClick={() => setProfileModalOpen(false)} className="p-2 rounded-xl hover:bg-(--bg-dark) transition-all text-(--text-muted) hover:text-(--text-main)">
-                                <X size={20} />
+                            <button onClick={() => setProfileModalOpen(false)} className="p-1 md:p-2 rounded-lg md:rounded-xl hover:bg-(--bg-dark) transition-all text-(--text-muted) hover:text-(--text-main)">
+                                <X size={16} className="md:w-5 md:h-5" />
                             </button>
                         </div>
                         
-                        <div className="p-8 flex flex-col items-center gap-6">
-                            <div className="w-32 h-32 rounded-full border-4 border-(--accent-teal)/20 p-2 bg-(--bg-dark) flex items-center justify-center relative shadow-inner">
+                        <div className="p-4 md:p-8 flex flex-col items-center gap-4 md:gap-6">
+                            <div className="w-20 md:w-32 h-20 md:h-32 rounded-full border-4 border-(--accent-teal)/20 p-1 md:p-2 bg-(--bg-dark) flex items-center justify-center relative shadow-inner">
                                 {(avatarUrl && !useChumAvatar) ? (
                                     <img src={avatarUrl} alt="Identity" className="w-full h-full rounded-full object-cover shadow-sm" />
                                 ) : (
-                                    <ChumRenderer size="w-24 h-24" />
+                                    <ChumRenderer size="w-16 md:w-24 h-16 md:h-24" />
                                 )}
                             </div>
                             
                             <button 
                                 onClick={() => fileInputRef.current?.click()} 
-                                className="w-full py-4 rounded-2xl bg-(--accent-teal) text-black font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
+                                className="w-full py-2 md:py-4 rounded-lg md:rounded-2xl bg-(--accent-teal) text-black font-black uppercase tracking-widest text-[9px] md:text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
                             >
-                                {terms.forgeShard === "Extract Shards" ? "Upload Shard" : "Upload Picture"}
+                                {terms.forgeShard === "Extract Shards" ? "Shard" : "Upload"}
                             </button>
                             
                             <input type="file" ref={fileInputRef} onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = () => setImage(r.result as string); r.readAsDataURL(f); } }} accept="image/*" className="hidden" />
 
-                            <div className="w-full pt-4 border-t border-(--border-color) flex flex-col gap-3">
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-xs font-bold text-(--text-muted) uppercase tracking-widest">Avatar Representation</span>
-                                    <div className="flex bg-(--bg-dark) border border-(--border-color) rounded-lg p-1">
+                            <div className="w-full pt-2 md:pt-4 border-t border-(--border-color) flex flex-col gap-2 md:gap-3">
+                                <div className="flex justify-between items-center mb-1 md:mb-2 gap-2">
+                                    <span className="text-[8px] md:text-xs font-bold text-(--text-muted) uppercase tracking-widest">Avatar</span>
+                                    <div className="flex bg-(--bg-dark) border border-(--border-color) rounded-lg p-0.5 md:p-1 gap-0.5">
                                         <button 
                                             onClick={() => setUseChumAvatar(true)} 
-                                            className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${useChumAvatar ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}
+                                            className={`px-2 md:px-3 py-1 md:py-1.5 text-[7px] md:text-[10px] font-black uppercase rounded-md transition-all ${useChumAvatar ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}
                                         >
                                             Chum
                                         </button>
                                         <button 
                                             onClick={() => setUseChumAvatar(false)} 
-                                            className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${!useChumAvatar ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}
+                                            className={`px-2 md:px-3 py-1 md:py-1.5 text-[7px] md:text-[10px] font-black uppercase rounded-md transition-all ${!useChumAvatar ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}
                                         >
                                             Photo
                                         </button>
                                     </div>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs font-bold text-(--text-muted) uppercase tracking-widest">Interface Frequency</span>
-                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${useThematicUI ? 'bg-(--accent-teal)/10 text-(--accent-teal)' : 'bg-(--text-muted)/10 text-(--text-muted)'}`}>
+                                    <span className="text-[8px] md:text-xs font-bold text-(--text-muted) uppercase tracking-widest">Interface</span>
+                                    <span className={`text-[7px] md:text-[10px] font-black px-1.5 md:px-2 py-0.5 rounded-md ${useThematicUI ? 'bg-(--accent-teal)/10 text-(--accent-teal)' : 'bg-(--text-muted)/10 text-(--text-muted)'}`}>
                                         {useThematicUI ? "THEMATIC" : "MINIMAL"}
                                     </span>
                                 </div>
                                 <button
                                     onClick={() => setThematicUI(!useThematicUI)}
-                                    className={`w-full py-3 rounded-2xl border-2 font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${useThematicUI ? 'border-(--accent-teal) text-(--accent-teal) bg-(--accent-teal)/5 hover:bg-(--accent-teal)/10' : 'border-(--border-color) text-(--text-main) hover:border-(--text-muted)'}`}
+                                    className={`w-full py-2 md:py-3 rounded-lg md:rounded-2xl border-2 font-black text-[8px] md:text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${useThematicUI ? 'border-(--accent-teal) text-(--accent-teal) bg-(--accent-teal)/5 hover:bg-(--accent-teal)/10' : 'border-(--border-color) text-(--text-main) hover:border-(--text-muted)'}`}
                                 >
                                     {useThematicUI ? <Sparkles size={14} /> : <div className="w-3.5 h-3.5 border-2 border-current rounded-sm" />}
                                     Switch to {useThematicUI ? "Minimal Mode" : "Gamified Mode"}

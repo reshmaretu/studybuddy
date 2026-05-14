@@ -120,7 +120,7 @@ export const FormPactModal: React.FC<FormPactModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-2 md:p-4">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -132,22 +132,22 @@ export const FormPactModal: React.FC<FormPactModalProps> = ({
           initial={{ scale: 0.95, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          className="bg-(--bg-sidebar) border border-(--border-color) rounded-3xl w-full max-w-md overflow-hidden relative z-10 shadow-2xl"
+          className="bg-(--bg-sidebar) border border-(--border-color) rounded-2xl md:rounded-3xl w-full max-w-md overflow-hidden relative z-10 shadow-2xl"
         >
-          <div className="p-6 border-b border-(--border-color) flex items-center justify-between">
+          <div className="p-3 md:p-6 border-b border-(--border-color) flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Sparkles size={18} className="text-(--accent-teal)" />
-              <h2 className="text-lg font-bold text-(--text-main)">{currentPact ? 'Current Pact' : 'Form a Pact'}</h2>
+              <Sparkles size={16} className="md:w-[18px] md:h-[18px] text-(--accent-teal)" />
+              <h2 className="text-sm md:text-lg font-bold text-(--text-main)">{currentPact ? 'Pact' : 'Form Pact'}</h2>
             </div>
             <button
               onClick={onClose}
-              className="text-(--text-muted) hover:text-(--text-main) bg-(--bg-dark) p-2 rounded-full transition-colors"
+              className="text-(--text-muted) hover:text-(--text-main) bg-(--bg-dark) p-1 md:p-2 rounded-full transition-colors"
             >
-              <X size={16} />
+              <X size={14} className="md:w-4 md:h-4" />
             </button>
           </div>
 
-          <div className="p-6 space-y-4">
+          <div className="p-3 md:p-6 space-y-2 md:space-y-4">
             <p className="text-xs text-(--text-muted)">
               Create a constellation of learners. Your lanterns will cluster together on the network.
             </p>
