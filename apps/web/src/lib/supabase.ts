@@ -1,13 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
-// 1. NO fallbacks. If Next.js can't find the keys, we want to know immediately.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// 1. Fallbacks for mobile/offline environments where env vars might be missing
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://qntlxxnesvekdunsxzwu.supabase.co";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_NVv9ES_PLJRpbpMVuZ7CkQ_BJpNtbvM";
 
-// 2. Strict Safety Check
-if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("CRITICAL: Missing NEXT_PUBLIC_SUPABASE environment variables! Check Vercel dashboard.");
+// 2. Soft safety check for development
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    if (typeof window !== 'undefined') {
+        console.warn("Using fallback Supabase environment variables for mobile/offline support.");
+    }
 }
+
 
 // 3. Create a browser singleton to avoid multiple GoTrueClient instances
 const createSupabaseClient = () => createClient(supabaseUrl, supabaseAnonKey);

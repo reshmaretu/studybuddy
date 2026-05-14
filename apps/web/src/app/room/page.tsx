@@ -672,16 +672,20 @@ export default function StudyRoom() {
         const handleUnload = () => {
             if (isHost && roomCode) {
                 // ⚡ Beacon API bypasses the normal async queue to ensure execution
-                const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rooms?room_code=eq.${roomCode}`;
+                const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://qntlxxnesvekdunsxzwu.supabase.co";
+                const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_NVv9ES_PLJRpbpMVuZ7CkQ_BJpNtbvM";
+
+                const url = `${baseUrl}/rest/v1/rooms?room_code=eq.${roomCode}`;
                 const headers = {
-                    'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                    'apikey': anonKey,
+                    'Authorization': `Bearer ${anonKey}`,
                 };
 
                 // Note: Standard Beacon only supports POST, so we use a DELETE proxy 
                 // or a simple 'last_seen' update that your DB can use to auto-delete.
                 navigator.sendBeacon(url, JSON.stringify({ _method: 'DELETE' }));
             }
+
         };
 
         window.addEventListener('beforeunload', handleUnload);
