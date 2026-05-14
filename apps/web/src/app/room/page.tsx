@@ -294,8 +294,9 @@ interface RoomSettings {
 interface Participant {
     id: string;
     name: string;
-    chumAvatar: string;
+    avatar: string;
     avatarUrl: string | null;
+
     status: string;
     roomCode: string;
     roomTitle: string;
@@ -622,7 +623,7 @@ export default function StudyRoom() {
                             id: user.id,
                             name: finalName,
                             avatar: finalAvatar,
-                            avatar_url: finalAvatarUrl,
+                            avatarUrl: finalAvatarUrl,
                             is_premium: myProfile.is_premium || false,
                             joined_at: new Date().toISOString(),
                             status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
@@ -631,6 +632,7 @@ export default function StudyRoom() {
                             focusScore: myStats.focus_score || 0,
                             totalHours: 0,
                         });
+
                         
                         // Joiner handshakes host
                         if (!isActuallyHost) {
@@ -677,8 +679,9 @@ export default function StudyRoom() {
             channelRef.current.track({
                 id: currentUserId,
                 name: resolvedName,
-                chumAvatar: resolvedAvatar,
+                avatar: resolvedAvatar,
                 avatarUrl: resolvedAvatarUrl,
+
                 status: isHost ? ((status === 'ACTIVE' || status === 'LAUNCHING') ? 'hosting' : 'drafting') : 'joined',
                 roomCode: roomCode,
                 roomTitle: settings.name || "Sanctuary",
@@ -952,9 +955,9 @@ export default function StudyRoom() {
                 {status === 'DRAFT' && !isArchitectMinimized && (
                     <motion.aside
                         initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-                        // ⚡ FIX: Appended the scrollbar hiding classes to the end of the className string
-                        className="w-80 flex-shrink-0 bg-[var(--bg-card)] border-r border-[var(--border-color)] z-20 flex flex-col overflow-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                        className="fixed inset-y-0 left-0 w-full sm:w-80 lg:relative flex-shrink-0 bg-[var(--bg-card)] border-r border-[var(--border-color)] z-[1000] lg:z-20 flex flex-col overflow-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] shadow-2xl lg:shadow-none"
                     >
+
                         <div className="p-6 border-b border-[var(--border-color)]">
                             <h2 className="text-[var(--accent-yellow)] font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
                                 <Sparkles size={14} /> Sanctuary Architect
@@ -1325,7 +1328,8 @@ export default function StudyRoom() {
                             <span className="text-[11px] font-black uppercase tracking-[0.4em] text-[var(--accent-teal)] mb-3 block opacity-60">
                                 {isBreak ? "☕ Recovery Phase" : `Cycle ${settings.currentCycle}`}
                             </span>
-                            <div className="text-[5rem] sm:text-[8rem] md:text-[12rem] font-black tabular-nums leading-[0.75] tracking-tighter text-[var(--text-main)] drop-shadow-[0_0_30px_rgba(255,255,255,0.1)] mb-8">
+                            <div className="text-[6rem] sm:text-[8rem] md:text-[12rem] font-black tabular-nums leading-[0.75] tracking-tighter text-[var(--text-main)] drop-shadow-[0_0_30px_rgba(255,255,255,0.1)] mb-8">
+
                                 {Math.floor(secondsLeft / 60).toString().padStart(2, '0')}:{(secondsLeft % 60).toString().padStart(2, '0')}
                             </div>
 
@@ -1373,7 +1377,8 @@ export default function StudyRoom() {
 
             {/* 3. RIGHT PRESENCE SIDEBAR */}
             {!isSidebarMinimized && (
-                <aside className="w-72 flex-shrink-0 border-l border-(--border-color) z-20 hidden lg:flex flex-col bg-(--bg-sidebar)/90 p-8">
+                <aside className="fixed inset-y-0 right-0 w-72 lg:relative flex-shrink-0 border-l border-(--border-color) z-[1000] lg:z-20 flex flex-col bg-(--bg-sidebar)/95 lg:bg-(--bg-sidebar)/90 p-8 shadow-2xl lg:shadow-none">
+
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
                             <Users size={14} /> Presence ({participants.length})
@@ -1391,7 +1396,8 @@ export default function StudyRoom() {
                             const isRoomHost = p.id === hostId;
 
                             // ⚡ Extract ONLY the emoji (e.g., "👻" from "👻 Ghost")
-                            const avatarEmoji = p.chumAvatar ? p.chumAvatar.split(' ')[0] : '👻';
+                            const avatarEmoji = p.avatar ? p.avatar.split(' ')[0] : '👻';
+
 
                             return (
                                 <div key={p.id} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${isMe ? 'bg-[var(--bg-sidebar)] border-[var(--text-muted)]/40 shadow-[0_0_15px_rgba(255,255,255,0.1)]'
