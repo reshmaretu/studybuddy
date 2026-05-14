@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, Play, Pause, Settings, Bell, Flame, Coffee, Zap, RotateCcw, Calendar, CheckCircle2, Pin, X, Check } from "lucide-react";
+import { Brain, Play, Pause, Settings, Bell, Flame, Coffee, Zap, RotateCcw, Calendar, CheckCircle2, Pin, X, Check, Sprout, Eye } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { useStudyStore, Task, calculateXpRequirement, getTitleForLevel } from "@/store/useStudyStore";
 import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor, KeyboardSensor } from "@dnd-kit/core";
@@ -63,6 +63,9 @@ export default function Dashboard() {
         requireCompletionConfirmation = true
     } = useStudyStore();
     const { terms } = useTerms();
+    const [activeTab, setActiveTab] = useState<'focus' | 'garden' | 'mastery'>('focus');
+
+
 
     // Page visibility and glow effects
     const isPageVisible = usePageVisibility();
@@ -385,10 +388,8 @@ export default function Dashboard() {
     };
 
     return (
-    const [activeTab, setActiveTab] = useState<'focus' | 'garden' | 'mastery'>('focus');
-
-    return (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragEnd}>
+
             {/* 🌌 AMBIENT PARALLAX BACKGROUND */}
             <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-[var(--accent-teal)] mix-blend-screen filter blur-[150px] opacity-[0.03] rounded-full animate-pulse" style={{ animationDuration: '10s' }} />
@@ -814,8 +815,6 @@ export default function Dashboard() {
                         </div>
                     </section>
                 )}
-                </section>
-            </div>
 
                 {/* The Animated Drop Zone Toggle */}
                 <AnimatePresence>
@@ -847,6 +846,7 @@ export default function Dashboard() {
                 />
 
                 <footer className="pt-12 pb-8 border-t border-(--border-color) flex flex-col items-center gap-4">
+
                     <div className="flex gap-6 text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">
                         <button className="hover:text-(--accent-teal) transition-colors">Terms of Service</button>
                         <button className="hover:text-(--accent-teal) transition-colors">Privacy & Cookies</button>
@@ -854,6 +854,8 @@ export default function Dashboard() {
                     </div>
                     <p className="text-[9px] text-(--text-muted) opacity-50 uppercase tracking-[0.3em] font-black">Neural Link Established © 2026 StudyBuddy</p>
                 </footer>
+            </div>
         </DndContext>
     );
+
 }

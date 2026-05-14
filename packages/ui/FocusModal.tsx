@@ -120,8 +120,6 @@ export const FocusModal = () => {
                 </div>
             </motion.div>
         </div>
-
-            </motion.div>
-        </div>
     );
 };
+

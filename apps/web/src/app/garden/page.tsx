@@ -470,10 +470,32 @@ export default function CrystalGarden() {
     const [isCrystalMasteryOpen, setIsCrystalMasteryOpen] = useState(false);
     const [isRebirthing, setIsRebirthing] = useState(false);
     const [crystalNameInput, setCrystalNameInput] = useState('');
+    const [pendingFramework, setPendingFramework] = useState<string | null>(null);
+
     const [animatingTaskId, setAnimatingTaskId] = useState<string | null>(null);
     const [recentlyCompletedTaskId, setRecentlyCompletedTaskId] = useState<string | null>(null);
     const [activeGardenTab, setActiveGardenTab] = useState<'incomplete' | '3d' | 'complete'>('3d');
+    const [showViewMenu, setShowViewMenu] = useState(false);
+    const viewMenuRef = useRef<HTMLDivElement>(null);
+    const [showFrameworkMenu, setShowFrameworkMenu] = useState(false);
+    const frameworkMenuRef = useRef<HTMLDivElement>(null);
+
+    const [showCurrentFocus, setShowCurrentFocus] = useState(true);
+    const [showGarden3D, setShowGarden3D] = useState(true);
+    const [showHallOfMastery, setShowHallOfMastery] = useState(true);
+    const [taskLoadFilters, setTaskLoadFilters] = useState<('light' | 'medium' | 'heavy')[]>(['light', 'medium', 'heavy']);
+
+    const isOnlyWidgetVisible = (widget: 'focus' | 'garden' | 'mastery') => {
+        const visibleCount = [showCurrentFocus, showGarden3D, showHallOfMastery].filter(Boolean).length;
+        if (visibleCount > 1) return false;
+        if (widget === 'focus') return showCurrentFocus;
+        if (widget === 'garden') return showGarden3D;
+        return showHallOfMastery;
+    };
+
     const lastGrowthRef = useRef(crystalGrowth);
+
+
 
 
     const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -555,12 +577,9 @@ export default function CrystalGarden() {
 
     const completionRatio = Math.min(1, Math.max(0, crystalGrowth / 100));
 
-    const [showFrameworkMenu, setShowFrameworkMenu] = useState(false);
-    const [pendingFramework, setPendingFramework] = useState<FrameworkSelection | null>(null);
-    const frameworkMenuRef = useRef<HTMLDivElement | null>(null);
-
     const [stressLevel, setStressLevel] = useState(50);
     const [actualPomos, setActualPomos] = useState(1);
+
 
     useEffect(() => {
         if (!showFrameworkMenu) return;
@@ -1022,6 +1041,13 @@ export default function CrystalGarden() {
                 </AnimatePresence>
 
                 <div className="relative z-10 max-w-[1600px] mx-auto px-4 md:px-0 pb-12">
+                {/* 📱 Mobile Tabs (Only on small screens) */}
+                <div className="md:hidden flex bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-xl mb-6">
+                    <button onClick={() => setActiveGardenTab('incomplete')} className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${activeGardenTab === 'incomplete' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)]'}`}>Focus</button>
+                    <button onClick={() => setActiveGardenTab('3d')} className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${activeGardenTab === '3d' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)]'}`}>Garden</button>
+                    <button onClick={() => setActiveGardenTab('complete')} className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${activeGardenTab === 'complete' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)]'}`}>Mastery</button>
+                </div>
+
                 {/* GARDEN HEADER */}
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 pt-4 md:pt-0">
                     <div>
@@ -1043,12 +1069,24 @@ export default function CrystalGarden() {
                                 className="w-full md:w-80 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl pl-12 pr-6 py-4 text-sm font-medium focus:outline-none focus:border-[var(--accent-teal)] transition-colors placeholder:text-[var(--text-muted)]/50"
                             />
                         </div>
+
+                        {/* Lens / View Menu */}
+                        <div ref={viewMenuRef} className="relative">
+                            <SquishyButton
+                                onClick={() => setShowViewMenu(!showViewMenu)}
+                                className={`h-full px-6 py-4 rounded-2xl text-sm font-bold flex items-center gap-2 border transition-all ${showViewMenu ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'}`}
+                            >
+                                <Eye size={18} />
+                                <span className="hidden sm:inline">Lens</span>
+                            </SquishyButton>
+
+                            <AnimatePresence>
                                 {showViewMenu && (
                                     <motion.div
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: 10 }}
-                                        className="absolute top-full right-0 mt-2 w-56 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden"
+                                        className="absolute top-full right-0 mt-2 w-56 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden z-[60]"
                                     >
                                         {/* Widget Visibility Controls */}
                                         <div className="p-4 border-b border-[var(--border-color)]">
@@ -1121,6 +1159,7 @@ export default function CrystalGarden() {
                                 )}
                             </AnimatePresence>
                         </div>
+
                         
                         {/* 🔥 THE FRAMEWORK DROPDOWN 🔥 */}
                         <div ref={frameworkMenuRef} className="relative z-50">
@@ -1633,9 +1672,11 @@ export default function CrystalGarden() {
                     onConfirm={confirmBulkDelete}
                     onCancel={() => setShowBulkDeleteConfirm(false)}
                 />
+                </div>
             </div>
 
             {/* Maximized 3D Garden View (OUTSIDE main zone to prevent display:none issues) */}
+
             <AnimatePresence>
                 {isGarden3DMaximized && (
                     <motion.div

@@ -707,10 +707,12 @@ export default function StudyRoom() {
     // ⚡ RE-TRACK PRESENCE ON STATUS CHANGE
     useEffect(() => {
         if (channelRef.current && currentUserId) {
+            channelRef.current.track({
                 id: currentUserId,
                 name: resolvedName,
                 avatar: resolvedAvatar,
                 avatarUrl: storeUseChumAvatar ? null : storeAvatarUrl,
+
 
 
                 status: isHost ? ((status === 'ACTIVE' || status === 'LAUNCHING') ? 'hosting' : 'drafting') : 'joined',
