@@ -105,15 +105,16 @@ export default function Dashboard() {
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
-            activationConstraint: {
-                delay: 250,
-                tolerance: 5,
-            },
+            activationConstraint: (typeof window !== 'undefined' && 
+                ((window as any).Capacitor?.isNativePlatform?.() || 'ontouchstart' in window)) 
+                ? { delay: 250, tolerance: 5 }
+                : { distance: 8 }
         }),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         })
     );
+
     const validTasks = tasks.filter(t => t && t.id);
     const activeTasks = validTasks.filter(t => !t.isCompleted);
     const completedTasks = validTasks.filter(t => t.isCompleted);

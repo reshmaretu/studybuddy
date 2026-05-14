@@ -39,6 +39,17 @@ export default function RootLayout({
             (function() {
               // 🛡️ Polyfill process for browser/APK environments
               window.process = window.process || { env: {} };
+
+              // 🛡️ Nuclear Option for Supabase "Lock Stolen" Error
+              // Disabling native Web Locks in the APK forces Supabase to use stable fallback locking
+              if (typeof navigator !== 'undefined' && (navigator as any).locks && 
+                  (window.location.origin === 'http://localhost' || window.location.origin === 'https://localhost' || window.location.protocol === 'file:')) {
+                try {
+                  Object.defineProperty(navigator, 'locks', { get: function() { return undefined; } });
+                  console.log("[STUDYBUDDY] Neural Lock Bypass Active");
+                } catch (e) {}
+              }
+
               
               // 🛡️ Polyfill Notification API for Mobile APKs
               if (typeof window !== 'undefined' && !window.Notification) {

@@ -212,15 +212,16 @@ export default function WardrobePage() {
                     </div>
 
                     {/* AVATAR RENDERER */}
-                    <div className="flex-1 flex items-center justify-center w-full min-h-[350px] lg:min-h-0 mt-4 lg:mt-8">
-                        <div className="relative w-64 h-64 sm:w-80 sm:h-80 shrink-0">
+                    <div className="flex-1 flex items-center justify-center w-full min-h-[40vh] max-h-[50vh] lg:min-h-0 lg:max-h-none mt-2 lg:mt-8 relative z-0">
+                        <div className="relative w-[70vw] h-[70vw] max-w-[320px] max-h-[320px] lg:w-96 lg:h-96 shrink-0 transition-all duration-500">
                             <ChumRenderer size="w-full h-full" />
                         </div>
                     </div>
 
+
                     {/* 🔥 CHUM BASE COLOR SCROLL CONTAINER 🔥 */}
-                    <div className="w-full mt-auto pt-6 border-t border-[var(--border-color)]/50 shrink-0">
-                        <div className="flex justify-between items-center px-4 mb-4">
+                    <div className="w-full mt-auto pt-4 border-t border-[var(--border-color)]/50 shrink-0">
+                        <div className="flex justify-between items-center px-4 mb-2">
                             <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">
                                 {isGamified ? "Chum Base Color" : "Chum Base Color"}
                             </label>
@@ -228,16 +229,16 @@ export default function WardrobePage() {
                                 onClick={() => setActiveBaseColor('base7')}
                                 className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest bg-black/20 px-2 py-1 rounded transition-colors"
                             >
-                                Reset to Default
+                                Reset
                             </SquishyButton>
                         </div>
 
-                        <div className="flex items-center justify-start sm:justify-center gap-4 overflow-x-auto w-full py-6 px-4" style={{ scrollSnapType: 'x mandatory' }}>
+                        <div className="flex items-center justify-start gap-4 overflow-x-auto w-full py-4 px-4 no-scrollbar" style={{ scrollSnapType: 'x mandatory' }}>
                             {BASE_COLORS_CATALOG.map((base) => (
                                 <SquishyButton
                                     key={base.id}
                                     onClick={() => setActiveBaseColor(base.id)}
-                                    className={`relative shrink-0 w-16 h-16 rounded-full overflow-hidden border-[3px] transition-all duration-300 flex items-center justify-center ${activeBaseColor === base.id
+                                    className={`relative shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-[3px] transition-all duration-300 flex items-center justify-center ${activeBaseColor === base.id
                                         ? 'border-[var(--accent-teal)] scale-110 shadow-[0_0_20px_rgba(20,184,166,0.4)] z-10 bg-[var(--bg-dark)]'
                                         : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105 bg-[var(--bg-sidebar)]/50'
                                         }`}
@@ -245,7 +246,6 @@ export default function WardrobePage() {
                                     style={{ scrollSnapAlign: 'center' }}
                                     disabled={false}
                                 >
-                                    {/* 🔥 STRICTLY THE IMAGE PREVIEW 🔥 */}
                                     <img
                                         src={`/assets/chum/${base.fileName}`}
                                         alt={base.name}
@@ -255,6 +255,7 @@ export default function WardrobePage() {
                             ))}
                         </div>
                     </div>
+
                 </section>
 
                 {/* RIGHT PANEL: Customization Hub */}

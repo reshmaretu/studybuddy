@@ -308,12 +308,25 @@ export default function StudyRoom() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const roomCode = searchParams.get('code') || searchParams.get('room');
+
     const {
         isPremiumUser,
         enableDevRoomOptions,
         triggerChumToast
     } = useStudyStore();
+
+    // 🛡️ Safety Guard: Redirect if no room code is present
+    useEffect(() => {
+        if (!roomCode) {
+            triggerChumToast("Sync Link Invalid", "warning");
+
+            router.push('/lantern');
+        }
+    }, [roomCode, router, triggerChumToast]);
+
     const [isRoomPremium, setIsRoomPremium] = useState(false);
+
+
 
     // --- STATES ---
     const [status, setStatus] = useState<'DRAFT' | 'LAUNCHING' | 'ACTIVE'>('DRAFT');
@@ -556,6 +569,36 @@ export default function StudyRoom() {
             activeChannel = channel;
             channelRef.current = channel;
 
+            channel.subscribe(async (status) => {
+                console.log('📡 ROOM REALTIME: Subscription status:', status);
+                if (status === 'SUBSCRIBED') {
+                    console.log('✅ ROOM REALTIME: Successfully subscribed. Tracking presence...');
+                    await channel.track({
+                        id: user.id,
+                        name: finalName,
+                        avatar: finalAvatar,
+                        avatar_url: finalAvatarUrl,
+                        is_premium: myProfile.is_premium || false,
+                        joined_at: new Date().toISOString(),
+                        status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
+                        roomCode: roomCode,
+                        roomTitle: settings.name,
+                        focusScore: myStats.focus_score || 0,
+                        totalHours: 0,
+                    });
+                    
+                    // Joiner handshakes host
+                    if (!isActuallyHost) {
+                        console.log('📡 ROOM REALTIME: Sending sync request...');
+                        channel.send({ type: 'broadcast', event: 'request_sync', payload: {} });
+                    }
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    console.error('❌ ROOM REALTIME: Subscription error!', status);
+                    triggerChumToast?.("Sync Relay Failed. Retrying...", "warning");
+
+                }
+            });
+
             console.log('📡 ROOM INIT: Setting up channel listeners...');
             channel
                 .on('presence', { event: 'sync' }, () => {
@@ -603,33 +646,8 @@ export default function StudyRoom() {
                         }));
                         setIsSyncing(false); // Remove loading modal!
                     }
-                })
-                .subscribe(async (s) => {
-                    console.log('📡 ROOM INIT: Channel subscription status:', s);
-                    if (s === 'SUBSCRIBED') {
-                        console.log('✅ ROOM INIT: Channel subscribed! Tracking presence...');
-                        const finalRoomTitle = roomData?.name || searchParams.get('title') || "New Sanctuary";
-                        await channel.track({
-                            id: user.id,
-                            name: finalName,
-                            chumAvatar: finalAvatar,
-                            avatarUrl: finalAvatarUrl,
-                            status: isActuallyHost ? (roomData?.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
-                            roomCode: roomCode,
-                            roomTitle: finalRoomTitle,
-                            focusScore: myStats.focus_score || 0,
-                            totalHours: Number(((myStats.total_seconds_tracked || 0) / 3600).toFixed(1))
-                        });
-                        console.log('✅ ROOM INIT: Presence tracked!');
-                        // ⚡ LATE JOINER DETECTED: Ask host for the time!
-                        if (!isActuallyHost && roomData?.status === 'ACTIVE') {
-                            console.log('📡 ROOM INIT: Late joiner detected, requesting sync...');
-                            setIsSyncing(true);
-                            channel.send({ type: 'broadcast', event: 'request_sync' });
-                        }
-                        console.log('🎉 ROOM INIT: Complete! Room is ready.');
-                    }
                 });
+
             } catch (error) {
                 console.error('❌ ROOM INIT FATAL ERROR:', error);
                 if (error instanceof Error) {

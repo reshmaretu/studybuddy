@@ -26,9 +26,10 @@ export default function PremiumModal() {
             const newInvoice = {
                 id: `INV-${Math.random().toString(36).substring(7).toUpperCase()}`,
                 date: new Date().toLocaleDateString(),
-                amount: "₱99.00",
+                amount: "₱79.00",
                 method: "GCash",
                 items: ["StudyBuddy Pro - Seasonal Pass"]
+
             };
             setPremiumStatus(true);
             addMockInvoice(newInvoice);
@@ -97,8 +98,9 @@ export default function PremiumModal() {
                                                 onClick={handleUpgrade}
                                                 className="w-full py-6 bg-white text-black rounded-[32px] text-xs font-black uppercase hover:bg-(--accent-teal) hover:text-white transition-all shadow-[0_20px_40px_-10px_rgba(45,212,191,0.3)] active:scale-95"
                                             >
-                                                Tend the Garden (₱99)
+                                                Tend the Garden (₱79)
                                             </button>
+
                                         ) : (
                                             <div className="space-y-4 text-center">
                                                 <div className="flex items-center justify-center gap-2 text-emerald-400">

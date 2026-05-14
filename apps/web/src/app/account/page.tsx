@@ -1103,10 +1103,11 @@ export default function AccountPage() {
                                             <div className="space-y-6">
                                                 <div className="bg-white p-6 rounded-[32px] flex items-center justify-center relative group">
                                                     <img
-                                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`qrph://studybuddy.heritage/pay?amount=99&userId=${displayName}`)}`}
+                                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`qrph://studybuddy.heritage/pay?amount=79&userId=${displayName}`)}`}
                                                         className="w-48 h-48 group-hover:scale-105 transition-transform"
                                                         alt="Universal QR Ph"
                                                     />
+
                                                     <div className="absolute inset-0 bg-(--accent-teal)/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                                                 </div>
                                                 <div className="flex items-center justify-center gap-4">

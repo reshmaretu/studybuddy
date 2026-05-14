@@ -706,7 +706,7 @@ export default function LandingPage() {
 
               <h3 className="text-2xl font-bold text-[#E8C37D] mb-2">The Luminary</h3>
               <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-5xl font-black text-[#E8C37D]">₱149</span>
+                <span className="text-5xl font-black text-[#E8C37D]">₱79</span>
                 <span className="text-[#A89F9A] font-medium">/ month</span>
               </div>
               <p className="text-[#A89F9A] mb-8 leading-relaxed">Unlock premium aesthetics, exclusive wardrobe drops, and advanced analytics.</p>

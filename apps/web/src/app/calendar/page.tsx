@@ -98,11 +98,12 @@ export default function TactileCalendar() {
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
-            activationConstraint: {
-                delay: 250,
-                tolerance: 5,
-            },
+            activationConstraint: (typeof window !== 'undefined' && 
+                ((window as any).Capacitor?.isNativePlatform?.() || 'ontouchstart' in window)) 
+                ? { delay: 250, tolerance: 5 }
+                : { distance: 8 }
         }),
+
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         })

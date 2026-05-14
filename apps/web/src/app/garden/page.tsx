@@ -443,15 +443,16 @@ export default function CrystalGarden() {
         setSettings
     } = useStudyStore();
 
+
     const { terms, isGamified } = useTerms();
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
-            activationConstraint: {
-                delay: 250,
-                tolerance: 5,
-            },
-        })
+            activationConstraint: (typeof window !== 'undefined' && 
+                ((window as any).Capacitor?.isNativePlatform?.() || 'ontouchstart' in window)) 
+                ? { delay: 250, tolerance: 5 }
+                : { distance: 8 }
+        }),
     );
 
     const [searchQuery, setSearchQuery] = useState("");
