@@ -92,9 +92,9 @@ export default function ChumWidget() {
 
     // 🌐 WEB PUSH (Mock Support)
     const sendPush = (title: string, body: string) => {
-        if (!("Notification" in window)) return;
-        if (typeof Notification !== 'undefined' && Notification.permission === "granted") {
-            new Notification("StudyBuddy", {
+        const BrowserNotification = (window as any).Notification;
+        if (BrowserNotification && BrowserNotification.permission === "granted") {
+            new BrowserNotification("StudyBuddy", {
                 body: body,
                 icon: "/assets/favicon.png"
             });
@@ -102,12 +102,12 @@ export default function ChumWidget() {
     };
 
     useEffect(() => {
-        if (!("Notification" in window)) return;
-        if (typeof Notification !== 'undefined' && Notification.permission === "default") {
-            Notification.requestPermission();
+        const BrowserNotification = (window as any).Notification;
+        if (BrowserNotification && BrowserNotification.permission === "default") {
+            BrowserNotification.requestPermission();
         }
-
     }, []);
+
 
     useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [currentHistory, isOpen, showSettings, showSessions]);
     useEffect(() => { if (isTutorModeActive) setIsOpen(true); }, [isTutorModeActive]);
