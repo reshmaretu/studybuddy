@@ -42,7 +42,7 @@ export function ConfirmationModal({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.8, y: -20 }}
                         transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-(--bg-card) border border-(--border-color) rounded-3xl p-8 max-w-sm w-full shadow-2xl z-[1000]"
+                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-(--bg-card) border border-(--border-color) rounded-3xl p-6 md:p-8 max-w-[calc(100vw-2rem)] md:max-w-sm w-full shadow-2xl z-[1000]"
                     >
                         <div className="flex items-center gap-3 mb-4">
                             <div className={`p-3 rounded-full ${isDangerous ? 'bg-red-500/20' : 'bg-[var(--accent-teal)]/20'}`}>

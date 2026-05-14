@@ -666,7 +666,18 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
             )}
 
             {/* THE 3D CANVAS */}
-            <Canvas shadows camera={{ position: [0, 3, 8], fov: 45 }} style={{ pointerEvents: 'auto', position: 'relative', zIndex: 1, width: '100%', height: '100%' }}>
+            <Canvas 
+                shadows 
+                camera={{ position: [0, 3, 8], fov: 45 }} 
+                dpr={[1, 2]} // Performance: limit pixel ratio on high-res mobile
+                gl={{ 
+                    powerPreference: "high-performance",
+                    antialias: !isPerformanceLow,
+                    stencil: false,
+                    depth: true
+                }}
+                style={{ pointerEvents: 'auto', position: 'relative', zIndex: 1, width: '100%', height: '100%' }}
+            >
                 <color attach="background" args={[activeAtmosphere.bg]} />
                 <fog attach="fog" args={[activeAtmosphere.bg, activeAtmosphere.fogStart, activeAtmosphere.fogEnd]} />
 

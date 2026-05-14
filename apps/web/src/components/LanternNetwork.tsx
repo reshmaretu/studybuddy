@@ -422,7 +422,15 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                 )}
             </div>
 
-            <Canvas>
+            <Canvas
+                dpr={[1, 2]}
+                gl={{ 
+                    powerPreference: "high-performance",
+                    antialias: !isPerformanceLow,
+                    stencil: false,
+                    depth: true
+                }}
+            >
                 <PerspectiveCamera makeDefault position={[0, 0, 120]} fov={30} />
                 {performanceSettings.showParticles && (
                     <FloatingParticles size={debrisSize} color={debrisColor} count={resolvedDebrisCount} spread={debrisSpread} />

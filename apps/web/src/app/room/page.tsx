@@ -1194,8 +1194,8 @@ export default function StudyRoom() {
 
 
             {/* 2. MAIN AREA */}
-            <main className="flex-1 min-w-0 relative flex flex-col p-8 z-10">
-                <header className="flex justify-between items-center z-20">
+            <main className="flex-1 min-w-0 relative flex flex-col p-4 md:p-8 z-10">
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-center z-20 gap-4">
                     <div className="flex items-center gap-4">
                         {status === 'DRAFT' && isArchitectMinimized && (
                             <button
@@ -1242,7 +1242,7 @@ export default function StudyRoom() {
                             )}
                         </div>
                     </div>
-                    <button onClick={() => setShowAbandonConfirm(true)} className="flex items-center gap-2 text-xs font-bold text-(--text-muted) hover:text-red-400 transition-colors bg-(--bg-sidebar)/50 px-4 py-2 rounded-xl border border-(--border-color)">
+                    <button onClick={() => setShowAbandonConfirm(true)} className="pointer-events-auto flex items-center gap-2 text-xs font-bold text-(--text-muted) hover:text-red-400 transition-colors bg-(--bg-sidebar)/50 px-4 py-2 rounded-xl border border-(--border-color)">
                         <LogOut size={14} /> Leave
                     </button>
                 </header>
@@ -1300,7 +1300,7 @@ export default function StudyRoom() {
                             <span className="text-[11px] font-black uppercase tracking-[0.4em] text-[var(--accent-teal)] mb-3 block opacity-60">
                                 {isBreak ? "☕ Recovery Phase" : `Cycle ${settings.currentCycle}`}
                             </span>
-                            <div className="text-[8rem] md:text-[12rem] font-black tabular-nums leading-[0.75] tracking-tighter text-[var(--text-main)] drop-shadow-[0_0_30px_rgba(255,255,255,0.1)] mb-8">
+                            <div className="text-[5rem] sm:text-[8rem] md:text-[12rem] font-black tabular-nums leading-[0.75] tracking-tighter text-[var(--text-main)] drop-shadow-[0_0_30px_rgba(255,255,255,0.1)] mb-8">
                                 {Math.floor(secondsLeft / 60).toString().padStart(2, '0')}:{(secondsLeft % 60).toString().padStart(2, '0')}
                             </div>
 
