@@ -257,8 +257,8 @@ export default function ChumWidget() {
         let aiResponse = "";
         let usedNode = "";
 
-        // --- CLOUD CHAT WATERFALL ENGINE ---
-        const tryCloudChat = async (providers: ('openrouter' | 'groq' | 'gemini')[]) => {
+        // --- CLOUD CHAT ENGINE ---
+        const tryCloudChat = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             const activeHistory = isTutorModeActive ? tutorChatHistory : normalChatHistory;
             const historyToSend = activeHistory.map(msg => ({
@@ -272,65 +272,65 @@ export default function ChumWidget() {
                 { role: "user", content: messageText }
             ];
 
-            const wsUrl = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_WEBSOCKET_URL) || 'ws://localhost:1234';
-            const baseUrl = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) || "https://qntlxxnesvekdunsxzwu.supabase.co";
-            const anonKey = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) || "sb_publishable_NVv9ES_PLJRpbpMVuZ7CkQ_BJpNtbvM";
+            try {
+                const res = await fetch(`/api/chat`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        messages: messagesPayload,
+                        user_id: session?.user.id,
+                        selected_model: useStudyStore.getState().selectedModel,
+                        primary_node: useStudyStore.getState().aiPrimaryNode,
+                        openrouter_key: useStudyStore.getState().aiKeys.openrouter,
+                        groq_key: useStudyStore.getState().aiKeys.groq,
+                        gemini_key: useStudyStore.getState().aiKeys.gemini,
+                    })
+                });
 
-
-            for (const provider of providers) {
-                try {
-                    const res = await fetch(`/api/chat`, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            messages: messagesPayload,
-                            user_id: session?.user.id,
-                            selected_model: useStudyStore.getState().selectedModel,
-                            primary_node: useStudyStore.getState().aiPrimaryNode,
-                            openrouter_key: useStudyStore.getState().aiKeys.openrouter,
-                            groq_key: useStudyStore.getState().aiKeys.groq,
-                            gemini_key: useStudyStore.getState().aiKeys.gemini,
-                        })
-                    });
-
-                    if (!res.ok) {
-                        const errorData = await res.json().catch(() => ({}));
-                        const serverError = errorData.error || `${provider} failed`;
-                        console.error(`[WATERFALL] Server Error (${provider}):`, serverError);
-                        throw new Error(serverError);
-                    }
-                    if (!res.body) throw new Error("No stream body");
-
-                    usedNode = res.headers.get('X-Node-Used') || `${provider.toUpperCase()} (Cloud)`;
-
-                    // Inject empty message
-                    setCurrentHistory([...newHistory, { role: 'chum', text: "", node: usedNode }]);
-
-                    const reader = res.body.getReader();
-                    const decoder = new TextDecoder();
-                    let fullText = "";
-
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        const textChunk = decoder.decode(value, { stream: true });
-                        fullText += textChunk;
-                        setCurrentHistory((prev: ChatMessage[]) => {
-                            const updated = [...prev];
-                            updated[updated.length - 1] = { ...updated[updated.length - 1], text: fullText };
-                            return updated;
-                        });
-                    }
-                    return true; // SUCCESS!
-                } catch (e: unknown) {
-                    const err = e as Error;
-                    lastErrorMessage = err.message;
-                    console.warn(`[WATERFALL] ${provider} failed, trying next...`, err.message);
+                const contentType = res.headers.get('content-type');
+                if (!res.ok || !contentType?.includes('application/json')) {
+                    const errorData = await res.json().catch(() => ({}));
+                    const errorMsg = errorData.error || "Neural connection failed. Please check your AI settings and keys.";
+                    throw new Error(errorMsg);
                 }
+
+                if (!res.body) throw new Error("No neural stream received.");
+
+                usedNode = res.headers.get('X-Node-Used') || "Cloud Node";
+
+                // Inject empty message to start streaming
+                setCurrentHistory([...newHistory, { role: 'chum', text: "", node: usedNode }]);
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const textChunk = decoder.decode(value, { stream: true });
+                    
+                    // Safety check: if the very first chunk looks like HTML, abort immediately
+                    if (fullText === "" && (textChunk.trim().startsWith('<!DOCTYPE') || textChunk.trim().startsWith('<html'))) {
+                        throw new Error("Neural link returned incompatible format (HTML). Check your API keys.");
+                    }
+
+                    fullText += textChunk;
+                    setCurrentHistory((prev: ChatMessage[]) => {
+                        const updated = [...prev];
+                        updated[updated.length - 1] = { ...updated[updated.length - 1], text: fullText };
+                        return updated;
+                    });
+                }
+                return true;
+            } catch (e: unknown) {
+                const err = e as Error;
+                console.error("[CHUM] Cloud Chat Error:", err.message);
+                throw err;
             }
-            throw new Error(lastErrorMessage || "All cloud providers failed.");
         };
 
         let lastErrorMessage = "";
@@ -339,7 +339,7 @@ export default function ChumWidget() {
 
             if (aiTier === 'cloud') {
                 setIsTyping(true);
-                await tryCloudChat(['openrouter', 'groq', 'gemini']);
+                await tryCloudChat();
                 setIsTyping(false);
             } else if (aiTier === 'local') {
                 try {

@@ -635,7 +635,7 @@ export default function Dashboard() {
                                     ))}
 
                                     {Array.from({ length: Math.max(0, 3 - activeTasks.length) }).map((_, i) => (
-                                        <div key={`empty-${i}`} className="min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
+                                        <div key={`empty-${i}`} className="min-h-[100px] md:min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
                                             + Open Slot
                                         </div>
                                     ))}
@@ -662,7 +662,7 @@ export default function Dashboard() {
                                 <span className="text-[9px] md:text-[10px] opacity-70 mt-1">+{hiddenTaskCount} hidden blooms</span>
                             </button>
                         ) : (
-                            <div className="min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
+                            <div className="min-h-[100px] md:min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
                                 + Open Slot
                             </div>
                         )}
@@ -742,24 +742,23 @@ export default function Dashboard() {
                         )}
                     </AnimatePresence>
 
-                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-8 shadow-sm">
-                        <h3 className="text-lg font-bold text-[var(--text-main)] mb-6">Quest Progress</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-4 text-center mb-8 border-b border-[var(--border-color)] pb-8">
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-8 shadow-sm">
+                        <h3 className="text-lg font-bold text-[var(--text-main)] mb-4 md:mb-6">Quest Progress</h3>
+                        <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-4 text-center mb-6 md:mb-8 border-b border-[var(--border-color)] pb-6 md:pb-8">
                             <div className="flex flex-col items-center justify-center">
-                                <span className="text-3xl md:text-4xl font-bold text-[var(--text-main)] mb-1">{activeTasks.length}</span>
-                                <span className="text-xs text-[var(--text-muted)] font-medium">{terms.incomplete}</span>
+                                <span className="text-2xl md:text-4xl font-bold text-[var(--text-main)] mb-0.5 md:mb-1">{activeTasks.length}</span>
+                                <span className="text-[10px] md:text-xs text-[var(--text-muted)] font-medium">{terms.incomplete}</span>
                             </div>
-                            <div className="flex flex-col items-center justify-center border-y sm:border-y-0 sm:border-x border-[var(--border-color)] py-4 sm:py-0">
-                                <span className="text-3xl md:text-4xl font-bold text-[var(--text-main)] mb-1">{completedTasks.length}</span>
-                                <span className="text-xs text-[var(--text-muted)] font-medium">{terms.completed}</span>
+                            <div className="flex flex-col items-center justify-center border-x border-[var(--border-color)] py-1 sm:py-0">
+                                <span className="text-2xl md:text-4xl font-bold text-[var(--text-main)] mb-0.5 md:mb-1">{completedTasks.length}</span>
+                                <span className="text-[10px] md:text-xs text-[var(--text-muted)] font-medium">{terms.completed}</span>
                             </div>
                             <div className="flex flex-col items-center justify-center">
-                                {/* 👇 Now divides literal seconds by 3600 to get true hours! */}
-                                <span className="text-3xl md:text-4xl font-bold text-[var(--text-main)] mb-1">{(totalSecondsTracked / 3600).toFixed(1)}</span>
-                                <span className="text-xs text-[var(--text-muted)] font-medium">Flow Hours</span>
+                                <span className="text-2xl md:text-4xl font-bold text-[var(--text-main)] mb-0.5 md:mb-1">{(totalSecondsTracked / 3600).toFixed(1)}</span>
+                                <span className="text-[10px] md:text-xs text-[var(--text-muted)] font-medium">Flow Hours</span>
                             </div>
                         </div>
-                        <div className={`flex flex-col items-center justify-center text-center py-6 transition-all duration-500 ${confirmationModal.isOpen ? 'opacity-20 blur-xl pointer-events-none' : 'opacity-100 blur-0'}`}>
+                        <div className={`flex flex-col items-center justify-center text-center py-4 md:py-6 transition-all duration-500 ${confirmationModal.isOpen ? 'opacity-20 blur-xl pointer-events-none' : 'opacity-100 blur-0'}`}>
                             {!isInitialized ? (
                                 <div className="flex flex-col items-center gap-2 animate-pulse w-full">
                                     <div className="w-6 h-6 rounded-full bg-[var(--border-color)]" />
@@ -768,12 +767,12 @@ export default function Dashboard() {
                             ) : (
                                 <div className="w-full">
                                     {completedTasks.length > 0 ? (
-                                        <div className="flex flex-wrap justify-center gap-4 w-full">
+                                        <div className="flex flex-wrap justify-center gap-3 md:gap-4 w-full">
                                             {completedTasks
                                                 .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime())
                                                 .slice(0, 4)
                                                 .map((task) => (
-                                                    <div key={task.id} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1rem)] min-w-[280px]">
+                                                    <div key={task.id} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1rem)] min-w-[240px] md:min-w-[280px]">
                                                         <TaskCard task={task} locked={true} isMinimized={true} />
                                                     </div>
                                                 ))

@@ -68,7 +68,6 @@ export async function POST(req: Request) {
 
             try {
                 if (node === 'openrouter' && effectiveOpenRouterKey) {
-                    // Use basic fetch instead of AI SDK for better error handling
                     const modelToUse = (selected_model?.includes('/') ? selected_model : "google/gemini-2.0-flash-lite:preview-02-05");
                     
                     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -76,6 +75,8 @@ export async function POST(req: Request) {
                         headers: {
                             'Authorization': `Bearer ${effectiveOpenRouterKey}`,
                             'Content-Type': 'application/json',
+                            'HTTP-Referer': 'https://studybuddy.ai',
+                            'X-Title': 'StudyBuddy',
                         },
                         body: JSON.stringify({
                             model: modelToUse,
@@ -85,9 +86,11 @@ export async function POST(req: Request) {
                         })
                     });
 
-                    if (!response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    if (!response.ok || !contentType?.includes('application/json')) {
                         const errorData = await response.json().catch(() => ({}));
-                        throw new Error(`OpenRouter error: ${errorData.error?.message || response.statusText}`);
+                        const text = !response.ok ? (errorData.error?.message || response.statusText) : "Invalid Content-Type";
+                        throw new Error(`OpenRouter (${modelToUse}) failed: ${text}`);
                     }
 
                     const data = await response.json();
@@ -113,9 +116,11 @@ export async function POST(req: Request) {
                         })
                     });
 
-                    if (!response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    if (!response.ok || !contentType?.includes('application/json')) {
                         const errorData = await response.json().catch(() => ({}));
-                        throw new Error(`Groq error: ${errorData.error?.message || response.statusText}`);
+                        const text = !response.ok ? (errorData.error?.message || response.statusText) : "Invalid Content-Type";
+                        throw new Error(`Groq failed: ${text}`);
                     }
 
                     const data = await response.json();
@@ -144,9 +149,11 @@ export async function POST(req: Request) {
                         })
                     });
 
-                    if (!response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    if (!response.ok || !contentType?.includes('application/json')) {
                         const errorData = await response.json().catch(() => ({}));
-                        throw new Error(`Gemini error: ${errorData.error?.message || response.statusText}`);
+                        const text = !response.ok ? (errorData.error?.message || response.statusText) : "Invalid Content-Type";
+                        throw new Error(`Gemini failed: ${text}`);
                     }
 
                     const data = await response.json();
@@ -156,25 +163,30 @@ export async function POST(req: Request) {
                     }
                 }
             } catch (e: any) {
-                console.warn(`[WATERFALL] ${node} failed: ${e.message}`);
+                console.warn(`[WATERFALL] Node ${node} failed: ${e.message}`);
             }
         }
 
         if (!result) {
-            throw new Error("All Cloud AI nodes failed or keys are missing. Check Settings.");
+            return NextResponse.json({ 
+                error: "Neural connection failed. All AI nodes (OpenRouter, Groq, Gemini) are either unavailable or keys are missing. Please check your Neural Link settings." 
+            }, { status: 503 });
         }
 
-        // Validate response is valid text, not HTML/DOCTYPE
-        if (typeof result === 'string' && (result.includes('<!DOCTYPE') || result.includes('<html') || result.includes('<head'))) {
-            throw new Error("Received HTML instead of text response. This usually means an API error occurred.");
+        // Final safety check against HTML leakage
+        if (typeof result === 'string' && (result.trim().startsWith('<!DOCTYPE') || result.trim().startsWith('<html'))) {
+            console.error("[CRITICAL] HTML Leaked into AI response:", result.substring(0, 100));
+            return NextResponse.json({ 
+                error: "The AI node returned an incompatible response format (HTML). This usually happens when an API endpoint is behind a login page or experiencing a server-level crash." 
+            }, { status: 502 });
         }
 
         return NextResponse.json({ response: result }, { headers: { 'X-Node-Used': usedNode } });
 
     } catch (error: unknown) {
         const err = error as Error;
-        console.error("Chat API Error:", err.message);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        console.error("Chat API Fatal Error:", err.message);
+        return NextResponse.json({ error: "System encountered a neural desync error. Please try again." }, { status: 500 });
     }
 }
 
