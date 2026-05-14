@@ -40,10 +40,20 @@ export default function RootLayout({
               // 🛡️ Polyfill process for browser/APK environments
               window.process = window.process || { env: {} };
               
+              // 🛡️ Polyfill Notification API for Mobile APKs
+              if (typeof window !== 'undefined' && !window.Notification) {
+                window.Notification = {
+                  permission: 'denied',
+                  requestPermission: function() { return Promise.resolve('denied'); },
+                  onshow: null, onclick: null, onclose: null, onerror: null
+                };
+              }
+
               try {
                 const savedTheme = localStorage.getItem('appTheme') || 'deep-teal';
                 document.documentElement.setAttribute('data-theme', savedTheme);
               } catch (e) {}
+
 
               const showCrashOverlay = function(title, subtitle, detail) {
                 if (typeof document === 'undefined') return;

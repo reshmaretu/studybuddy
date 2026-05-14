@@ -93,16 +93,20 @@ export default function ChumWidget() {
     // 🌐 WEB PUSH (Mock Support)
     const sendPush = (title: string, body: string) => {
         if (!("Notification" in window)) return;
-        if (Notification.permission === "granted") {
-            new Notification(title, { body, icon: "/assets/chum-ask.png" });
+        if (typeof Notification !== 'undefined' && Notification.permission === "granted") {
+            new Notification("StudyBuddy", {
+                body: body,
+                icon: "/assets/favicon.png"
+            });
         }
     };
 
     useEffect(() => {
         if (!("Notification" in window)) return;
-        if (Notification.permission === "default") {
+        if (typeof Notification !== 'undefined' && Notification.permission === "default") {
             Notification.requestPermission();
         }
+
     }, []);
 
     useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [currentHistory, isOpen, showSettings, showSessions]);

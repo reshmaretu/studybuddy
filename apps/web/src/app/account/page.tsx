@@ -44,10 +44,11 @@ export default function AccountPage() {
 
     const [notificationPermission, setNotificationPermission] = useState<string>('default');
     useEffect(() => {
-        if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (typeof window !== 'undefined' && typeof Notification !== 'undefined') {
             setNotificationPermission(Notification.permission);
         }
     }, []);
+
 
     const [isNewPasswordFocused, setIsNewPasswordFocused] = useState(false);
 
