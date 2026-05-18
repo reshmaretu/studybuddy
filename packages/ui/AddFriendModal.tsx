@@ -619,7 +619,8 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
                       Not In a Pact Yet? Create one or get Invited!
                     </p>
                     <SquishyButton
-                      onClick={() => setIsCreatePactModalOpen(true)}
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsCreatePactModalOpen(true); }}
                       className="py-3 px-6 rounded-2xl bg-[var(--accent-teal)] text-[#0b1211] hover:brightness-110 font-black text-xs shadow-[0_0_15px_rgba(20,184,166,0.3)] shrink-0 uppercase tracking-wider flex items-center justify-center gap-2 border-none transition-all"
                     >
                       <Star size={16} /> Create Pact
@@ -629,7 +630,8 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
                   <>
                     <div className="flex justify-end mb-2">
                       <SquishyButton
-                        onClick={() => setIsCreatePactModalOpen(true)}
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsCreatePactModalOpen(true); }}
                         className="py-2.5 px-4 rounded-xl bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] hover:bg-[var(--accent-teal)]/20 font-black text-[10px] shadow-none uppercase tracking-wider flex items-center justify-center gap-1.5 border border-[var(--accent-teal)]/30 transition-all"
                       >
                         <Plus size={14} /> New Pact
@@ -704,7 +706,7 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
 
       <AnimatePresence>
         {isCreatePactModalOpen && (
-          <div className="fixed inset-0 z-[100010] flex items-center justify-center p-4">
+          <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 100010 }}>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
