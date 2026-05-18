@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, BrainCircuit, Play, Coffee, Waves, Lock, FileSignature, Timer, Bell, Sparkles } from "lucide-react";
+import { X, BrainCircuit, Play, Coffee, Waves, Lock, FileSignature, Timer, Bell, Sparkles, ChevronDown, Check } from "lucide-react";
 import { useStudyStore, Task } from "@/store/useStudyStore";
 import { useState } from "react";
 import { DndContext, useDraggable, useDroppable, DragEndEvent, DragOverlay, DragStartEvent, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
@@ -20,6 +20,7 @@ export default function FocusModal() {
     const [searchQuery, setSearchQuery] = useState("");
     const [isPomodoroSettingsOpen, setIsPomodoroSettingsOpen] = useState(false);
     const [activeDragId, setActiveDragId] = useState<string | null>(null);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -219,30 +220,64 @@ export default function FocusModal() {
                         </div>
 
                         {/* Task Selector for Mobile / Smaller Screens (APK & Small Desktop) */}
-                        <div className="mb-6 block md:hidden space-y-2">
+                        <div className="mb-6 block md:hidden space-y-2 relative">
                             <label className="text-xs font-black uppercase tracking-wider text-[var(--accent-teal)]">Select Chapter</label>
+                            
                             <div className="relative">
-                                <select
-                                    value={selectedId || ""}
-                                    onChange={(e) => setSelectedId(e.target.value || null)}
-                                    className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl px-4 py-3.5 text-sm font-bold text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-teal)] appearance-none cursor-pointer pr-10 shadow-inner"
+                                <button
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl px-4 py-3.5 text-sm font-bold text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-teal)] cursor-pointer shadow-inner flex items-center justify-between transition-colors"
                                 >
-                                    <option value="">-- No Chapter Selected (Free Focus) --</option>
-                                    {tasks.filter(t => !t.isCompleted).map(task => (
-                                        <option key={task.id} value={task.id}>
-                                            {task.title} ({task.load} load)
-                                        </option>
-                                    ))}
-                                </select>
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
-                                    ▼
-                                </div>
+                                    <span className="truncate pr-2">
+                                        {selectedTask ? `${selectedTask.title} (${selectedTask.load} load)` : '-- No Chapter Selected (Free Focus) --'}
+                                    </span>
+                                    <ChevronDown size={16} className={`text-[var(--text-muted)] transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                <AnimatePresence>
+                                    {isDropdownOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -10 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl shadow-2xl z-50 overflow-hidden"
+                                        >
+                                            <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                                                <button
+                                                    onClick={() => { setSelectedId(null); setIsDropdownOpen(false); }}
+                                                    className={`w-full text-left px-4 py-3 text-sm font-bold transition-colors flex items-center justify-between ${!selectedId ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'text-[var(--text-main)] hover:bg-[var(--bg-sidebar)]'}`}
+                                                >
+                                                    <span className="truncate">-- No Chapter Selected (Free Focus) --</span>
+                                                    {!selectedId && <Check size={16} />}
+                                                </button>
+                                                {tasks.filter(t => !t.isCompleted).map(task => (
+                                                    <button
+                                                        key={task.id}
+                                                        onClick={() => { setSelectedId(task.id); setIsDropdownOpen(false); }}
+                                                        className={`w-full text-left px-4 py-3 text-sm font-bold transition-colors flex items-center justify-between border-t border-[var(--border-color)]/50 ${selectedId === task.id ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'text-[var(--text-main)] hover:bg-[var(--bg-sidebar)]'}`}
+                                                    >
+                                                        <span className="truncate">{task.title} <span className="text-xs text-[var(--text-muted)] font-normal ml-1">({task.load} load)</span></span>
+                                                        {selectedId === task.id && <Check size={16} />}
+                                                    </button>
+                                                ))}
+                                                {tasks.filter(t => !t.isCompleted).length === 0 && (
+                                                    <div className="px-4 py-4 text-center text-xs text-[var(--text-muted)] italic border-t border-[var(--border-color)]/50">
+                                                        No active chapters available.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
+                            
+                            {/* Selected task preview */}
                             {selectedTask && (
-                                <div className="flex items-center justify-between bg-[var(--accent-teal)]/10 border border-[var(--accent-teal)]/20 rounded-xl p-3 mt-2">
+                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex items-center justify-between bg-[var(--accent-teal)]/10 border border-[var(--accent-teal)]/20 rounded-xl p-3 mt-2">
                                     <span className="text-xs font-bold text-[var(--text-main)] truncate">{selectedTask.title}</span>
                                     <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-[var(--accent-teal)] text-black shrink-0">{selectedTask.load}</span>
-                                </div>
+                                </motion.div>
                             )}
                         </div>
 

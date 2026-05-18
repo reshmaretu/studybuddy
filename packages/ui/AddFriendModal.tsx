@@ -309,7 +309,7 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
+    <>
       <div className="fixed inset-0 z-[100005] flex items-center justify-center p-4 overflow-y-auto custom-scrollbar">
         <motion.div
           initial={{ opacity: 0 }}
@@ -702,102 +702,104 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
         </motion.div>
       </div>
 
-      {isCreatePactModalOpen && (
-        <div className="fixed inset-0 z-[100010] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsCreatePactModalOpen(false)}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
-          />
-          <motion.form
-            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            onSubmit={handleCreatePact}
-            className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-6 shadow-2xl relative z-10 w-full max-w-sm flex flex-col"
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-black text-white flex items-center gap-2">
-                <Star size={18} className="text-[var(--accent-teal)]" /> Create a Pact
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsCreatePactModalOpen(false)}
-                className="text-[var(--text-muted)] hover:text-white"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider block mb-2">Pact Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g., Midnight Coders"
-                  value={newPactName}
-                  onChange={e => setNewPactName(e.target.value)}
-                  className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-[var(--accent-teal)] placeholder:text-[var(--text-muted)]/50"
-                  autoFocus
-                />
+      <AnimatePresence>
+        {isCreatePactModalOpen && (
+          <div className="fixed inset-0 z-[100010] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCreatePactModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+            />
+            <motion.form
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              onSubmit={handleCreatePact}
+              className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-6 shadow-2xl relative z-10 w-full max-w-sm flex flex-col"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                  <Star size={18} className="text-[var(--accent-teal)]" /> Create a Pact
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsCreatePactModalOpen(false)}
+                  className="text-[var(--text-muted)] hover:text-white"
+                >
+                  <X size={20} />
+                </button>
               </div>
 
-              <div>
-                <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider block mb-2 flex justify-between">
-                  <span>Invite Friends</span>
-                  <span className="text-[var(--accent-teal)]">{selectedFriendsForPact.size} selected</span>
-                </label>
-                <div className="max-h-40 overflow-y-auto custom-scrollbar space-y-2 pr-1 border border-[var(--border-color)] rounded-xl p-2 bg-[var(--bg-dark)]">
-                  {friends.length === 0 ? (
-                    <div className="text-center py-4 text-[var(--text-muted)] text-[10px] uppercase font-bold tracking-widest">
-                      No friends to invite
-                    </div>
-                  ) : (
-                    friends.map(friend => {
-                      const friendUser = friend.friend_data || friend.friend_profile || {};
-                      const displayName = renderUserDisplayName(friendUser);
-                      const isSelected = selectedFriendsForPact.has(friendUser.id);
-                      
-                      return (
-                        <div key={friend.friendship_id} className="flex items-center justify-between p-2 rounded-lg bg-[var(--bg-sidebar)]">
-                          <span className="text-xs font-bold text-white truncate flex-1">{displayName}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newSet = new Set(selectedFriendsForPact);
-                              if (isSelected) newSet.delete(friendUser.id);
-                              else newSet.add(friendUser.id);
-                              setSelectedFriendsForPact(newSet);
-                            }}
-                            className={`p-1.5 rounded-lg transition-colors border ${isSelected ? 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black' : 'bg-transparent border-[var(--border-color)] text-[var(--text-muted)] hover:text-white'}`}
-                          >
-                            {isSelected ? <Check size={14} /> : <Plus size={14} />}
-                          </button>
-                        </div>
-                      );
-                    })
-                  )}
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider block mb-2">Pact Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g., Midnight Coders"
+                    value={newPactName}
+                    onChange={e => setNewPactName(e.target.value)}
+                    className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-[var(--accent-teal)] placeholder:text-[var(--text-muted)]/50"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider block mb-2 flex justify-between">
+                    <span>Invite Friends</span>
+                    <span className="text-[var(--accent-teal)]">{selectedFriendsForPact.size} selected</span>
+                  </label>
+                  <div className="max-h-40 overflow-y-auto custom-scrollbar space-y-2 pr-1 border border-[var(--border-color)] rounded-xl p-2 bg-[var(--bg-dark)]">
+                    {friends.length === 0 ? (
+                      <div className="text-center py-4 text-[var(--text-muted)] text-[10px] uppercase font-bold tracking-widest">
+                        No friends to invite
+                      </div>
+                    ) : (
+                      friends.map(friend => {
+                        const friendUser = friend.friend_data || friend.friend_profile || {};
+                        const displayName = renderUserDisplayName(friendUser);
+                        const isSelected = selectedFriendsForPact.has(friendUser.id);
+                        
+                        return (
+                          <div key={friend.friendship_id} className="flex items-center justify-between p-2 rounded-lg bg-[var(--bg-sidebar)]">
+                            <span className="text-xs font-bold text-white truncate flex-1">{displayName}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newSet = new Set(selectedFriendsForPact);
+                                if (isSelected) newSet.delete(friendUser.id);
+                                else newSet.add(friendUser.id);
+                                setSelectedFriendsForPact(newSet);
+                              }}
+                              className={`p-1.5 rounded-lg transition-colors border ${isSelected ? 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black' : 'bg-transparent border-[var(--border-color)] text-[var(--text-muted)] hover:text-white'}`}
+                            >
+                              {isSelected ? <Check size={14} /> : <Plus size={14} />}
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex gap-3">
-              <SquishyButton type="button" onClick={() => setIsCreatePactModalOpen(false)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/50 hover:bg-white/5 text-xs font-bold transition-all shadow-none">Cancel</SquishyButton>
-              <SquishyButton
-                type="submit"
-                disabled={!newPactName.trim()}
-                className="flex-1 py-3 rounded-xl bg-[var(--accent-teal)] text-black hover:brightness-110 text-xs font-black transition-all shadow-lg disabled:opacity-50"
-              >
-                Create Pact
-              </SquishyButton>
-            </div>
-          </motion.form>
-        </div>
-      )}
-    </AnimatePresence>
+              <div className="flex gap-3">
+                <SquishyButton type="button" onClick={() => setIsCreatePactModalOpen(false)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/50 hover:bg-white/5 text-xs font-bold transition-all shadow-none">Cancel</SquishyButton>
+                <SquishyButton
+                  type="submit"
+                  disabled={!newPactName.trim()}
+                  className="flex-1 py-3 rounded-xl bg-[var(--accent-teal)] text-black hover:brightness-110 text-xs font-black transition-all shadow-lg disabled:opacity-50"
+                >
+                  Create Pact
+                </SquishyButton>
+              </div>
+            </motion.form>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 
