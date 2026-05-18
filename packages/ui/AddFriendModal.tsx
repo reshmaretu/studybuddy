@@ -132,7 +132,7 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
     } else if (activeTab === 'friends') {
       fetchFriends().finally(() => setIsDbLoading(false));
     } else if (activeTab === 'pacts') {
-      fetchPacts().finally(() => setIsDbLoading(false));
+      Promise.all([fetchPacts(), fetchFriends()]).finally(() => setIsDbLoading(false));
     }
 
     const channel = supabase.channel('add_friend_modal_sync')
