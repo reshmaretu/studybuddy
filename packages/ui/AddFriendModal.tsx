@@ -243,7 +243,7 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
     try {
       const { data: pactData, error: pactError } = await supabase
         .from('pacts')
-        .insert({ name: newPactName, created_by: currentUserId })
+        .insert({ pact_name: newPactName, created_by: currentUserId })
         .select('id')
         .single();
       
