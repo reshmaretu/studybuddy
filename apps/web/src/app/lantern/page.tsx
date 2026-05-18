@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Trophy, Radio, Plus, X, Crosshair, ShieldAlert, Users, Sparkles } from "lucide-react";
 import ThreeLanternNet, { LanternNetHandle } from "@/components/LanternNetwork";
 import ChumRenderer from "@/components/ChumRenderer";
-import { FriendRequestModal, AddFriendModal, FormPactModal, SquishyButton } from "@studybuddy/ui";
+import { AddFriendModal, FormPactModal, SquishyButton } from "@studybuddy/ui";
 import { useStudyStore, WardrobeAccessory, LanternUser, Pact } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
@@ -175,7 +175,6 @@ export default function LanternNetPage() {
     const [hostRoomType, setHostRoomType] = useState<'study' | 'canvas'>('study');
 
     // 🌐 SOCIAL FEATURES STATE
-    const [isFriendRequestModalOpen, setIsFriendRequestModalOpen] = useState(false);
     const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false);
     const [isFormPactModalOpen, setIsFormPactModalOpen] = useState(false);
     const [activeLeaderboardTab, setActiveLeaderboardTab] = useState<'ranking' | 'friends' | 'all'>('ranking');
@@ -550,11 +549,11 @@ export default function LanternNetPage() {
                                 <Search size={18} />
                             </button>
                             {friendRequests.length > 0 ? (
-                                <SquishyButton onClick={() => setIsAddFriendModalOpen(true)} className="bg-[var(--accent-yellow)] text-[#0b1211] p-2.5 rounded-xl font-black text-xs flex items-center justify-center shadow-[0_0_15px_rgba(234,179,8,0.3)] shrink-0" aria-label="Add Friend">
+                                <SquishyButton onClick={() => setIsAddFriendModalOpen(true)} className="bg-[var(--accent-yellow)] text-[#0b1211] p-2.5 rounded-xl font-black text-xs flex items-center justify-center shadow-[0_0_15px_rgba(234,179,8,0.3)] shrink-0" aria-label="Friends">
                                     <Users size={16} />
                                 </SquishyButton>
                             ) : (
-                                <button onClick={() => setIsAddFriendModalOpen(true)} className="text-[var(--text-muted)] hover:text-white p-1" aria-label="Add Friend">
+                                <button onClick={() => setIsAddFriendModalOpen(true)} className="text-[var(--text-muted)] hover:text-white p-1" aria-label="Friends">
                                     <Users size={18} />
                                 </button>
                             )}
@@ -653,7 +652,7 @@ export default function LanternNetPage() {
                                     onClick={() => setIsAddFriendModalOpen(true)}
                                     className="py-3 px-3 bg-(--accent-yellow)/10 border border-(--accent-yellow)/30 rounded-2xl text-(--accent-yellow) text-[10px] font-black uppercase tracking-widest hover:bg-(--accent-yellow)/20 transition-all flex items-center justify-center gap-2 shadow-none"
                                 >
-                                    <Users size={14} /> Add Friend
+                                    <Users size={14} /> Friends
                                 </SquishyButton>
                                 <SquishyButton
                                     onClick={() => setIsHostModalOpen(true)}
@@ -1135,10 +1134,6 @@ export default function LanternNetPage() {
             </div>
 
             {/* 🌐 SOCIAL MODALS */}
-            <FriendRequestModal
-                isOpen={isFriendRequestModalOpen}
-                onClose={() => setIsFriendRequestModalOpen(false)}
-            />
             <AddFriendModal
                 isOpen={isAddFriendModalOpen}
                 onClose={() => setIsAddFriendModalOpen(false)}

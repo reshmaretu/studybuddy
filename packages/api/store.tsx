@@ -810,12 +810,8 @@ export const useStudyStore = create<StudyState>()(
                     set({ lastPlannedDate: plannedDate });
                 }
                 const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    const updates: any = { active_framework: framework };
-                    if (plannedDate !== undefined) {
-                        updates.last_planned_date = plannedDate;
-                    }
-                    const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
+                if (user && plannedDate !== undefined) {
+                    const { error } = await supabase.from('profiles').update({ last_planned_date: plannedDate }).eq('id', user.id);
                     if (error) console.error("[setActiveFramework] DB update error:", error);
                 }
             },

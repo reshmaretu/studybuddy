@@ -7,7 +7,6 @@ export * from './ProfileModal';
 export * from './TaskCard';
 export * from './MindDumpPad';
 export * from './SyntheticFeed';
-export * from './FriendRequestModal';
 export * from './AddFriendModal';
 export * from './FormPactModal';
 export * from './SquishyButton';
