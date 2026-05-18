@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Brain, Play, Pause, Zap, Dumbbell, Edit3, ChevronRight, Send } from "lucide-react";
-import { useStudyStore, Task } from "@studybuddy/api";
+import { useStudyStore, Task, getApiUrl } from "@studybuddy/api";
 import { ChumRenderer } from "./ChumRenderer";
 import { SquishyButton } from "./SquishyButton";
 
@@ -148,7 +148,7 @@ export const BrainResetModal = ({ isOpen, onClose }: EnhancedBrainResetProps) =>
         }
         setIsGettingChumReply(true);
         try {
-            const response = await fetch("/api/chat", {
+            const response = await fetch(getApiUrl("/api/chat"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -205,37 +205,37 @@ export const BrainResetModal = ({ isOpen, onClose }: EnhancedBrainResetProps) =>
             {isOpen && (
                 <div className="fixed inset-0 z-[10000] flex items-center justify-center p-2 md:p-4">
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleClose} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative bg-(--bg-card) border border-(--border-color) rounded-2xl md:rounded-3xl w-full max-w-md shadow-2xl overflow-hidden p-4 md:p-8 min-h-[400px] md:min-h-[500px]">
-                        <button onClick={handleClose} className="absolute top-2 md:top-4 right-2 md:right-4 p-1 md:p-2 text-(--text-muted) hover:text-(--text-main)"><X size={16} className="md:w-5 md:h-5" /></button>
+                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl md:rounded-3xl w-full max-w-md shadow-2xl overflow-hidden p-5 md:p-6 min-h-[400px] md:min-h-[500px] flex flex-col">
+                        <button onClick={handleClose} className="absolute top-4 md:top-6 right-4 md:right-6 p-1 md:p-2 text-[var(--text-muted)] hover:text-[var(--text-main)]"><X size={20} className="md:w-5 md:h-5" /></button>
                         <AnimatePresence mode="wait">
                             {stage === "initial" && (
                                 <motion.div key="initial" className="flex flex-col items-center gap-4 md:gap-6">
-                                    <Brain size={36} className="md:w-12 md:h-12 text-(--accent-teal) animate-pulse" />
-                                    <h2 className="text-xl md:text-2xl font-black text-(--text-main)">Brain Reset</h2>
-                                    <SquishyButton onClick={() => { setBreathIsActive(true); setStage("breathing"); }} className="w-full py-2 md:py-4 bg-(--accent-teal) text-black rounded-xl md:rounded-2xl font-bold text-sm md:text-base">Begin Breathing</SquishyButton>
+                                    <Brain size={36} className="md:w-12 md:h-12 text-[var(--accent-teal)] animate-pulse" />
+                                    <h2 className="text-xl md:text-2xl font-black text-[var(--text-main)]">Brain Reset</h2>
+                                    <SquishyButton onClick={() => { setBreathIsActive(true); setStage("breathing"); }} className="w-full py-2 md:py-4 bg-[var(--accent-teal)] text-black rounded-xl md:rounded-2xl font-bold text-sm md:text-base">Begin Breathing</SquishyButton>
                                 </motion.div>
                             )}
                             {stage === "breathing" && (
                                 <motion.div key="breathing" className="flex flex-col items-center gap-4 md:gap-8">
-                                    <p className="text-3xl md:text-5xl font-black text-(--accent-teal)">{formatTime(breathTimeLeft)}</p>
-                                    <motion.div animate={{ scale: breathStage === "inhale" ? 1.3 : 0.8 }} transition={{ duration: 4 }} className="w-28 h-28 md:w-40 md:h-40 rounded-full bg-(--accent-teal)" />
-                                    <p className="text-lg md:text-xl font-bold">{breathStage}...</p>
+                                    <p className="text-3xl md:text-5xl font-black text-[var(--accent-teal)]">{formatTime(breathTimeLeft)}</p>
+                                    <motion.div animate={{ scale: breathStage === "inhale" ? 1.3 : 0.8 }} transition={{ duration: 4 }} className="w-28 h-28 md:w-40 md:h-40 rounded-full bg-[var(--accent-teal)]" />
+                                    <p className="text-lg md:text-xl font-bold text-[var(--text-main)]">{breathStage}...</p>
                                 </motion.div>
                             )}
                             {/* ... other stages truncated for brevity in this step ... */}
                             {stage === "minddump" && (
                                 <motion.div key="minddump" className="flex flex-col items-center gap-3 md:gap-4 w-full">
                                     <ChumRenderer size="w-20 md:w-32 h-20 md:h-32" />
-                                    {!chumReply && <textarea value={mindDumpText} onChange={e => setMindDumpText(e.target.value)} className="w-full h-16 md:h-24 bg-(--bg-dark) border rounded-lg p-2 md:p-3 text-sm md:text-base" />}
-                                    {chumReply && <div className="p-2 md:p-4 bg-(--bg-dark) border rounded-lg italic text-sm md:text-base">{chumReply}</div>}
-                                    <SquishyButton onClick={chumReply ? proceedToTaskSuggestion : getChumReply} className="w-full py-2 md:py-3 bg-(--accent-teal) text-black rounded-lg md:rounded-lg font-bold text-sm md:text-base">{chumReply ? "Continue" : "Submit"}</SquishyButton>
+                                    {!chumReply && <textarea value={mindDumpText} onChange={e => setMindDumpText(e.target.value)} className="w-full h-16 md:h-24 bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg p-2 md:p-3 text-sm md:text-base text-[var(--text-main)]" />}
+                                    {chumReply && <div className="p-2 md:p-4 bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg italic text-sm md:text-base text-[var(--text-main)]">{chumReply}</div>}
+                                    <SquishyButton onClick={chumReply ? proceedToTaskSuggestion : getChumReply} className="w-full py-2 md:py-3 bg-[var(--accent-teal)] text-black rounded-lg md:rounded-lg font-bold text-sm md:text-base">{chumReply ? "Continue" : "Submit"}</SquishyButton>
                                 </motion.div>
                             )}
                             {stage === "complete" && (
                                 <motion.div key="complete" className="flex flex-col items-center gap-4 md:gap-6">
-                                    <div className="w-16 md:w-20 h-16 md:h-20 rounded-full bg-(--accent-teal)/20 border-2 border-(--accent-teal) flex items-center justify-center"><Brain size={32} className="md:w-10 md:h-10 text-(--accent-teal)" /></div>
-                                    <h3 className="text-lg md:text-2xl font-black">Reset Complete!</h3>
-                                    <SquishyButton onClick={handleClose} className="w-full py-2 md:py-3 bg-(--accent-teal) text-black rounded-xl md:rounded-2xl font-bold text-sm md:text-base">Close</SquishyButton>
+                                    <div className="w-16 md:w-20 h-16 md:h-20 rounded-full bg-[var(--accent-teal)]/20 border-2 border-[var(--accent-teal)] flex items-center justify-center"><Brain size={32} className="md:w-10 md:h-10 text-[var(--accent-teal)]" /></div>
+                                    <h3 className="text-lg md:text-2xl font-black text-[var(--text-main)]">Reset Complete!</h3>
+                                    <SquishyButton onClick={handleClose} className="w-full py-2 md:py-3 bg-[var(--accent-teal)] text-black rounded-xl md:rounded-2xl font-bold text-sm md:text-base">Close</SquishyButton>
                                 </motion.div>
                             )}
                         </AnimatePresence>

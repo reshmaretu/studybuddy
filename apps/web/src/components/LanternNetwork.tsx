@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html, OrbitControls, PerspectiveCamera, QuadraticBezierLine, QuadraticBezierLineRef, Float, Points, PointMaterial, Line } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldAlert, BoxSelect, Layers, Zap, Maximize2, Minimize2 } from "lucide-react";
+import { ShieldAlert, BoxSelect, Layers, Zap, Maximize2, Minimize2, Settings } from "lucide-react";
 import { useStudyStore, LanternUser, Pact } from "@/store/useStudyStore";
 import { useRouter } from "next/navigation";
 import ChumRenderer from "./ChumRenderer";
@@ -130,6 +130,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
     currentUserId?: string | null
 }>(function ThreeLanternNet({ users, isInitialLoading, isMaximized, onToggleMaximize, debrisSize = 0.4, debrisColor = "#2dd4bf", debrisCount = 3000, debrisSpread = 400, pacts = [], currentUserId }, ref) {
     const [is3D, setIs3D] = useState(false);
+    const [showSettingsMenu, setShowSettingsMenu] = useState(false);
     const [warpTarget, setWarpTarget] = useState<THREE.Vector3 | null>(null);
     const controlsRef = useRef<OrbitControlsImpl>(null);
     const { performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true } } = useStudyStore();
@@ -141,6 +142,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
     const [isFocused, setIsFocused] = useState(false);
 
     const [isFreeCam, setIsFreeCam] = useState(false);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
 
     // 2. THE POWER UP LOGIC
     useEffect(() => {
@@ -364,6 +366,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
             className="w-full h-full bg-black relative group"
             onPointerEnter={() => setIsFocused(true)}
             onPointerLeave={() => setIsFocused(false)}
+            onPointerDown={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}
         >
             {/* --- FREECAM HUD (Now safely anchored to the screen!) --- */}
             <AnimatePresence>
@@ -380,39 +383,64 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
 
             {/* --- TOOLBAR --- */}
             <div className="absolute top-6 right-6 z-[100] flex flex-col gap-3 items-end">
-                <div className="flex bg-[var(--bg-card)]/80 backdrop-blur-md p-1.5 rounded-2xl border border-[var(--border-color)] shadow-2xl">
-                    <button onClick={() => { setIs3D(false); setIsFreeCam(false); }} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all ${!is3D ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><BoxSelect size={12} /> 2D Map</button>
-                    <button onClick={() => setIs3D(true)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all ${is3D ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><Layers size={12} /> 3D Void</button>
+                <div className="flex items-center gap-1 bg-[var(--bg-card)]/80 backdrop-blur-md p-1.5 rounded-2xl border border-[var(--border-color)] shadow-2xl">
+                    {/* Maximize/Minimize Icon Button */}
+                    <button onClick={onToggleMaximize} className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5 transition-all flex items-center justify-center" title={isMaximized ? "Minimize Map" : "Maximize Map"}>
+                        {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    </button>
 
-                    {/* 🔥 NEW: Physical Freecam Toggle Button */}
-                    {is3D && (
-                        <>
-                            <div className="w-px h-6 bg-[var(--border-color)] mx-1 self-center" />
-                            <button
-                                onClick={() => setIsFreeCam(!isFreeCam)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all ${isFreeCam ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
-                            >
-                                Freecam (C)
-                            </button>
-                        </>
-                    )}
+                    <div className="w-px h-6 bg-[var(--border-color)] mx-1" />
 
-                    <div className="w-px h-6 bg-[var(--border-color)] mx-1 self-center" />
-                    <button onClick={onToggleMaximize} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all text-[var(--text-muted)] hover:text-[var(--text-main)]`} title={isMaximized ? "Minimize Map" : "Maximize Map"}>
-                        {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />} {isMaximized ? 'Minimize' : 'Maximize'}
+                    {/* Settings Icon Button */}
+                    <button onClick={() => setShowSettingsMenu(!showSettingsMenu)} className={`p-2 rounded-xl transition-all flex items-center justify-center ${showSettingsMenu ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5'}`} title="Settings">
+                        <Settings size={16} />
                     </button>
                 </div>
 
-                {/* --- BRIGHTNESS SLIDER --- */}
-                <div className="flex items-center gap-2 bg-[var(--bg-card)]/80 backdrop-blur-md px-3 py-2 rounded-xl border border-[var(--border-color)] shadow-xl">
-                    <Zap size={12} className="text-[var(--accent-yellow)]" />
-                    <input
-                        type="range" min="0.5" max="4.0" step="0.1"
-                        value={globalIntensity}
-                        onChange={(e) => setGlobalIntensity(parseFloat(e.target.value))}
-                        className="w-20 h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-teal)]"
-                    />
-                </div>
+                {/* --- SETTINGS FLOATING MENU --- */}
+                <AnimatePresence>
+                    {showSettingsMenu && (
+                        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col gap-4 bg-[var(--bg-card)]/90 backdrop-blur-xl p-4 rounded-2xl border border-[var(--border-color)] shadow-2xl min-w-[200px]">
+                            {/* View Type Toggle */}
+                            <div className="flex flex-col gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">View Type</span>
+                                <div className="flex bg-[var(--bg-dark)] p-1 rounded-xl border border-[var(--border-color)] gap-1">
+                                    <button onClick={() => { setIs3D(false); setIsFreeCam(false); }} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold transition-all ${!is3D ? 'bg-[var(--accent-teal)] text-[#0b1211] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>
+                                        <BoxSelect size={12} /> 2D Map
+                                    </button>
+                                    <button onClick={() => setIs3D(true)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold transition-all ${is3D ? 'bg-[var(--accent-teal)] text-[#0b1211] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>
+                                        <Layers size={12} /> 3D Void
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Freecam Toggle (Only in 3D) */}
+                            {is3D && (
+                                <div className="flex items-center justify-between pt-2 border-t border-[var(--border-color)]">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Freecam Mode</span>
+                                    <button onClick={() => setIsFreeCam(!isFreeCam)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${isFreeCam ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'bg-[var(--bg-dark)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-color)]'}`}>
+                                        {isFreeCam ? 'Active' : 'Off'}
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Brightness Slider */}
+                            <div className="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Brightness</span>
+                                <div className="flex items-center gap-2 bg-[var(--bg-dark)] px-3 py-2 rounded-xl border border-[var(--border-color)]">
+                                    <Zap size={12} className="text-[var(--accent-yellow)] shrink-0" />
+                                    <input
+                                        type="range" min="0.5" max="4.0" step="0.1"
+                                        value={globalIntensity}
+                                        onChange={(e) => setGlobalIntensity(parseFloat(e.target.value))}
+                                        className="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-teal)]"
+                                    />
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {/* --- HUD LOADER --- */}
                 {isInitialLoading && (
                     <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-[var(--bg-card)]/60 backdrop-blur-md px-6 py-3 rounded-full border border-[var(--border-color)] animate-pulse shadow-xl">
@@ -448,7 +476,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                 <GlobalPulse key={users.length} />
                 <ShootingStars is3D={is3D} />
 
-                <LanternConstellation users={users} currentUserId={currentUserId} is3D={is3D} onWarp={setWarpTarget} intensity={globalIntensity} positions={positions} pactLines={pactLines} pactNameByUser={pactNameByUser} getPos={getPos} />
+                <LanternConstellation users={users} currentUserId={currentUserId} is3D={is3D} onWarp={setWarpTarget} intensity={globalIntensity} positions={positions} pactLines={pactLines} pactNameByUser={pactNameByUser} getPos={getPos} selectedId={selectedId} setSelectedId={setSelectedId} />
 
                 <EffectComposer enabled={performanceSettings.bloomEnabled && !isPerformanceLow} enableNormalPass={false}>
                     <Bloom
@@ -576,15 +604,14 @@ export default ThreeLanternNet;
 
 type PactLine = { start: [number, number, number]; end: [number, number, number]; color: string };
 
-function LanternConstellation({ users, currentUserId, is3D, onWarp, intensity, positions, pactLines, pactNameByUser, getPos }: { users: LanternUser[], currentUserId?: string | null, is3D: boolean, onWarp: (v: THREE.Vector3) => void, intensity: number, positions: Map<string, [number, number, number]>, pactLines: PactLine[], pactNameByUser: Map<string, string>, getPos: (user: LanternUser) => [number, number, number] }) {
+function LanternConstellation({ users, currentUserId, is3D, onWarp, intensity, positions, pactLines, pactNameByUser, getPos, selectedId, setSelectedId }: { users: LanternUser[], currentUserId?: string | null, is3D: boolean, onWarp: (v: THREE.Vector3) => void, intensity: number, positions: Map<string, [number, number, number]>, pactLines: PactLine[], pactNameByUser: Map<string, string>, getPos: (user: LanternUser) => [number, number, number], selectedId: string | null, setSelectedId: (id: string | null) => void }) {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
-    const [selectedId, setSelectedId] = useState<string | null>(null);
 
     const me = users.find(u => u.id === 'me');
     const myPos: [number, number, number] = me ? getPos(me) : [0, 0, 0];
 
     return (
-        <group>
+        <group onPointerMissed={() => setSelectedId(null)}>
             {users.map((user) => {
                 const isSelf = user.id === 'me';
                 const userPos = getPos(user);
@@ -826,9 +853,10 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
 
             <AnimatePresence>
                 {(isHovered || isSelected) && (
-                    <Html distanceFactor={is3D ? 30 : 45} position={[0, 8, 0]} center className="pointer-events-none">
+                    <Html distanceFactor={is3D ? 30 : 45} position={[0, 8, 0]} center className="pointer-events-none" zIndexRange={[50, 100]}>
                         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                            className="bg-[var(--bg-dark)]/95 backdrop-blur-xl border border-[var(--border-color)] p-5 rounded-3xl w-64 pointer-events-auto shadow-2xl text-[var(--text-main)]">
+                            className="bg-[var(--bg-dark)]/95 backdrop-blur-xl border border-[var(--border-color)] p-5 rounded-3xl w-64 pointer-events-auto shadow-2xl text-[var(--text-main)]"
+                            onPointerDown={(e) => e.stopPropagation()}>
                             <div className="relative">
                                 <div className="flex justify-between items-start mb-4">
                                     <div>

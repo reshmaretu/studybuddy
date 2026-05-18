@@ -39,7 +39,7 @@ export default function AccountPage() {
         playTickEnabled = true, playChimeEnabled = true, requireCompletionConfirmation = true,
         performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true },
         accessibilitySettings = { highContrast: false, largeText: false, reducedMotion: false },
-        useThematicUI, setThematicUI, isDev
+        useThematicUI, setThematicUI, useTldrawCanvas, setUseTldrawCanvas, isDev
     } = useStudyStore();
 
     const [notificationPermission, setNotificationPermission] = useState<string>('default');
@@ -593,92 +593,102 @@ export default function AccountPage() {
                         )}
                     </div>
                 </div>
-                {/* Cozy Action Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full mt-6">
-                    <button onClick={() => setActiveModal('identity')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-(--bg-card) border-(--border-color) hover:bg-[var(--accent-teal)]/10 hover:border-[var(--accent-teal)]/30 transition-all group shadow-sm">
-                        <User size={28} className="text-[var(--accent-teal)] group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">{useThematicUI ? "Identity" : "Profile"}</span>
+                {/* Premium Glassmorphic Action Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full mt-6 shrink-0">
+                    <button onClick={() => setActiveModal('identity')} className="flex items-center gap-3 p-4 rounded-2xl bg-[var(--bg-card)]/40 backdrop-blur-md border border-[var(--border-color)]/30 hover:border-[var(--accent-teal)]/50 hover:bg-[var(--accent-teal)]/10 hover:shadow-[0_0_25px_rgba(45,212,191,0.15)] transition-all group">
+                        <div className="p-2.5 rounded-xl bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] group-hover:scale-110 group-hover:bg-[var(--accent-teal)] group-hover:text-[#0b1211] transition-all shrink-0">
+                            <User size={20} />
+                        </div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-(--text-main) group-hover:text-[var(--accent-teal)] transition-colors truncate">{useThematicUI ? "Identity" : "Profile"}</span>
                     </button>
-                    <button onClick={() => setActiveModal('email')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-(--bg-card) border-(--border-color) hover:bg-[var(--accent-teal)]/10 hover:border-[var(--accent-teal)]/30 transition-all group shadow-sm">
-                        <Mail size={28} className="text-[var(--accent-teal)] group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">{useThematicUI ? "Relay" : "Email"}</span>
+                    <button onClick={() => setActiveModal('email')} className="flex items-center gap-3 p-4 rounded-2xl bg-[var(--bg-card)]/40 backdrop-blur-md border border-[var(--border-color)]/30 hover:border-[var(--accent-teal)]/50 hover:bg-[var(--accent-teal)]/10 hover:shadow-[0_0_25px_rgba(45,212,191,0.15)] transition-all group">
+                        <div className="p-2.5 rounded-xl bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] group-hover:scale-110 group-hover:bg-[var(--accent-teal)] group-hover:text-[#0b1211] transition-all shrink-0">
+                            <Mail size={20} />
+                        </div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-(--text-main) group-hover:text-[var(--accent-teal)] transition-colors truncate">{useThematicUI ? "Relay" : "Email"}</span>
                     </button>
-                    <button onClick={() => setActiveModal('password')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-(--bg-card) border-(--border-color) hover:bg-[var(--accent-teal)]/10 hover:border-[var(--accent-teal)]/30 transition-all group shadow-sm">
-                        <Lock size={28} className="text-[var(--accent-teal)] group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">{useThematicUI ? "Cipher" : "Password"}</span>
+                    <button onClick={() => setActiveModal('password')} className="flex items-center gap-3 p-4 rounded-2xl bg-[var(--bg-card)]/40 backdrop-blur-md border border-[var(--border-color)]/30 hover:border-[var(--accent-teal)]/50 hover:bg-[var(--accent-teal)]/10 hover:shadow-[0_0_25px_rgba(45,212,191,0.15)] transition-all group">
+                        <div className="p-2.5 rounded-xl bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] group-hover:scale-110 group-hover:bg-[var(--accent-teal)] group-hover:text-[#0b1211] transition-all shrink-0">
+                            <Lock size={20} />
+                        </div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-(--text-main) group-hover:text-[var(--accent-teal)] transition-colors truncate">{useThematicUI ? "Cipher" : "Password"}</span>
                     </button>
-                    <button onClick={() => setActiveModal('delete')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-(--bg-card) border-(--border-color) hover:border-red-500/40 hover:bg-red-500/5 transition-all group shadow-sm">
-                        <Trash2 size={28} className="text-red-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">{useThematicUI ? "Sever Link" : "Delete Account"}</span>
+                    <button onClick={() => setActiveModal('delete')} className="flex items-center gap-3 p-4 rounded-2xl bg-[var(--bg-card)]/40 backdrop-blur-md border border-[var(--border-color)]/30 hover:border-red-500/50 hover:bg-red-500/10 hover:shadow-[0_0_25px_rgba(239,68,68,0.15)] transition-all group">
+                        <div className="p-2.5 rounded-xl bg-red-500/10 text-red-400 group-hover:scale-110 group-hover:bg-red-500 group-hover:text-[#0b1211] transition-all shrink-0">
+                            <Trash2 size={20} />
+                        </div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-(--text-main) group-hover:text-red-400 transition-colors truncate">{useThematicUI ? "Sever Link" : "Delete Account"}</span>
                     </button>
-                    <button onClick={handleLogout} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-(--bg-card) border-(--border-color) hover:border-red-500/40 hover:bg-red-500/5 transition-all group shadow-sm">
-                        <LogOut size={28} className="text-red-500 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/80">{useThematicUI ? "Log out" : "Logout"}</span>
+                    <button onClick={() => setActiveModal('logout')} className="flex items-center gap-3 p-4 rounded-2xl bg-[var(--bg-card)]/40 backdrop-blur-md border border-[var(--border-color)]/30 hover:border-red-500/50 hover:bg-red-500/10 hover:shadow-[0_0_25px_rgba(239,68,68,0.15)] transition-all group col-span-2 md:col-span-1">
+                        <div className="p-2.5 rounded-xl bg-red-500/10 text-red-500 group-hover:scale-110 group-hover:bg-red-500 group-hover:text-[#0b1211] transition-all shrink-0">
+                            <LogOut size={20} />
+                        </div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-red-500 group-hover:text-red-400 transition-colors truncate">{useThematicUI ? "Log out" : "Logout"}</span>
                     </button>
                 </div>
 
-                {/* ⚙️ GARDEN PROTOCOLS (Settings) - MOVED BELOW */}
-                <div className="w-full bg-(--bg-card) border border-(--border-color) rounded-[40px] p-8 mt-6 backdrop-blur-md shadow-sm">
-                    <div className="flex items-center gap-4 mb-8">
+                {/* ⚙️ GARDEN PROTOCOLS (Settings) */}
+                <div className="w-full mt-8 space-y-6">
+                    <div className="flex items-center gap-4 border-b border-[var(--border-color)]/40 pb-4">
                         <div className="p-3 bg-[var(--accent-teal)]/10 rounded-2xl border border-[var(--accent-teal)]/20">
                             <Settings size={20} className="text-[var(--accent-teal)]" />
                         </div>
                         <div>
                             <h3 className="text-sm font-black uppercase tracking-[0.2em] text-(--text-main)">{terms.neuralProtocols}</h3>
-                            <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mt-1 text-(--text-muted)">
+                            <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mt-0.5 text-(--text-muted)">
                                 {useThematicUI ? "Configure your garden interaction nodes" : "Manage your app preferences"}
                             </p>
                         </div>
                     </div>
 
-                    <div id="account-neural-protocols" className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div id="account-neural-protocols" className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Double Tap Toggle */}
-                        <div className="flex items-center justify-between p-6 rounded-3xl bg-(--bg-dark)/40 border border-(--border-color) group hover:border-[var(--accent-teal)]/20 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className={`p-2 rounded-xl transition-colors ${doubleClickToComplete ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
+                        <div className="flex items-center justify-between p-5 rounded-3xl bg-[var(--bg-dark)]/40 border border-[var(--border-color)]/40 group hover:border-[var(--accent-teal)]/20 transition-all">
+                            <div className="flex items-center gap-4 min-w-0">
+                                <div className={`p-2 rounded-xl transition-colors shrink-0 ${doubleClickToComplete ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
                                     <MousePointer2 size={18} />
                                 </div>
-                                <div>
-                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main)">Neural Double-Tap</p>
-                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted)">Quick complete via double click</p>
+                                <div className="min-w-0">
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main) truncate">Neural Double-Tap</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted) truncate">Quick complete via double click</p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => setSettings({ doubleClickToComplete: !doubleClickToComplete })}
-                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${doubleClickToComplete ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                                className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 shrink-0 ${doubleClickToComplete ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
                             >
-                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${doubleClickToComplete ? 'translate-x-6' : 'translate-x-0'}`} />
+                                <div className={`w-4 h-4 rounded-full bg-black shadow-md transition-transform duration-300 ${doubleClickToComplete ? 'translate-x-4' : 'translate-x-0'}`} />
                             </button>
                         </div>
 
                         {/* Drag & Drop Toggle */}
-                        <div className="flex items-center justify-between p-6 rounded-3xl bg-(--bg-dark)/40 border border-(--border-color) group hover:border-[var(--accent-teal)]/20 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className={`p-2 rounded-xl transition-colors ${dndEnabled ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
+                        <div className="flex items-center justify-between p-5 rounded-3xl bg-[var(--bg-dark)]/40 border border-[var(--border-color)]/40 group hover:border-[var(--accent-teal)]/20 transition-all">
+                            <div className="flex items-center gap-4 min-w-0">
+                                <div className={`p-2 rounded-xl transition-colors shrink-0 ${dndEnabled ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
                                     <Hand size={18} />
                                 </div>
-                                <div>
-                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main)">Kinetic Relay</p>
-                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted)">Enable/Disable Drag & Drop</p>
+                                <div className="min-w-0">
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main) truncate">Kinetic Relay</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted) truncate">Enable/Disable Drag & Drop</p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => setSettings({ dndEnabled: !dndEnabled })}
-                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${dndEnabled ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                                className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 shrink-0 ${dndEnabled ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
                             >
-                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${dndEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                                <div className={`w-4 h-4 rounded-full bg-black shadow-md transition-transform duration-300 ${dndEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
                             </button>
                         </div>
 
                         {/* Web Push / Notifications Toggle */}
-                        <div className="flex items-center justify-between p-6 rounded-3xl bg-black/20 border border-white/5 group hover:border-[var(--accent-teal)]/20 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className={`p-2 rounded-xl transition-colors ${notificationPermission === 'granted' ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-white/5 text-white/20'}`}>
+                        <div className="flex items-center justify-between p-5 rounded-3xl bg-[var(--bg-dark)]/40 border border-[var(--border-color)]/40 group hover:border-[var(--accent-teal)]/20 transition-all">
+                            <div className="flex items-center gap-4 min-w-0">
+                                <div className={`p-2 rounded-xl transition-colors shrink-0 ${notificationPermission === 'granted' ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
                                     <Fingerprint size={18} />
                                 </div>
-                                <div>
-                                    <p className="text-[11px] font-black uppercase tracking-widest text-white">Neural Transmissions</p>
-                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5">Desktop & Background Alerts</p>
+                                <div className="min-w-0">
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main) truncate">Neural Transmissions</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted) truncate">Desktop & Background Alerts</p>
                                 </div>
                             </div>
                             <button
@@ -692,92 +702,111 @@ export default function AccountPage() {
                                         triggerChumToast("Link rejected by host.", "warning");
                                     }
                                 }}
-                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${notificationPermission === 'granted' ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                                className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 shrink-0 ${notificationPermission === 'granted' ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
                             >
-                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${notificationPermission === 'granted' ? 'translate-x-6' : 'translate-x-0'}`} />
+                                <div className={`w-4 h-4 rounded-full bg-black shadow-md transition-transform duration-300 ${notificationPermission === 'granted' ? 'translate-x-4' : 'translate-x-0'}`} />
                             </button>
                         </div>
 
                         {/* UI Generation Toggle (Thematic UI) */}
-                        <div className="flex items-center justify-between p-6 rounded-3xl bg-(--bg-dark)/40 border border-(--border-color) group hover:border-[var(--accent-teal)]/20 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className={`p-2 rounded-xl transition-colors ${useThematicUI ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
+                        <div className="flex items-center justify-between p-5 rounded-3xl bg-[var(--bg-dark)]/40 border border-[var(--border-color)]/40 group hover:border-[var(--accent-teal)]/20 transition-all">
+                            <div className="flex items-center gap-4 min-w-0">
+                                <div className={`p-2 rounded-xl transition-colors shrink-0 ${useThematicUI ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
                                     <Sparkles size={18} />
                                 </div>
-                                <div>
-                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main)">UI Atmosphere</p>
-                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted)">Toggle Gamified Terminology</p>
+                                <div className="min-w-0">
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main) truncate">UI Atmosphere</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted) truncate">Toggle Gamified Terminology</p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => setThematicUI(!useThematicUI)}
-                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${useThematicUI ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                                className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 shrink-0 ${useThematicUI ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
                             >
-                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${useThematicUI ? 'translate-x-6' : 'translate-x-0'}`} />
+                                <div className={`w-4 h-4 rounded-full bg-black shadow-md transition-transform duration-300 ${useThematicUI ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+
+                        {/* Tldraw Canvas Architecture Toggle */}
+                        <div className="flex items-center justify-between p-5 rounded-3xl bg-[var(--bg-dark)]/40 border border-[var(--border-color)]/40 group hover:border-[var(--accent-teal)]/20 transition-all">
+                            <div className="flex items-center gap-4 min-w-0">
+                                <div className={`p-2 rounded-xl transition-colors shrink-0 ${useTldrawCanvas ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
+                                    <Sparkles size={18} />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main) truncate">Canvas Architecture</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted) truncate">Toggle Tldraw Engine (Local Dev)</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setUseTldrawCanvas(!useTldrawCanvas)}
+                                className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 shrink-0 ${useTldrawCanvas ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-black shadow-md transition-transform duration-300 ${useTldrawCanvas ? 'translate-x-4' : 'translate-x-0'}`} />
                             </button>
                         </div>
 
                         {/* Audio Toggles */}
-                        <div className="flex items-center justify-between p-6 rounded-3xl bg-(--bg-dark)/40 border border-(--border-color) group hover:border-[var(--accent-teal)]/20 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className={`p-2 rounded-xl transition-colors ${playTickEnabled ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
+                        <div className="flex items-center justify-between p-5 rounded-3xl bg-[var(--bg-dark)]/40 border border-[var(--border-color)]/40 group hover:border-[var(--accent-teal)]/20 transition-all">
+                            <div className="flex items-center gap-4 min-w-0">
+                                <div className={`p-2 rounded-xl transition-colors shrink-0 ${playTickEnabled ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
                                     <MousePointer2 size={18} />
                                 </div>
-                                <div>
-                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main)">Tactile Feedback</p>
-                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted)">Toggle Tick/Click Sounds</p>
+                                <div className="min-w-0">
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main) truncate">Tactile Feedback</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted) truncate">Toggle Tick/Click Sounds</p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => setSettings({ playTickEnabled: !playTickEnabled })}
-                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${playTickEnabled ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                                className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 shrink-0 ${playTickEnabled ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
                             >
-                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${playTickEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                                <div className={`w-4 h-4 rounded-full bg-black shadow-md transition-transform duration-300 ${playTickEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
                             </button>
                         </div>
 
-                        <div className="flex items-center justify-between p-6 rounded-3xl bg-(--bg-dark)/40 border border-(--border-color) group hover:border-[var(--accent-teal)]/20 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className={`p-2 rounded-xl transition-colors ${playChimeEnabled ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
+                        <div className="flex items-center justify-between p-5 rounded-3xl bg-[var(--bg-dark)]/40 border border-[var(--border-color)]/40 group hover:border-[var(--accent-teal)]/20 transition-all">
+                            <div className="flex items-center gap-4 min-w-0">
+                                <div className={`p-2 rounded-xl transition-colors shrink-0 ${playChimeEnabled ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
                                     <Sparkles size={18} />
                                 </div>
-                                <div>
-                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main)">Victory Chimes</p>
-                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted)">Toggle Mastery Chime Sounds</p>
+                                <div className="min-w-0">
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main) truncate">Victory Chimes</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted) truncate">Toggle Mastery Chime Sounds</p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => setSettings({ playChimeEnabled: !playChimeEnabled })}
-                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${playChimeEnabled ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                                className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 shrink-0 ${playChimeEnabled ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
                             >
-                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${playChimeEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                                <div className={`w-4 h-4 rounded-full bg-black shadow-md transition-transform duration-300 ${playChimeEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
                             </button>
                         </div>
 
                         {/* Confirmation Toggle */}
-                        <div className="flex items-center justify-between p-6 rounded-3xl bg-(--bg-dark)/40 border border-(--border-color) group hover:border-[var(--accent-teal)]/20 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className={`p-2 rounded-xl transition-colors ${requireCompletionConfirmation ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
+                        <div className="flex items-center justify-between p-5 rounded-3xl bg-[var(--bg-dark)]/40 border border-[var(--border-color)]/40 group hover:border-[var(--accent-teal)]/20 transition-all">
+                            <div className="flex items-center gap-4 min-w-0">
+                                <div className={`p-2 rounded-xl transition-colors shrink-0 ${requireCompletionConfirmation ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
                                     <AlertCircle size={18} />
                                 </div>
-                                <div>
-                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main)">Safety Protocols</p>
-                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted)">Confirm quest completion</p>
+                                <div className="min-w-0">
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main) truncate">Safety Protocols</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted) truncate">Confirm quest completion</p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => setSettings({ requireCompletionConfirmation: !requireCompletionConfirmation })}
-                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${requireCompletionConfirmation ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                                className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 shrink-0 ${requireCompletionConfirmation ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
                             >
-                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${requireCompletionConfirmation ? 'translate-x-6' : 'translate-x-0'}`} />
+                                <div className={`w-4 h-4 rounded-full bg-black shadow-md transition-transform duration-300 ${requireCompletionConfirmation ? 'translate-x-4' : 'translate-x-0'}`} />
                             </button>
                         </div>
 
                     </div>
 
                     {/* ⚡ ENVIRONMENTAL OPTIMIZATION (Performance) */}
-                    <div id="account-environmental-sync" className="mt-8 pt-8 border-t border-(--border-color)">
-                        <div className="flex items-center gap-4 mb-6">
+                    <div id="account-environmental-sync" className="pt-6 border-t border-[var(--border-color)]/40 space-y-4">
+                        <div className="flex items-center gap-4">
                             <div className="p-2 bg-[var(--accent-yellow)]/10 rounded-xl border border-[var(--accent-yellow)]/20">
                                 <Cpu size={16} className="text-[var(--accent-yellow)]" />
                             </div>
@@ -788,7 +817,7 @@ export default function AccountPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <div className="flex flex-col gap-3 p-4 rounded-2xl bg-(--bg-dark)/40 border border-(--border-color)">
+                            <div className="flex flex-col gap-3 p-5 rounded-3xl bg-[var(--bg-dark)]/40 border border-[var(--border-color)]/40">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-(--text-muted)">Processor Mode</span>
                                     <span className="text-[9px] font-bold text-[var(--accent-teal)] uppercase">{performanceSettings.mode}</span>
@@ -798,7 +827,7 @@ export default function AccountPage() {
                                         <button
                                             key={m}
                                             onClick={() => setSettings({ performanceSettings: { mode: m } })}
-                                            className={`py-2 rounded-xl text-[9px] font-black uppercase border transition-all ${performanceSettings.mode === m ? 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black' : 'bg-(--bg-card) border-(--border-color) text-(--text-muted) hover:text-(--text-main)'}`}
+                                            className={`py-2 rounded-xl text-[9px] font-black uppercase border transition-all ${performanceSettings.mode === m ? 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black shadow-md' : 'bg-[var(--bg-dark)]/40 border-[var(--border-color)]/40 text-(--text-muted) hover:text-(--text-main)'}`}
                                         >
                                             {m}
                                         </button>
@@ -807,45 +836,45 @@ export default function AccountPage() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <button
-                                    onClick={() => setSettings({ performanceSettings: { showParticles: !performanceSettings.showParticles } })}
-                                    className={`flex items-center justify-between p-4 rounded-2xl bg-(--bg-dark)/40 border transition-all ${performanceSettings.showParticles ? 'border-[var(--accent-teal)]/30' : 'border-(--border-color) opacity-50'}`}
-                                >
+                                <div className="flex items-center justify-between p-5 rounded-3xl bg-[var(--bg-dark)]/40 border border-[var(--border-color)]/40 group hover:border-[var(--accent-teal)]/20 transition-all">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-(--text-main)">Shaders</span>
-                                    <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-all ${performanceSettings.showParticles ? 'bg-[var(--accent-teal)]' : 'bg-(--bg-dark)'}`}>
-                                        <div className={`w-3 h-3 rounded-full bg-black transition-all ${performanceSettings.showParticles ? 'translate-x-4' : 'translate-x-0'}`} />
-                                    </div>
-                                </button>
-                                <button
-                                    onClick={() => setSettings({ performanceSettings: { bloomEnabled: !performanceSettings.bloomEnabled } })}
-                                    className={`flex items-center justify-between p-4 rounded-2xl bg-(--bg-dark)/40 border transition-all ${performanceSettings.bloomEnabled ? 'border-[var(--accent-teal)]/30' : 'border-(--border-color) opacity-50'}`}
-                                >
+                                    <button
+                                        onClick={() => setSettings({ performanceSettings: { showParticles: !performanceSettings.showParticles } })}
+                                        className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 shrink-0 ${performanceSettings.showParticles ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                                    >
+                                        <div className={`w-4 h-4 rounded-full bg-black shadow-md transition-transform duration-300 ${performanceSettings.showParticles ? 'translate-x-4' : 'translate-x-0'}`} />
+                                    </button>
+                                </div>
+                                <div className="flex items-center justify-between p-5 rounded-3xl bg-[var(--bg-dark)]/40 border border-[var(--border-color)]/40 group hover:border-[var(--accent-teal)]/20 transition-all">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-(--text-main)">Bloom</span>
-                                    <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-all ${performanceSettings.bloomEnabled ? 'bg-[var(--accent-teal)]' : 'bg-(--bg-dark)'}`}>
-                                        <div className={`w-3 h-3 rounded-full bg-black transition-all ${performanceSettings.bloomEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                                    </div>
-                                </button>
+                                    <button
+                                        onClick={() => setSettings({ performanceSettings: { bloomEnabled: !performanceSettings.bloomEnabled } })}
+                                        className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 shrink-0 ${performanceSettings.bloomEnabled ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                                    >
+                                        <div className={`w-4 h-4 rounded-full bg-black shadow-md transition-transform duration-300 ${performanceSettings.bloomEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                                    </button>
+                                </div>
                             </div>
 
                             {/* ♿ ACCESSIBILITY CONTROLS */}
-                            <div className="grid grid-cols-3 gap-4 border-t border-(--border-color) pt-4 mt-2">
+                            <div className="grid grid-cols-3 gap-4 border-t border-[var(--border-color)]/40 pt-4 mt-2">
                                 <button
                                     onClick={() => setSettings({ accessibilitySettings: { highContrast: !accessibilitySettings.highContrast } })}
-                                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl bg-(--bg-dark)/40 border transition-all ${accessibilitySettings.highContrast ? 'border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/5' : 'border-(--border-color) opacity-50'}`}
+                                    className={`flex flex-col items-center gap-2 p-4 rounded-3xl bg-[var(--bg-dark)]/40 border transition-all ${accessibilitySettings.highContrast ? 'border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/5' : 'border-[var(--border-color)]/40 opacity-50'}`}
                                 >
                                     <Eye size={16} className={accessibilitySettings.highContrast ? 'text-[var(--accent-teal)]' : 'text-(--text-muted)'} />
                                     <span className="text-[8px] font-black uppercase tracking-widest text-(--text-main)">High Contrast</span>
                                 </button>
                                 <button
                                     onClick={() => setSettings({ accessibilitySettings: { largeText: !accessibilitySettings.largeText } })}
-                                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl bg-(--bg-dark)/40 border transition-all ${accessibilitySettings.largeText ? 'border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/5' : 'border-(--border-color) opacity-50'}`}
+                                    className={`flex flex-col items-center gap-2 p-4 rounded-3xl bg-[var(--bg-dark)]/40 border transition-all ${accessibilitySettings.largeText ? 'border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/5' : 'border-[var(--border-color)]/40 opacity-50'}`}
                                 >
                                     <Maximize2 size={16} className={accessibilitySettings.largeText ? 'text-[var(--accent-teal)]' : 'text-(--text-muted)'} />
                                     <span className="text-[8px] font-black uppercase tracking-widest text-(--text-main)">Large Text</span>
                                 </button>
                                 <button
                                     onClick={() => setSettings({ accessibilitySettings: { reducedMotion: !accessibilitySettings.reducedMotion } })}
-                                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl bg-(--bg-dark)/40 border transition-all ${accessibilitySettings.reducedMotion ? 'border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/5' : 'border-(--border-color) opacity-50'}`}
+                                    className={`flex flex-col items-center gap-2 p-4 rounded-3xl bg-[var(--bg-dark)]/40 border transition-all ${accessibilitySettings.reducedMotion ? 'border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/5' : 'border-[var(--border-color)]/40 opacity-50'}`}
                                 >
                                     <Waves size={16} className={accessibilitySettings.reducedMotion ? 'text-[var(--accent-teal)]' : 'text-(--text-muted)'} />
                                     <span className="text-[8px] font-black uppercase tracking-widest text-(--text-main)">Soft Motion</span>
@@ -860,33 +889,33 @@ export default function AccountPage() {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-(--bg-card) border border-(--border-color) p-10 rounded-[48px] backdrop-blur-md shadow-sm"
+                        className="mt-8 pt-6 border-t border-[var(--border-color)]/40 space-y-4"
                     >
-                        <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center justify-between mb-4">
                             <div>
                                 <h3 className="text-sm font-black uppercase tracking-[0.3em] text-(--text-main)">Transaction Ledger</h3>
-                                <p className="text-[10px] opacity-40 uppercase font-bold mt-1 tracking-wide text-(--text-muted)">Historical neural shard acquisition logs</p>
+                                <p className="text-[10px] opacity-40 uppercase font-bold mt-0.5 tracking-wide text-(--text-muted)">Historical neural shard acquisition logs</p>
                             </div>
                             <ShieldCheck size={20} className="text-(--accent-teal) opacity-50" />
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             {mockInvoices.map((inv) => (
-                                <div key={inv.id} className="flex items-center justify-between p-6 rounded-3xl bg-(--bg-dark)/40 border border-(--border-color) hover:border-[var(--accent-teal)]/30 transition-all group">
-                                    <div className="flex gap-6 items-center">
-                                        <div className="p-3 bg-(--bg-card) border border-(--border-color) rounded-2xl">
+                                <div key={inv.id} className="flex items-center justify-between p-5 rounded-3xl bg-[var(--bg-dark)]/40 border border-[var(--border-color)]/40 hover:border-[var(--accent-teal)]/30 transition-all group">
+                                    <div className="flex gap-4 items-center min-w-0">
+                                        <div className="p-3 bg-[var(--bg-dark)]/40 border border-[var(--border-color)]/40 rounded-2xl shrink-0">
                                             <Download size={16} className="text-(--text-muted) group-hover:text-(--accent-teal) transition-colors" />
                                         </div>
-                                        <div>
-                                            <p className="text-[11px] font-black tracking-widest text-(--text-main)">{inv.id}</p>
-                                            <p className="text-[9px] opacity-40 font-bold uppercase text-(--text-muted)">{inv.date} • {inv.method}</p>
+                                        <div className="min-w-0">
+                                            <p className="text-[11px] font-black tracking-widest text-(--text-main) truncate">{inv.id}</p>
+                                            <p className="text-[9px] opacity-40 font-bold uppercase text-(--text-muted) truncate">{inv.date} • {inv.method}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-6">
+                                    <div className="flex items-center gap-4 shrink-0">
                                         <p className="text-[11px] font-black text-(--accent-teal)">{inv.amount}</p>
                                         <button
                                             onClick={() => generateReceiptPDF(inv)}
-                                            className="px-4 py-2 rounded-xl bg-(--bg-card) border border-(--border-color) text-[9px] font-black uppercase hover:bg-(--accent-teal) text-(--text-main) hover:text-(--bg-dark) transition-all shadow-sm"
+                                            className="px-4 py-2 rounded-xl bg-[var(--bg-dark)]/40 border border-[var(--border-color)]/40 text-[9px] font-black uppercase hover:bg-(--accent-teal) text-(--text-main) hover:text-(--bg-dark) transition-all shadow-sm"
                                         >
                                             Extract PDF
                                         </button>
@@ -901,25 +930,25 @@ export default function AccountPage() {
             {/* --- MODAL SYSTEM --- */}
             <AnimatePresence>
                 {activeModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
-                        onClick={() => setActiveModal(null)}
-                    >
+                    <div className="fixed inset-0 z-[100006] flex items-center justify-center p-4 overflow-y-auto custom-scrollbar">
                         <motion.div
-                            initial={{ scale: 0.9, y: 20, opacity: 0 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setActiveModal(null)}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, y: 20, opacity: 0 }}
                             animate={{ scale: 1, y: 0, opacity: 1 }}
-                            exit={{ scale: 0.9, y: 20, opacity: 0 }}
-                            className={`bg-(--bg-card) border border-white/10 w-full rounded-[48px] relative shadow-2xl flex flex-col p-10 max-w-md overflow-hidden`}
-                            onClick={(e) => e.stopPropagation()}
+                            exit={{ scale: 0.95, y: 20, opacity: 0 }}
+                            className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-5 md:p-6 shadow-2xl relative z-10 w-full max-w-md flex flex-col my-auto max-h-[90vh]"
                         >
                             <button
                                 onClick={() => setActiveModal(null)}
-                                className="absolute top-8 right-8 p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+                                className="absolute top-5 right-5 text-(--text-muted) hover:text-(--text-main) p-1.5 hover:bg-(--bg-dark) rounded-xl transition-all z-20"
                             >
-                                <X size={18} />
+                                <X size={20} />
                             </button>
 
                             {/* Premium Status Modal */}
@@ -985,7 +1014,7 @@ export default function AccountPage() {
                                         </h2>
                                         <div className="px-3 py-1 bg-(--accent-teal)/10 border border-(--accent-teal)/20 rounded-full text-[8px] font-black text-(--accent-teal) uppercase tracking-widest">Protocol V2.1</div>
                                     </div>
-                                    
+
                                     <div className="p-4 rounded-2xl bg-(--bg-dark)/50 border border-white/5 space-y-2">
                                         <div className="text-[10px] font-black uppercase text-(--text-muted) tracking-widest mb-2 flex items-center gap-2">
                                             <span className="inline-block w-1 h-1 rounded-full bg-(--accent-yellow)" /> Naming Conventions
@@ -1379,8 +1408,49 @@ export default function AccountPage() {
                                     )}
                                 </div>
                             )}
+
+                            {/* Logout Confirmation Modal */}
+                            {activeModal === 'logout' && (
+                                <div className="space-y-6 py-2">
+                                    <div className="flex items-start gap-3 mb-6">
+                                        <div className="p-4 rounded-full flex-shrink-0 border bg-red-500/10 text-red-400 border-red-500/20">
+                                            <LogOut size={28} />
+                                        </div>
+                                        <div className="flex flex-col justify-center pt-1">
+                                            <h2 className="text-xl md:text-2xl font-black uppercase tracking-wider text-(--text-main)">
+                                                {useThematicUI ? "Sever Connection?" : "Confirm Logout"}
+                                            </h2>
+                                            <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.2em] opacity-60">
+                                                Session Termination
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs md:text-sm text-(--text-muted) mb-8 leading-relaxed font-medium">
+                                        {useThematicUI ? "Are you sure you want to disconnect from your neural sanctuary? Your active session will be terminated." : "Are you sure you want to log out of your account? You will need to log back in to access your dashboard."}
+                                    </p>
+                                    <div className="flex gap-4">
+                                        <button
+                                            onClick={() => setActiveModal(null)}
+                                            className="flex-1 py-4 px-6 bg-(--bg-dark) border border-(--border-color) rounded-2xl text-(--text-main) font-black uppercase text-xs tracking-wider hover:bg-(--border-color) transition-all shadow-md active:scale-95"
+                                        >
+                                            {useThematicUI ? "Remain Linked" : "Cancel"}
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setActiveModal(null);
+                                                handleLogout();
+                                            }}
+                                            className="flex-1 py-4 px-6 rounded-2xl font-black uppercase text-xs tracking-wider transition-all shadow-xl active:scale-95 bg-red-500 text-black hover:bg-red-400 shadow-[0_10px_20px_rgba(239,68,68,0.3)]"
+                                        >
+                                            {useThematicUI ? "Sever Link" : "Confirm Logout"}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </motion.div>
-                    </motion.div>
+
+                    </div>
+
                 )}
             </AnimatePresence>
         </div >

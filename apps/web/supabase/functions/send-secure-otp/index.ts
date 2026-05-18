@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
                 user_id: userId,
                 code: otpCode,
                 type: 'verify'
-            })
+            }, { onConflict: 'user_id' })
 
             if (dbError) throw new Error(`Database uplink failed: ${dbError.message}`);
 

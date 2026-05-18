@@ -1,7 +1,7 @@
 import React from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { supabase } from './index';
+import { supabase, getApiUrl } from './index';
 import { playChime, setSoundConfig } from './sound';
 import { getGeminiEmbedding, parseDocument } from './ai';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -89,6 +89,7 @@ export interface StudyState {
     resetFlowStats: () => void;
     dailyStreak: number;
     totalSessions: number;
+    focusSessions: number;
     sessionsSinceLastReset: number;
     totalSecondsTracked: number;
     timeLeft: number;
@@ -209,7 +210,7 @@ export interface StudyState {
     // 🗓️ PLANNING & PRIORITIZATION
     activeFramework: 'eisenhower' | '1-3-5' | 'ivy' | null;
     lastPlannedDate: string | null;
-    setActiveFramework: (framework: 'eisenhower' | '1-3-5' | 'ivy' | null) => Promise<void>;
+    setActiveFramework: (framework: 'eisenhower' | '1-3-5' | 'ivy' | null, plannedDate?: string | null) => Promise<void>;
     setLastPlannedDate: (date: string | null) => Promise<void>;
 
     updateUserTheme: (themeId: string) => Promise<void>;
@@ -286,6 +287,8 @@ export interface StudyState {
     }>) => void;
     useThematicUI: boolean;
     setThematicUI: (val: boolean) => void;
+    useTldrawCanvas: boolean;
+    setUseTldrawCanvas: (val: boolean) => void;
     handleLogout: () => Promise<void>;
 
     // 🌐 SOCIAL FEATURES
@@ -443,6 +446,8 @@ export const useStudyStore = create<StudyState>()(
             setIsNotificationCenterOpen: (open) => set({ isNotificationCenterOpen: open }),
             useThematicUI: true,
             setThematicUI: (val) => set({ useThematicUI: val }),
+            useTldrawCanvas: false,
+            setUseTldrawCanvas: (val) => set({ useTldrawCanvas: val }),
             setLastLevelUp: (val) => set({ lastLevelUp: val }),
             resetBrainResetCycle: () => set({ sessionsSinceLastReset: 0, lastResetHighlightAt: null }),
 
@@ -489,6 +494,7 @@ export const useStudyStore = create<StudyState>()(
             resetFlowStats: () => set({ flowBreaks: 0, tabSwitches: 0 }),
             dailyStreak: 3,
             totalSessions: 0,
+            focusSessions: 0,
             sessionsSinceLastReset: 0,
             totalSecondsTracked: 0,
             timeLeft: 1500,
@@ -798,16 +804,29 @@ export const useStudyStore = create<StudyState>()(
             isPremiumModalOpen: false,
             setPremiumModalOpen: (val) => set({ isPremiumModalOpen: val }),
 
-            setActiveFramework: async (framework: 'eisenhower' | '1-3-5' | 'ivy' | null) => {
+            setActiveFramework: async (framework: 'eisenhower' | '1-3-5' | 'ivy' | null, plannedDate?: string | null) => {
                 set({ activeFramework: framework });
+                if (plannedDate !== undefined) {
+                    set({ lastPlannedDate: plannedDate });
+                }
                 const { data: { user } } = await supabase.auth.getUser();
-                if (user) await supabase.from('profiles').update({ active_framework: framework }).eq('id', user.id);
+                if (user) {
+                    const updates: any = { active_framework: framework };
+                    if (plannedDate !== undefined) {
+                        updates.last_planned_date = plannedDate;
+                    }
+                    const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
+                    if (error) console.error("[setActiveFramework] DB update error:", error);
+                }
             },
 
             setLastPlannedDate: async (date) => {
                 set({ lastPlannedDate: date });
                 const { data: { user } } = await supabase.auth.getUser();
-                if (user) await supabase.from('profiles').update({ last_planned_date: date }).eq('id', user.id);
+                if (user) {
+                    const { error } = await supabase.from('profiles').update({ last_planned_date: date }).eq('id', user.id);
+                    if (error) console.error("[setLastPlannedDate] DB update error:", error);
+                }
             },
 
             debrisSize: 0.4,
@@ -1021,9 +1040,16 @@ export const useStudyStore = create<StudyState>()(
                 if (isFocusMode) {
                     const newTotal = get().totalSessions + 1;
                     const newSinceReset = get().sessionsSinceLastReset + 1;
-                    set({ totalSessions: newTotal, sessionsSinceLastReset: newSinceReset });
+                    const newFocusSessions = get().focusSessions + 1;
 
-                    if (newSinceReset >= 4) {
+                    set({ 
+                      totalSessions: newTotal, 
+                      sessionsSinceLastReset: newSinceReset,
+                      focusSessions: newFocusSessions
+                    });
+
+                    // Trigger brain reset reminder every 4th focus session (flowstate or studycafe)
+                    if (newFocusSessions % 4 === 0) {
                         set({ lastResetHighlightAt: now });
                         get().triggerChumToast(
                             <span><strong className="text-yellow-400">🧠 Neural Fog Detected!</strong><br />You've completed {newSinceReset} flows in the zone. Time for a Brain Reset?</span>,
@@ -1271,6 +1297,7 @@ export const useStudyStore = create<StudyState>()(
                         });
                     } else {
                         // 🛠️ LOAD EXISTING PROFILE
+                        supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', user.id).then();
                         set({
                             displayName: profile.display_name || "Guardian",
                             fullName: profile.full_name || "Sprout Guardian",
@@ -1523,15 +1550,19 @@ export const useStudyStore = create<StudyState>()(
                     let finalTitle = shard.title || "Untitled Shard";
 
                     // Call server-side API endpoint that has access to Gemini and LlamaCloud keys
-                    const parseRes = await fetch('/api/parse-file', {
+                    const parseRes = await fetch(getApiUrl('/api/forge'), {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
+                            files: shard.files || [],
                             file: shard.files && shard.files.length > 0 ? shard.files[0].content : null,
                             content: shard.content || "",
-                            title: shard.title || (shard.files?.length ? shard.files[0].name : "Untitled Shard")
+                            title: shard.title || (shard.files?.length ? shard.files[0].name : "Untitled Shard"),
+                            user_id: userId,
+                            geminiKey: get().aiKeys?.gemini || "",
+                            llamaKey: get().aiKeys?.llama || ""
                         })
                     });
 
@@ -1541,22 +1572,32 @@ export const useStudyStore = create<StudyState>()(
                     }
 
                     const parseData = await parseRes.json();
-                    finalContent = parseData.content;
-                    const embedding = parseData.embedding;
+                    
+                    let newShard = parseData.shard;
+                    if (!newShard) {
+                        finalContent = parseData.content || finalContent;
+                        const embedding = parseData.embedding;
 
-                    if (!embedding || embedding.length === 0) {
-                        throw new Error("Failed to generate embedding for shard content");
+                        if (!embedding || embedding.length === 0) {
+                            throw new Error("Failed to generate embedding for shard content");
+                        }
+
+                        // 3. Supabase Save fallback if server didn't insert
+                        const { data: sData, error: shardError } = await supabase
+                            .from('shards')
+                            .insert([{ user_id: userId, title: finalTitle, content: finalContent, embeddings: embedding }])
+                            .select().single();
+
+                        if (shardError) throw shardError;
+                        newShard = sData;
+
+                        try {
+                            await supabase.from('shard_embeddings').insert([{ shard_id: newShard.id, embedding }]);
+                        } catch (embedError) {
+                            // Silently fail if embedding insert fails
+                            console.warn("Failed to insert shard embedding:", embedError);
+                        }
                     }
-
-                    // 3. Supabase Save
-                    const { data: newShard, error: shardError } = await supabase
-                        .from('shards')
-                        .insert([{ user_id: userId, title: finalTitle, content: finalContent }])
-                        .select().single();
-
-                    if (shardError) throw shardError;
-
-                    await supabase.from('shard_embeddings').insert([{ shard_id: newShard.id, embedding }]);
 
                     set((state) => ({
                         shards: state.shards.map(s => s.id === tempId ? {
@@ -1795,6 +1836,28 @@ export const useStudyStore = create<StudyState>()(
                     return;
                 }
 
+                // Check freemium friend limit (15 friends max for free users)
+                const { data: userData } = await supabase
+                    .from('profiles')
+                    .select('is_premium')
+                    .eq('id', user.id)
+                    .single();
+
+                const isPremium = userData?.is_premium || false;
+
+                if (!isPremium) {
+                    const { count } = await supabase
+                        .from('user_friendships')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('status', 'accepted')
+                        .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
+
+                    if (count !== null && count >= 15) {
+                        get().triggerChumToast?.('Freemium users are limited to 15 friends. Upgrade to premium for unlimited friends.', 'warning');
+                        return;
+                    }
+                }
+
                 const user_id_1 = user.id < targetUserId ? user.id : targetUserId;
                 const user_id_2 = user.id < targetUserId ? targetUserId : user.id;
 
@@ -1806,19 +1869,7 @@ export const useStudyStore = create<StudyState>()(
                         status: 'pending',
                         requester_id: user.id
                     }])
-                    .select(`
-                        *,
-                        profiles_1:user_id_1 (
-                            id,
-                            display_name,
-                            avatar_url
-                        ),
-                        profiles_2:user_id_2 (
-                            id,
-                            display_name,
-                            avatar_url
-                        )
-                    `);
+                    .select('*');
 
                 if (error) {
                     if (error.code === '23505') {
@@ -1861,6 +1912,7 @@ export const useStudyStore = create<StudyState>()(
                             ...friendship,
                             friend_profile: otherProfile,
                             display_name: otherProfile?.display_name || 'Unknown',
+                            full_name: otherProfile?.full_name,
                             avatar_url: otherProfile?.avatar_url
                         };
                     });
@@ -1903,9 +1955,10 @@ export const useStudyStore = create<StudyState>()(
                             id,
                             user_id_1,
                             user_id_2,
+                            requester_id,
                             status,
-                            profiles_1:user_id_1(id, display_name, avatar_url),
-                            profiles_2:user_id_2(id, display_name, avatar_url)
+                            profiles_1:user_id_1(id, display_name, full_name, avatar_url),
+                            profiles_2:user_id_2(id, display_name, full_name, avatar_url)
                         `)
                         .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
                         .eq('status', 'pending');
@@ -2050,7 +2103,8 @@ export const useStudyStore = create<StudyState>()(
             },
 
             reset: () => set({
-                isInitialized: false, tasks: [], shards: [], focusScore: 100, totalSessions: 0, totalSecondsTracked: 0,
+                isInitialized: false, tasks: [], shards: [], focusScore: 100, 
+                totalSessions: 0, focusSessions: 0, totalSecondsTracked: 0,
                 activeMode: 'none', activeTaskId: null, focusTaskId: null, isPremiumUser: false,
                 normalChatHistory: [{ role: 'chum', text: "Ready to study." }],
                 tutorChatHistory: [], pastTutorSessions: [], sessionsSinceLastReset: 0, lastResetHighlightAt: null,
@@ -2076,6 +2130,7 @@ export const useStudyStore = create<StudyState>()(
                 masteredCrystals: state.masteredCrystals,
                 hasCompletedTutorial: state.hasCompletedTutorial, enableDevRoomOptions: state.enableDevRoomOptions,
                 useThematicUI: state.useThematicUI,
+                useTldrawCanvas: state.useTldrawCanvas,
                 activeBaseColor: state.activeBaseColor,
                 playTickEnabled: state.playTickEnabled,
                 playChimeEnabled: state.playChimeEnabled,
@@ -2092,11 +2147,13 @@ export const useStudyStore = create<StudyState>()(
                 avatarUrl: state.avatarUrl,
                 focusScore: state.focusScore,
                 totalSessions: state.totalSessions,
+                focusSessions: state.focusSessions || 0,
                 dailyStreak: state.dailyStreak,
                 activeAppTheme: state.activeAppTheme,
                 mindDumpContent: state.mindDumpContent,
                 offlineQueue: state.offlineQueue,
                 broadcasts: state.broadcasts,
+                mockUsers: state.mockUsers,
             }),
             onRehydrateStorage: () => (state) => {
                 try {

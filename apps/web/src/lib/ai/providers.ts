@@ -3,9 +3,9 @@ import { createGroq } from '@ai-sdk/groq';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 export const getAIProviders = (keys: { openrouter?: string, groq?: string, gemini?: string }) => {
-    const orKey = (keys.openrouter?.trim() || process.env.OPENROUTER_AI_API_KEY)?.trim();
-    const groqKey = (keys.groq?.trim() || process.env.GROQ_AI_API_KEY)?.trim();
-    const geminiKey = (keys.gemini?.trim() || process.env.GEMINI_AI_API_KEY)?.trim();
+    const orKey = (keys.openrouter?.trim() || process.env.OPENROUTER_AI_API_KEY || process.env.OPENROUTER_API_KEY || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY)?.trim();
+    const groqKey = (keys.groq?.trim() || process.env.GROQ_AI_API_KEY || process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY)?.trim();
+    const geminiKey = (keys.gemini?.trim() || process.env.GEMINI_AI_API_KEY || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_AI_API_KEY)?.trim();
 
     return {
         openrouter: orKey ? createOpenRouter({ 

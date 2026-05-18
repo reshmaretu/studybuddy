@@ -82,6 +82,26 @@ try {
 
 
 
+export const getApiUrl = (path: string) => {
+    if (typeof window === 'undefined') return path;
+    
+    // Check if we're on a Capacitor native platform (iOS/Android)
+    // @ts-ignore
+    const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
+    
+    if (isNative) {
+        // In native apps, relative URLs like /api/... won't work as they try to hit the local file system.
+        // We must use the full production URL.
+        const prodUrl = (typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_APP_URL : undefined) || 'https://studybuddy-ai.vercel.app';
+        return `${prodUrl}${path}`;
+    }
+    
+    return path;
+};
+
+export const getChatUrl = () => getApiUrl('/api/chat');
+
+
 export * from '@supabase/supabase-js';
 export * from './types';
 export * from './store';

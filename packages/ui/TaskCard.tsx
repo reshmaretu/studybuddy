@@ -24,7 +24,7 @@ interface TaskCardProps {
 export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized = false, onToggleSelect, selected = false, completionEffect = 'bloom', isAnimating: externalIsAnimating, layoutId, isRecentlyCompleted }: TaskCardProps) => {
     const { 
         openFocusModal, deleteTask, updateTask, tasks, triggerChumToast, 
-        openEditModal, openViewModal, completeTask, 
+        openEditModal, openViewModal, completeTask, userId,
         doubleClickToComplete = true, dndEnabled = true,
         requireCompletionConfirmation = true
     } = useStudyStore();
@@ -217,7 +217,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                 duration: (isAnimating || externalIsAnimating) ? 0.6 : (isRecentlyCompleted ? 0.8 : 0.3),
                 ease: "easeOut"
             }}
-            className={`group relative bg-(--bg-card) border-2 rounded-xl md:rounded-2xl p-2 md:p-4 transition-shadow ${selected ? 'border-(--accent-teal) shadow-[0_0_18px_rgba(45,212,191,0.25)]' : ''} ${dlStatus.phase === 3 && !task.isCompleted ? 'ring-1 ring-red-500/20' : ''} ${isOverlay ? 'shadow-2xl border-(--accent-teal)' : dlStatus.border || 'border-(--border-color)'}`}
+            className={`group relative bg-(--bg-card) border-2 rounded-xl md:rounded-2xl p-2 md:p-4 min-h-[100px] md:min-h-[120px] flex flex-col transition-shadow ${selected ? 'border-(--accent-teal) shadow-[0_0_18px_rgba(45,212,191,0.25)]' : ''} ${dlStatus.phase === 3 && !task.isCompleted ? 'ring-1 ring-red-500/20' : ''} ${isOverlay ? 'shadow-2xl border-(--accent-teal)' : dlStatus.border || 'border-(--border-color)'}`}
         >
             {/* ⚡ CLIPPING CONTAINER FOR BG EFFECTS */}
             <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">

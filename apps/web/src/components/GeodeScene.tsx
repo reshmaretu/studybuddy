@@ -423,14 +423,21 @@ function LowPolyClouds({ filter }: { filter: any }) {
     );
 }
 
-function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, setViewingShard, allFlowerPositions, masteredShards }: any) {
+function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, setViewingShard, allFlowerPositions, masteredShards, isMaximized }: any) {
     const controlsRef = useRef<any>(null);
     const velocity = useRef(new THREE.Vector3());
     const isReturning = useRef(false);
     const isSniping = useRef(false);
 
-    const defaultCamPos = useMemo(() => new THREE.Vector3(0, 8, 14), []);
+    const defaultCamPos = useMemo(() => isMaximized ? new THREE.Vector3(0, 5, 12) : new THREE.Vector3(0, 3.5, 8.5), [isMaximized]);
     const defaultTarget = useMemo(() => new THREE.Vector3(0, 1.5, 0), []);
+
+    // Also return when losing focus
+    useEffect(() => {
+        if (!isFocused && !isFreecam) {
+            isReturning.current = true;
+        }
+    }, [isFocused, isFreecam]);
 
     useEffect(() => {
         if (snipingShard) isSniping.current = true;
@@ -529,12 +536,13 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
             controlsRef.current.target.z = THREE.MathUtils.clamp(controlsRef.current.target.z, -bound, bound);
 
             controlsRef.current.update();
-        } else if (isFocused && isReturning.current) {
+        } else if (isReturning.current) {
             state.camera.position.lerp(defaultCamPos, 0.05);
             controlsRef.current.target.lerp(defaultTarget, 0.08);
 
-            if (controlsRef.current.target.distanceTo(defaultTarget) < 0.05) {
+            if (controlsRef.current.target.distanceTo(defaultTarget) < 0.05 && state.camera.position.distanceTo(defaultCamPos) < 0.05) {
                 controlsRef.current.target.copy(defaultTarget);
+                state.camera.position.copy(defaultCamPos);
                 isReturning.current = false;
             }
             controlsRef.current.update();
@@ -556,7 +564,7 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
 }
 
 // ─── COMPONENT ENTRY ───
-export default function GeodeScene({ completionRatio, snipingShard, setSnipingShard, isRebirthing }: { completionRatio: number, snipingShard?: any, setSnipingShard?: any, isRebirthing?: boolean }) {
+export default function GeodeScene({ completionRatio, snipingShard, setSnipingShard, isRebirthing, isMaximized }: { completionRatio: number, snipingShard?: any, setSnipingShard?: any, isRebirthing?: boolean, isMaximized?: boolean }) {
     const [isFocused, setIsFocused] = useState(false);
     const [isFreecam, setIsFreecam] = useState(false);
     const [viewingShard, setViewingShard] = useState<any>(null);
@@ -668,7 +676,7 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
             {/* THE 3D CANVAS */}
             <Canvas 
                 shadows 
-                camera={{ position: [0, 3, 8], fov: 45 }} 
+                camera={{ position: [0, 3.5, 8.5], fov: 60 }} 
                 dpr={[1, 2]} // Performance: limit pixel ratio on high-res mobile
                 gl={{ 
                     powerPreference: "high-performance",
@@ -706,6 +714,7 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
                     setViewingShard={setViewingShard}
                     allFlowerPositions={allFlowerPositions}
                     masteredShards={masteredShards}
+                    isMaximized={isMaximized}
                 />
                 {isCrystalMastered && performanceSettings.showParticles && (
                     <CylinderGlitter count={resolvedGlitterCount} completionRatio={completionRatio} />

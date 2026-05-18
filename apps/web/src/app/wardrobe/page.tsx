@@ -40,23 +40,23 @@ const ACCESSORY_CATALOG = {
 
 // --- BASE COLORS CATALOG (UPDATED WITH 17 COLORS) ---
 const BASE_COLORS_CATALOG = [
-    { id: 'base1', name: 'Sakura Pink', fileName: 'base1.png', color: '#ffb7c5' },
-    { id: 'base2', name: 'Dusty Rose', fileName: 'base2.png', color: '#dcae96' },
-    { id: 'base3', name: 'Crimson', fileName: 'base3.png', color: '#dc143c' },
-    { id: 'base4', name: 'Plum', fileName: 'base4.png', color: '#dda0dd' },
-    { id: 'base5', name: 'Deep Violet', fileName: 'base5.png', color: '#9400d3' },
-    { id: 'base6', name: 'Nightshade', fileName: 'base6.png', color: '#4b0082' },
-    { id: 'base7', name: 'Aqua Glass (Default)', fileName: 'base7.png', color: '#7fffd4' },
-    { id: 'base8', name: 'Ocean Blue', fileName: 'base8.png', color: '#0077be' },
-    { id: 'base9', name: 'Forest Emerald', fileName: 'base9.png', color: '#008a3f' },
-    { id: 'base10', name: 'Antique Gold', fileName: 'base10.png', color: '#cfb53b' },
-    { id: 'base11', name: 'Sunstone', fileName: 'base11.png', color: '#e3a857' },
-    { id: 'base12', name: 'Dreamscape', fileName: 'base12.png', color: '#a282b8' },
-    { id: 'base13', name: 'Coral', fileName: 'base13.png', color: '#ff7f50' },
-    { id: 'base14', name: 'Mint', fileName: 'base14.png', color: '#98ff98' },
-    { id: 'base15', name: 'Sage', fileName: 'base15.png', color: '#9dc183' },
-    { id: 'base16', name: 'Lunar Silver', fileName: 'base16.png', color: '#c0c0c0' },
-    { id: 'base17', name: 'Bronze', fileName: 'base17.png', color: '#cd7f32' },
+    { id: 'base1', name: 'Sakura Pink', fileName: 'base1.png', color: '#ffb7c5', isPremium: false },
+    { id: 'base2', name: 'Dusty Rose', fileName: 'base2.png', color: '#dcae96', isPremium: true },
+    { id: 'base3', name: 'Crimson', fileName: 'base3.png', color: '#dc143c', isPremium: true },
+    { id: 'base4', name: 'Plum', fileName: 'base4.png', color: '#dda0dd', isPremium: true },
+    { id: 'base5', name: 'Deep Violet', fileName: 'base5.png', color: '#9400d3', isPremium: true },
+    { id: 'base6', name: 'Nightshade', fileName: 'base6.png', color: '#4b0082', isPremium: true },
+    { id: 'base7', name: 'Aqua Glass (Default)', fileName: 'base7.png', color: '#7fffd4', isPremium: false },
+    { id: 'base8', name: 'Ocean Blue', fileName: 'base8.png', color: '#0077be', isPremium: true },
+    { id: 'base9', name: 'Forest Emerald', fileName: 'base9.png', color: '#008a3f', isPremium: true },
+    { id: 'base10', name: 'Antique Gold', fileName: 'base10.png', color: '#cfb53b', isPremium: true },
+    { id: 'base11', name: 'Sunstone', fileName: 'base11.png', color: '#e3a857', isPremium: true },
+    { id: 'base12', name: 'Dreamscape', fileName: 'base12.png', color: '#a282b8', isPremium: true },
+    { id: 'base13', name: 'Coral', fileName: 'base13.png', color: '#ff7f50', isPremium: true },
+    { id: 'base14', name: 'Mint', fileName: 'base14.png', color: '#98ff98', isPremium: true },
+    { id: 'base15', name: 'Sage', fileName: 'base15.png', color: '#9dc183', isPremium: true },
+    { id: 'base16', name: 'Lunar Silver', fileName: 'base16.png', color: '#c0c0c0', isPremium: true },
+    { id: 'base17', name: 'Bronze', fileName: 'base17.png', color: '#cd7f32', isPremium: true },
 ];
 
 const CRYSTAL_CATALOG = {
@@ -91,7 +91,8 @@ const CRYSTAL_CATALOG = {
 
 export default function WardrobePage() {
     // UI Tabs State
-    const [activeTab, setActiveTab] = useState<'themes' | 'crystals' | 'accessories'>('themes');
+    const [activeTab, setActiveTab] = useState<'themes' | 'crystals'>('themes');
+    const [chumTab, setChumTab] = useState<'base' | 'clips' | 'glasses' | 'hats'>('base');
     const [shakeTarget, setShakeTarget] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(true);
 
@@ -105,7 +106,8 @@ export default function WardrobePage() {
         activeAtmosphereFilter, setActiveAtmosphereFilter,
         activeAccessories, setActiveAccessories,
         activeBaseColor, setActiveBaseColor,
-        activeAppTheme, setActiveAppTheme
+        activeAppTheme, setActiveAppTheme,
+        triggerChumToast
     } = useStudyStore();
 
     useEffect(() => {
@@ -121,6 +123,7 @@ export default function WardrobePage() {
         if (isPremium && !isPremiumUser) {
             setShakeTarget(themeId);
             setTimeout(() => setShakeTarget(null), 400);
+            triggerChumToast?.('This theme is premium only! Upgrade to unlock all exclusive sanctuary aesthetics.', 'warning');
             return;
         }
         setActiveAppTheme(themeId);
@@ -130,11 +133,13 @@ export default function WardrobePage() {
         if (crystal.isPremium && !isPremiumUser) {
             setShakeTarget(crystalId);
             setTimeout(() => setShakeTarget(null), 400);
+            triggerChumToast?.('This crystal seed is premium only! Upgrade to unlock all exclusive vault gems.', 'warning');
             return;
         }
         if (level < crystal.unlockLevel) {
             setShakeTarget(crystalId);
             setTimeout(() => setShakeTarget(null), 400);
+            triggerChumToast?.(`This crystal unlocks at Level ${crystal.unlockLevel}. Keep focusing to ascend!`, 'warning');
             return;
         }
         if (setActiveCrystalTheme) setActiveCrystalTheme(crystalId);
@@ -144,6 +149,7 @@ export default function WardrobePage() {
         if (accessory.isPremium && !isPremiumUser) {
             setShakeTarget(accessory.id);
             setTimeout(() => setShakeTarget(null), 400);
+            triggerChumToast?.('This accessory is premium only! Upgrade to unlock all exclusive wardrobe items.', 'warning');
             return;
         }
 
@@ -172,6 +178,12 @@ export default function WardrobePage() {
         }
 
         setActiveAccessories(newAccessories);
+    };
+
+    const handleUnequipCategory = (category: 'clips' | 'glasses' | 'hats') => {
+        const catalogItems = ACCESSORY_CATALOG[category].map(item => item.id);
+        const filtered = (activeAccessories || []).filter(acc => !catalogItems.includes(acc.id));
+        setActiveAccessories(filtered);
     };
 
     const freeThemes = [
@@ -205,7 +217,7 @@ export default function WardrobePage() {
 
             <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
 
-                {/* LEFT PANEL: Character Preview & Base Colors */}
+                {/* LEFT PANEL: Character Preview & Chum Customization Tabs */}
                 <section id="wardrobe-avatar-preview" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 flex flex-col relative shadow-sm">
 
                     <div className="absolute top-6 left-6 z-10">
@@ -213,79 +225,176 @@ export default function WardrobePage() {
                     </div>
 
                     {/* AVATAR RENDERER */}
-                    <div className="flex-1 flex items-center justify-center w-full min-h-[40vh] max-h-[50vh] lg:min-h-0 lg:max-h-none mt-2 lg:mt-8 relative z-0">
-                        <div className="relative w-[70vw] h-[70vw] max-w-[320px] max-h-[320px] lg:w-96 lg:h-96 shrink-0 transition-all duration-500">
+                    <div className="flex-1 flex items-center justify-center w-full min-h-[35vh] max-h-[45vh] lg:min-h-0 lg:max-h-none mt-2 lg:mt-8 relative z-0">
+                        <div className="relative w-[65vw] h-[65vw] max-w-[300px] max-h-[300px] lg:w-80 lg:h-80 shrink-0 transition-all duration-500">
                             <ChumRenderer size="w-full h-full" />
                         </div>
                     </div>
 
-
-                    {/* 🔥 CHUM BASE COLOR SCROLL CONTAINER 🔥 */}
+                    {/* 🔥 CHUM CUSTOMIZATION TABS & HORIZONTAL SCROLL CONTAINER 🔥 */}
                     <div className="w-full mt-auto pt-4 border-t border-[var(--border-color)]/50 shrink-0">
-                        <div className="flex justify-between items-center px-4 mb-2">
-                            <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">
-                                {isGamified ? "Chum Base Color" : "Chum Base Color"}
-                            </label>
-                            <SquishyButton
-                                onClick={() => setActiveBaseColor('base7')}
-                                className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest bg-black/20 px-2 py-1 rounded transition-colors"
+                        {/* CHUM TABS */}
+                        <div className="flex items-center justify-around w-full border-b border-[var(--border-color)] mb-4 shrink-0 overflow-x-auto no-scrollbar gap-2">
+                            <button
+                                onClick={() => setChumTab('base')}
+                                className={`flex-1 min-w-[90px] pb-2.5 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all ${
+                                    chumTab === 'base' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'
+                                }`}
                             >
-                                Reset
-                            </SquishyButton>
+                                Base Colour
+                            </button>
+                            <button
+                                onClick={() => setChumTab('clips')}
+                                className={`flex-1 min-w-[90px] pb-2.5 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all ${
+                                    chumTab === 'clips' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'
+                                }`}
+                            >
+                                Hair Clips
+                            </button>
+                            <button
+                                onClick={() => setChumTab('glasses')}
+                                className={`flex-1 min-w-[90px] pb-2.5 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all ${
+                                    chumTab === 'glasses' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'
+                                }`}
+                            >
+                                Eyewear
+                            </button>
+                            <button
+                                onClick={() => setChumTab('hats')}
+                                className={`flex-1 min-w-[90px] pb-2.5 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all ${
+                                    chumTab === 'hats' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'
+                                }`}
+                            >
+                                Headwear
+                            </button>
                         </div>
 
-                        <div className="flex items-center justify-start gap-4 overflow-x-auto w-full py-4 px-4 no-scrollbar" style={{ scrollSnapType: 'x mandatory' }}>
-                            {BASE_COLORS_CATALOG.map((base) => (
+                        {/* TAB HEADER ACTIONS */}
+                        <div className="flex justify-between items-center px-4 mb-2">
+                            <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">
+                                {chumTab === 'base' ? (isGamified ? "Chum Base Color" : "Chum Base Color") : chumTab.toUpperCase()}
+                            </label>
+                            {chumTab === 'base' ? (
                                 <SquishyButton
-                                    key={base.id}
-                                    onClick={() => setActiveBaseColor(base.id)}
-                                    className={`relative shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-[3px] transition-all duration-300 flex items-center justify-center ${activeBaseColor === base.id
-                                        ? 'border-[var(--accent-teal)] scale-110 shadow-[0_0_20px_rgba(20,184,166,0.4)] z-10 bg-[var(--bg-dark)]'
-                                        : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105 bg-[var(--bg-sidebar)]/50'
-                                        }`}
-                                    title={base.name}
-                                    style={{ scrollSnapAlign: 'center' }}
-                                    disabled={false}
+                                    onClick={() => setActiveBaseColor('base7')}
+                                    className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest bg-black/20 px-2 py-1 rounded transition-colors border-none m-0"
                                 >
-                                    <img
-                                        src={`/assets/chum/${base.fileName}`}
-                                        alt={base.name}
-                                        className="w-[140%] h-[140%] object-cover object-center translate-y-1 drop-shadow-md"
-                                    />
+                                    Reset
                                 </SquishyButton>
-                            ))}
+                            ) : (
+                                <SquishyButton
+                                    onClick={() => handleUnequipCategory(chumTab)}
+                                    className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest bg-black/20 px-2 py-1 rounded transition-colors border-none m-0"
+                                >
+                                    Unequip
+                                </SquishyButton>
+                            )}
+                        </div>
+
+                        {/* HORIZONTAL SCROLL CONTENT */}
+                        <div className="flex items-center justify-start gap-4 overflow-x-auto w-full py-4 px-4 no-scrollbar" style={{ scrollSnapType: 'x mandatory' }}>
+                            {chumTab === 'base' && BASE_COLORS_CATALOG.map((base) => {
+                                const isLocked = base.isPremium && !isPremiumUser;
+                                const handleBaseClick = () => {
+                                    if (isLocked) {
+                                        setShakeTarget(base.id);
+                                        setTimeout(() => setShakeTarget(null), 300);
+                                        triggerChumToast?.('This theme is premium only! Upgrade to unlock all themes.', 'warning');
+                                    } else {
+                                        setActiveBaseColor(base.id);
+                                    }
+                                };
+                                
+                                return (
+                                    <SquishyButton
+                                        key={base.id}
+                                        onClick={handleBaseClick}
+                                        className={`relative shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-[3px] transition-all duration-300 flex items-center justify-center ${
+                                            shakeTarget === base.id ? 'animate-premium-shake border-red-500' :
+                                            activeBaseColor === base.id
+                                            ? 'border-[var(--accent-teal)] scale-110 shadow-[0_0_20px_rgba(20,184,166,0.4)] z-10 bg-[var(--bg-dark)]'
+                                            : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105 bg-[var(--bg-sidebar)]/50'
+                                        } ${isLocked ? 'opacity-40' : ''}`}
+                                        title={base.name}
+                                        style={{ scrollSnapAlign: 'center' }}
+                                    >
+                                        <img
+                                            src={`/assets/chum/${base.fileName}`}
+                                            alt={base.name}
+                                            className="w-[140%] h-[140%] object-cover object-center translate-y-1 drop-shadow-md"
+                                        />
+                                        {isLocked && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-[1px]">
+                                                <Lock size={14} className="text-[var(--accent-yellow)]" />
+                                            </div>
+                                        )}
+                                    </SquishyButton>
+                                );
+                            })}
+
+                            {chumTab !== 'base' && ACCESSORY_CATALOG[chumTab].map((item) => {
+                                const isActive = activeAccessories?.some(acc => acc.id === item.id) || false;
+                                const isLocked = item.isPremium && !isPremiumUser;
+                                return (
+                                    <SquishyButton
+                                        key={item.id}
+                                        onClick={() => handleToggleAccessory(item)}
+                                        className={`relative shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-[3px] transition-all duration-300 flex items-center justify-center ${
+                                            shakeTarget === item.id ? 'animate-premium-shake border-red-500' :
+                                            isActive
+                                                ? 'border-[var(--accent-teal)] scale-110 shadow-[0_0_20px_rgba(20,184,166,0.4)] z-10 bg-[var(--bg-dark)]'
+                                                : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105 bg-[var(--bg-sidebar)]/50'
+                                        } ${isLocked && !isActive ? 'opacity-40' : ''}`}
+                                        title={item.name}
+                                        style={{ scrollSnapAlign: 'center' }}
+                                    >
+                                        <div className="w-full h-full flex items-center justify-center p-2.5 bg-[var(--bg-dark)]/40">
+                                            <img
+                                                src={item.previewFileName
+                                                    ? (item.previewFileName.startsWith('/') ? item.previewFileName : `/assets/chum/${item.previewFileName}`)
+                                                    : (item.fileName.startsWith('/') ? item.fileName : `/assets/chum/${item.fileName}`)}
+                                                alt={item.name}
+                                                className="w-full h-full object-contain drop-shadow-md"
+                                            />
+                                        </div>
+                                        {isLocked && !isActive && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-[1px]">
+                                                <Lock size={14} className="text-[var(--accent-yellow)]" />
+                                            </div>
+                                        )}
+                                    </SquishyButton>
+                                );
+                            })}
                         </div>
                     </div>
 
                 </section>
 
-                {/* RIGHT PANEL: Customization Hub */}
-                <section id="wardrobe-customization-hub" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl flex flex-col min-h-[500px] lg:min-h-0 shadow-sm overflow-hidden mb-10 lg:mb-0">
+                {/* RIGHT PANEL: Customization Hub (Unboxed & Lantern Tab Style) */}
+                <section id="wardrobe-customization-hub" className="flex flex-col min-h-[500px] lg:min-h-0 mb-10 lg:mb-0 overflow-hidden">
 
-                    {/* TABS HEADER */}
-                    <div className="flex p-2 border-b border-[var(--border-color)]/50 bg-[var(--bg-dark)]/30 overflow-x-auto no-scrollbar whitespace-nowrap gap-2">
-                        <SquishyButton
+                    {/* TABS HEADER (Lantern Style) */}
+                    <div className="flex items-center justify-around w-full border-b border-[var(--border-color)] mb-4 shrink-0 overflow-x-auto no-scrollbar gap-4">
+                        <button
                             onClick={() => setActiveTab('themes')}
-                            className={`min-w-[120px] py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'themes' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
+                            className={`flex-1 pb-2.5 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all flex items-center justify-center gap-2 ${
+                                activeTab === 'themes' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'
+                            }`}
                         >
-                            <Palette size={14} className={activeTab === 'themes' ? 'text-[var(--accent-cyan)]' : ''} /> App Themes
-                        </SquishyButton>
-                        <SquishyButton
+                            <Palette size={16} className={activeTab === 'themes' ? 'text-[var(--accent-cyan)]' : ''} /> App Themes
+                        </button>
+                        <button
                             onClick={() => setActiveTab('crystals')}
-                            className={`min-w-[120px] py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'crystals' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
+                            className={`flex-1 pb-2.5 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all flex items-center justify-center gap-2 ${
+                                activeTab === 'crystals' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'
+                            }`}
                         >
-                            <Gem size={14} className={activeTab === 'crystals' ? 'text-[var(--accent-teal)]' : ''} /> Crystal Vault
-                        </SquishyButton>
-                        <SquishyButton
-                            onClick={() => setActiveTab('accessories')}
-                            className={`min-w-[120px] py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'accessories' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
-                        >
-                            <Shirt size={14} className={activeTab === 'accessories' ? 'text-[var(--accent-teal)]' : ''} /> {isGamified ? "Charms" : "Accessories"}
-                        </SquishyButton>
+                            <Gem size={16} className={activeTab === 'crystals' ? 'text-[var(--accent-teal)]' : ''} /> Crystal Vault
+                        </button>
                     </div>
 
                     {/* TAB CONTENT */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar no-scrollbar relative">
+                    <div className="flex-1 overflow-y-auto p-2 space-y-8 custom-scrollbar no-scrollbar relative">
                         <AnimatePresence mode="wait">
 
                             {/* APP THEMES TAB */}
@@ -294,7 +403,7 @@ export default function WardrobePage() {
                                     <div>
                                         <div className="flex justify-between items-center mb-4">
                                             <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Standard Aesthetics</label>
-                                            <SquishyButton onClick={() => handleAppThemeChange('deep-teal', false)} className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest px-2 py-1 bg-black/20 rounded transition-colors">Reset to Default</SquishyButton>
+                                            <SquishyButton onClick={() => handleAppThemeChange('deep-teal', false)} className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest px-2 py-1 bg-black/20 rounded transition-colors border-none m-0">Reset to Default</SquishyButton>
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {freeThemes.map((theme) => (
@@ -317,7 +426,7 @@ export default function WardrobePage() {
                                     <div>
                                         <div className="flex justify-between items-center mb-4">
                                             <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Garden Atmosphere</label>
-                                            <SquishyButton onClick={() => setActiveAtmosphereFilter('default')} className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest px-2 py-1 bg-black/20 rounded transition-colors">Reset to Default</SquishyButton>
+                                            <SquishyButton onClick={() => setActiveAtmosphereFilter('default')} className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest px-2 py-1 bg-black/20 rounded transition-colors border-none m-0">Reset to Default</SquishyButton>
                                         </div>
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                             {[
@@ -347,7 +456,7 @@ export default function WardrobePage() {
                                     <div>
                                         <div className="flex justify-between items-center mb-4">
                                             <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Starter Seeds</label>
-                                            <SquishyButton onClick={() => handleCrystalChange('quartz', CRYSTAL_CATALOG['quartz'])} className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest px-2 py-1 bg-black/20 rounded transition-colors">Reset to Default</SquishyButton>
+                                            <SquishyButton onClick={() => handleCrystalChange('quartz', CRYSTAL_CATALOG['quartz'])} className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest px-2 py-1 bg-black/20 rounded transition-colors border-none m-0">Reset to Default</SquishyButton>
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {starterCrystals.map(([id, crystal]) => (
@@ -376,68 +485,6 @@ export default function WardrobePage() {
                                             ))}
                                         </div>
                                     </div>
-
-                                </motion.div>
-                            )}
-
-                            {/* ACCESSORIES TAB (NEW) */}
-                            {activeTab === 'accessories' && (
-                                <motion.div key="accessories" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-8">
-
-                                    <div className="flex justify-end mb-2">
-                                        <SquishyButton onClick={() => setActiveAccessories([])} className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest px-3 py-1.5 bg-black/20 rounded transition-colors">Unequip All Charms</SquishyButton>
-                                    </div>
-                                    {/* CLIPS SECTION */}
-                                    <div>
-                                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4 block">Hair Clips</label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {ACCESSORY_CATALOG.clips.map((clip) => (
-                                                <AccessoryButton
-                                                    key={clip.id}
-                                                    accessory={clip}
-                                                    isActive={activeAccessories?.some(acc => acc.id === clip.id) || false}
-                                                    isLocked={clip.isPremium && !isPremiumUser}
-                                                    isShaking={shakeTarget === clip.id}
-                                                    onClick={() => handleToggleAccessory(clip)}
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* GLASSES SECTION */}
-                                    <div>
-                                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4 block">Eyewear</label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {ACCESSORY_CATALOG.glasses.map((glasses) => (
-                                                <AccessoryButton
-                                                    key={glasses.id}
-                                                    accessory={glasses}
-                                                    isActive={activeAccessories?.some(acc => acc.id === glasses.id) || false}
-                                                    isLocked={glasses.isPremium && !isPremiumUser}
-                                                    isShaking={shakeTarget === glasses.id}
-                                                    onClick={() => handleToggleAccessory(glasses)}
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* HATS SECTION */}
-                                    <div>
-                                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4 block">Headwear</label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {ACCESSORY_CATALOG.hats.map((hat) => (
-                                                <AccessoryButton
-                                                    key={hat.id}
-                                                    accessory={hat}
-                                                    isActive={activeAccessories?.some(acc => acc.id === hat.id) || false}
-                                                    isLocked={hat.isPremium && !isPremiumUser}
-                                                    isShaking={shakeTarget === hat.id}
-                                                    onClick={() => handleToggleAccessory(hat)}
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-
 
                                 </motion.div>
                             )}
@@ -482,38 +529,6 @@ function CrystalButton({ crystal, isActive, isLocked, isShaking, onClick }: any)
             </div>
 
             {isActive ? <CheckCircle2 className="text-[var(--accent-teal)] w-4 h-4 shrink-0" /> : isLocked && <Lock size={12} className="text-[var(--text-muted)] shrink-0" />}
-        </SquishyButton>
-    );
-}
-
-// 👕 Helper Component for Accessories
-function AccessoryButton({ accessory, isActive, isLocked, isShaking, onClick }: any) {
-    return (
-        <SquishyButton
-            onClick={onClick}
-            className={`group relative flex items-center p-4 rounded-2xl border-2 transition-all duration-200 ${isShaking ? 'animate-premium-shake border-red-500' :
-                isActive ? 'border-[var(--accent-teal)] bg-[var(--bg-dark)] shadow-[0_0_15px_rgba(20,184,166,0.15)]' :
-                    'border-[var(--border-color)] bg-[var(--bg-sidebar)]/50 hover:bg-[var(--bg-sidebar)]'
-                } ${isLocked && !isActive ? 'opacity-60 hover:opacity-100' : ''}`}
-        >
-            <div className="w-8 h-8 rounded-lg mr-3 shadow-sm shrink-0 relative overflow-hidden bg-[var(--bg-dark)]/50 border border-[var(--border-color)] flex items-center justify-center p-0.5">
-                <img
-                    src={accessory.previewFileName
-                        ? (accessory.previewFileName.startsWith('/') ? accessory.previewFileName : `/assets/chum/${accessory.previewFileName}`)
-                        : (accessory.fileName.startsWith('/') ? accessory.fileName : `/assets/chum/${accessory.fileName}`)}
-                    alt={accessory.name}
-                    className="w-full h-full object-contain drop-shadow-md"
-                />
-            </div>
-
-            <div className="flex-1 text-left flex flex-col">
-                <span className="font-bold text-xs text-white">{accessory.name}</span>
-                {isLocked && (
-                    <span className="text-[9px] text-[var(--accent-yellow)] font-black tracking-widest uppercase">Pro Exclusive</span>
-                )}
-            </div>
-
-            {isActive ? <CheckCircle2 className="text-[var(--accent-teal)] w-4 h-4 shrink-0" /> : isLocked && <Lock size={12} className="text-white/40 shrink-0" />}
         </SquishyButton>
     );
 }

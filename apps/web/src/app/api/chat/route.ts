@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { createGroq } from '@ai-sdk/groq';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { streamText, generateText } from 'ai';
 
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-    const corsHeaders = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    };
-
     try {
         const body = await req.json();
         const { messages, user_id, openrouter_key, groq_key, gemini_key, selected_model, stream } = body;
@@ -19,10 +17,12 @@ export async function POST(req: Request) {
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        // Use environment variables as fallback if no user keys provided
-        const effectiveOpenRouterKey = openrouter_key || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY;
-        const effectiveGroqKey = groq_key || process.env.NEXT_PUBLIC_GROQ_API_KEY || process.env.GROQ_API_KEY;
-        const effectiveGeminiKey = gemini_key || process.env.NEXT_PUBLIC_GEMINI_AI_API_KEY || process.env.GEMINI_AI_API_KEY;
+        // 🗝️ Centralized Key & Provider Logic
+        const { openrouter: orP, groq: groqP, google: geminiP, geminiKey } = (await import("@/lib/ai/providers")).getAIProviders({
+            openrouter: openrouter_key,
+            groq: groq_key,
+            gemini: gemini_key
+        });
 
         // 1. Premium & Profile Check
         const { data: profile } = await supabase.from('profiles').select('is_premium').eq('id', user_id).single();
@@ -30,10 +30,7 @@ export async function POST(req: Request) {
         const isTutorRequest = messages.some((m: { content: string }) => m.content.includes("You are Chum, a cozy lo-fi tutor AI"));
 
         if (isTutorRequest && !isPremium) {
-            return NextResponse.json(
-                { error: "Premium subscription required to access the Pro Tutor." }, 
-                { status: 403, headers: corsHeaders }
-            );
+            return NextResponse.json({ error: "Premium subscription required to access the Pro Tutor." }, { status: 403 });
         }
 
         // ==========================================
@@ -41,13 +38,25 @@ export async function POST(req: Request) {
         // ==========================================
         let contextSnippet = "";
 
-        if (user_id && effectiveGeminiKey) {
+        if (user_id && geminiKey) {
             try {
                 const latestUserMessage = messages[messages.length - 1].content;
-                // Placeholder for RAG functionality if needed
-                // const { getGeminiEmbedding } = await import("@/lib/ai/embeddings");
-                // const query_embedding = await getGeminiEmbedding(latestUserMessage, effectiveGeminiKey);
-                // ... rest of RAG logic
+                const { getGeminiEmbedding } = await import("@/lib/ai/embeddings");
+
+                const query_embedding = await getGeminiEmbedding(latestUserMessage, geminiKey);
+
+                const { data: matchedShards, error } = await supabase.rpc('match_shards', {
+                    query_embedding, match_threshold: 0.4, match_count: 3, p_user_id: user_id
+                });
+
+                if (!error && matchedShards && matchedShards.length > 0) {
+                    contextSnippet = "\n\n--- RELEVANT NOTES FROM USER'S DATABASE ---\n";
+                    contextSnippet += (matchedShards as { title: string, content: string }[]).map((s) => `Title: ${s.title}\nContent: ${s.content}`).join('\n\n');
+                    if (contextSnippet.length > 25000) {
+                        contextSnippet = contextSnippet.slice(0, 25000) + "\n...[Truncated for token limits]";
+                    }
+                    contextSnippet += "\n-------------------------------------------\n";
+                }
             } catch (e: any) {
                 console.warn("RAG failed, proceeding without context.", e.message);
             }
@@ -58,6 +67,9 @@ export async function POST(req: Request) {
             return m;
         });
 
+        // ==========================================
+        // STEP 2: THE WATERFALL ENGINE (OR MANUAL)
+        // ==========================================
         // ==========================================
         // STEP 2: DYNAMIC WATERFALL ENGINE
         // ==========================================
@@ -72,153 +84,85 @@ export async function POST(req: Request) {
         if (!order.includes('groq')) order.push('groq');
         if (!order.includes('gemini')) order.push('gemini');
 
+        if (!orP && !groqP && !geminiP) {
+            throw new Error("AI API keys are missing. Please configure your OpenRouter, Groq, or Gemini keys in Account Settings.");
+        }
+
+        const errors: string[] = [];
         for (const node of order) {
             if (result) break;
 
             try {
-                if (node === 'openrouter' && effectiveOpenRouterKey) {
-                    const modelToUse = (selected_model?.includes('/') ? selected_model : "google/gemini-2.0-flash-lite:preview-02-05");
-                    
-                    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${effectiveOpenRouterKey}`,
-                            'Content-Type': 'application/json',
-                            'HTTP-Referer': 'https://studybuddy.ai',
-                            'X-Title': 'StudyBuddy',
-                        },
-                        body: JSON.stringify({
-                            model: modelToUse,
-                            messages: formattedMessages,
-                            max_tokens: 1000,
-                            temperature: 0.6,
-                        })
-                    });
-
-                    const contentType = response.headers.get('content-type');
-                    if (!response.ok || !contentType?.includes('application/json')) {
-                        let errorMessage = `HTTP ${response.status} ${response.statusText}`;
-                        try {
-                            const text = await response.text();
-                            if (text.includes('<title>')) {
-                                const titleMatch = text.match(/<title>(.*?)<\/title>/);
-                                if (titleMatch) errorMessage = `Node Error: ${titleMatch[1]}`;
-                            } else {
-                                const errorData = JSON.parse(text);
-                                errorMessage = errorData.error?.message || errorMessage;
-                            }
-                        } catch (e) {
-                            // If we can't parse it, stick with the status text
-                        }
-                        throw new Error(`OpenRouter (${modelToUse}) failed: ${errorMessage}`);
+                if (node === 'openrouter') {
+                    if (!orP) {
+                        errors.push("OpenRouter: API Key missing");
+                        continue;
                     }
+                    const isORModel = selected_model?.includes('/') && !selected_model.includes('preview');
+                    const modelToUse = (isORModel) ? selected_model : "google/gemini-2.5-flash";
 
-                    const data = await response.json();
-                    if (data.choices?.[0]?.message?.content) {
-                        result = data.choices[0].message.content;
-                        usedNode = `OpenRouter: ${modelToUse}`;
-                    }
-                } 
-                else if (node === 'groq' && effectiveGroqKey) {
-                    const modelToUse = "llama-3.3-70b-versatile";
-                    
-                    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${effectiveGroqKey}`,
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            model: modelToUse,
-                            messages: formattedMessages,
-                            max_tokens: 1000,
-                            temperature: 0.6,
-                        })
-                    });
+                    const config = {
+                        model: orP(modelToUse),
+                        messages: formattedMessages,
+                        maxTokens: 1000, // Increased for Tutor mode
+                        temperature: 0.6 // Slightly lower for more stability
+                    };
 
-                    const contentType = response.headers.get('content-type');
-                    if (!response.ok || !contentType?.includes('application/json')) {
-                        let errorMessage = `HTTP ${response.status} ${response.statusText}`;
-                        try {
-                            const text = await response.text();
-                            const errorData = JSON.parse(text);
-                            errorMessage = errorData.error?.message || errorMessage;
-                        } catch (e) {}
-                        throw new Error(`Groq failed: ${errorMessage}`);
-                    }
-
-                    const data = await response.json();
-                    if (data.choices?.[0]?.message?.content) {
-                        result = data.choices[0].message.content;
-                        usedNode = `Groq: ${modelToUse}`;
-                    }
+                    if (shouldStream) result = await streamText(config);
+                    else { const res = await generateText(config); result = res.text; }
+                    usedNode = `OpenRouter: ${modelToUse}`;
                 }
-                else if (node === 'gemini' && effectiveGeminiKey) {
-                    const modelToUse = "gemini-1.5-flash";
-                    
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${effectiveGeminiKey}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            contents: formattedMessages.map((m: { role: string; content: string }) => ({
-                                role: m.role === 'assistant' ? 'model' : 'user',
-                                parts: [{ text: m.content }]
-                            })),
-                            generationConfig: {
-                                maxOutputTokens: 1000,
-                                temperature: 0.6,
-                            }
-                        })
-                    });
-
-                    const contentType = response.headers.get('content-type');
-                    if (!response.ok || !contentType?.includes('application/json')) {
-                        let errorMessage = `HTTP ${response.status} ${response.statusText}`;
-                        try {
-                            const text = await response.text();
-                            const errorData = JSON.parse(text);
-                            errorMessage = errorData.error?.message || errorMessage;
-                        } catch (e) {}
-                        throw new Error(`Gemini failed: ${errorMessage}`);
+                else if (node === 'groq') {
+                    if (!groqP) {
+                        errors.push("Groq: API Key missing");
+                        continue;
                     }
+                    const isValidGroqModel = primaryNode === 'groq' && selected_model && !selected_model.includes('/');
+                    const modelToUse = isValidGroqModel ? selected_model : "llama-3.3-70b-versatile";
+                    const config = { model: groqP(modelToUse), messages: formattedMessages };
 
-                    const data = await response.json();
-                    if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                        result = data.candidates[0].content.parts[0].text;
-                        usedNode = `Gemini: ${modelToUse}`;
+                    if (shouldStream) result = await streamText(config);
+                    else { const res = await generateText(config); result = res.text; }
+                    usedNode = `Groq: ${modelToUse}`;
+                }
+                else if (node === 'gemini') {
+                    if (!geminiP) {
+                        errors.push("Gemini: API Key missing");
+                        continue;
                     }
+                    const isValidGeminiModel = primaryNode === 'gemini' && selected_model && !selected_model.includes('/') && !selected_model.includes(':');
+                    const modelToUse = isValidGeminiModel ? selected_model : "gemini-1.5-flash-latest";
+                    const config = { model: geminiP(modelToUse), messages: formattedMessages };
+
+                    if (shouldStream) result = await streamText(config);
+                    else { const res = await generateText(config); result = res.text; }
+                    usedNode = `Gemini: ${modelToUse}`;
                 }
             } catch (e: any) {
-                console.warn(`[WATERFALL] Node ${node} failed: ${e.message}`);
+                const errorMessage = e.message || typeof e === 'string' ? e : JSON.stringify(e);
+                console.warn(`${node} failed in waterfall: ${errorMessage}`);
+                errors.push(`${node}: ${errorMessage}`);
             }
         }
 
-
         if (!result) {
-            return NextResponse.json({ 
-                error: "Neural connection failed. All AI nodes (OpenRouter, Groq, Gemini) are either unavailable or keys are missing. Please check your Neural Link settings." 
-            }, { status: 503, headers: corsHeaders });
+            throw new Error(`All Cloud AI nodes failed. Errors: ${errors.join(' | ')}`);
         }
 
-        // Final safety check against HTML leakage
-        if (typeof result === 'string' && (result.trim().startsWith('<!DOCTYPE') || result.trim().startsWith('<html'))) {
-            console.error("[CRITICAL] HTML Leaked into AI response:", result.substring(0, 100));
-            return NextResponse.json({ 
-                error: "The AI node returned an incompatible response format (HTML). This usually happens when an API endpoint is behind a login page or experiencing a server-level crash." 
-            }, { status: 502, headers: corsHeaders });
+        if (result && shouldStream) {
+            return (result as any).toTextStreamResponse({
+                headers: { 'X-Node-Used': usedNode }
+            });
+        } else if (result) {
+            return NextResponse.json({ response: result }, { headers: { 'X-Node-Used': usedNode } });
         }
 
-        return NextResponse.json({ response: result }, { status: 200, headers: { ...corsHeaders, 'X-Node-Used': usedNode } });
+        return NextResponse.json({ response: result, node: usedNode });
 
     } catch (error: unknown) {
         const err = error as Error;
-        console.error("Chat API Fatal Error:", err.message);
-        return NextResponse.json(
-            { error: "System encountered a neural desync error. Please try again." }, 
-            { status: 500, headers: corsHeaders }
-        );
+        console.error("Chat API Error:", err.message);
+        return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }
 

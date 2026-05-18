@@ -6,6 +6,7 @@ import { X, Brain, Play, Pause, Zap, Dumbbell, Edit3, ChevronRight, Send } from 
 import { useStudyStore, Task } from "@/store/useStudyStore";
 import ChumRenderer from "@/components/ChumRenderer";
 import { SquishyButton } from "@studybuddy/ui";
+import { getChatUrl } from "@/lib/supabase";
 
 interface EnhancedBrainResetProps {
     isOpen: boolean;
@@ -202,7 +203,8 @@ export default function EnhancedBrainResetModal({ isOpen, onClose }: EnhancedBra
 Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`;
 
         try {
-            const response = await fetch("/api/chat", {
+            const chatUrl = getChatUrl();
+            const response = await fetch(chatUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -220,31 +222,20 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
                 return;
             }
 
-            // Handle streaming response
-            const reader = response.body?.getReader();
-            if (!reader) {
-                setChumReply("Take a deep breath. You've got this. One step at a time.");
+            const data = await response.json().catch(() => ({}));
+            if (data.success === false) {
+                setChumReply(data.error || "Take a deep breath. You've got this. One step at a time.");
                 setIsGettingChumReply(false);
                 return;
             }
 
-            let fullText = "";
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                fullText += decoder.decode(value, { stream: true });
-            }
-
-            // Decode any remaining bytes
-            fullText += decoder.decode();
-
-            if (fullText.trim()) {
-                setChumReply(fullText.trim());
+            const chatResponse = data.response || "";
+            if (chatResponse.trim()) {
+                setChumReply(chatResponse.trim());
             } else {
                 setChumReply("Take a deep breath. You've got this. One step at a time.");
             }
+            setIsGettingChumReply(false);
         } catch (error) {
             console.error("Failed to get Chum reply:", error);
             setChumReply("Take a deep breath. You've got this. One step at a time.");
@@ -367,7 +358,7 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
                             <X size={20} />
                         </SquishyButton>
 
-                        <div className="p-8 flex flex-col items-center justify-center min-h-[500px]">
+                        <div className="p-4 md:p-8 flex flex-col items-center justify-center min-h-[300px] max-h-[85vh] overflow-y-auto custom-scrollbar">
                             <AnimatePresence mode="wait">
 
                                 {/* STAGE 1: INITIAL SCREEN */}

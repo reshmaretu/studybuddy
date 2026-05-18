@@ -248,65 +248,76 @@ export default function InsightsPage() {
     if (!isMounted) return null;
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6 pb-16 px-4 min-h-screen">
+        <div className="relative z-10 max-w-[1600px] mx-auto px-4 lg:px-0 pb-24 lg:pb-12 h-full flex flex-col">
 
             {/* HEADER */}
-            <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-main)] flex items-center gap-3">
-                        <BarChart3 className="text-[var(--accent-teal)]" size={28} /> {terms.insights}
-                    </h1>
-                    <p className="text-[var(--text-muted)] mt-1">Measuring the growth of your spirit and productivity.</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pt-2 shrink-0 relative z-30 pointer-events-auto">
+                <div className="flex items-center gap-1.5">
+                    <BarChart3 className="text-[var(--accent-teal)] shrink-0" size={24} />
+                    <div className="flex flex-col leading-none">
+                        <span className="text-sm font-black text-[var(--accent-teal)]">
+                            {terms.insights.split(' ')[0]}
+                        </span>
+                        {terms.insights.split(' ')[1] && (
+                            <span className="text-sm font-black text-[var(--accent-teal)]">
+                                {terms.insights.split(' ').slice(1).join(' ')}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-1 bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-xl shadow-sm">
-                    <div className="px-2 text-[var(--text-muted)]"><Filter size={14} /></div>
+                {/* Range Toggle without visible outer container */}
+                <div className="flex items-center gap-1.5 flex-wrap overflow-x-auto pb-1 sm:pb-0 w-full sm:w-auto">
+                    <div className="px-1 text-[var(--text-muted)]"><Filter size={16} /></div>
                     {(['today', 'week', 'month', 'all'] as const).map(range => (
                         <button
                             key={range}
                             onClick={() => setTimeRange(range)}
-                            className={`px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold capitalize transition-colors ${timeRange === range ? 'bg-[var(--bg-dark)] text-[var(--text-main)] border border-[var(--border-color)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-black capitalize transition-all shrink-0 ${timeRange === range ? 'bg-[var(--accent-teal)] text-[#0b1211] shadow-[0_0_15px_rgba(20,184,166,0.3)]' : 'text-[var(--text-muted)] hover:text-white'}`}
                         >
                             {range}
                         </button>
                     ))}
                 </div>
-            </header>
-
-            {/* CHUM AI DATA ANALYSIS */}
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 rounded-2xl shadow-sm flex flex-col md:flex-row gap-5 items-center">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center border border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/10 shadow-[0_0_15px_rgba(20,184,166,0.2)] shrink-0">
-                    <BrainCircuit size={20} className="text-[var(--accent-teal)]" />
-                </div>
-                <div className="flex-1">
-                    <h3 className="text-sm font-bold text-[var(--text-main)] mb-1">Chum's Data Analysis</h3>
-                    <p className="text-[var(--text-muted)] text-xs leading-relaxed flex items-center gap-2">
-                        {chumInsight}
-                        <span className="w-2 h-2 rounded-full bg-[var(--accent-teal)] animate-pulse inline-block" />
-                    </p>
-                </div>
             </div>
 
-            {/* KPI ROW */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 rounded-2xl shadow-sm">
-                    <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest mb-1">Total Hours Focused</p>
-                    <p className="text-3xl font-bold text-[var(--accent-teal)]">{actualTotalHours}</p>
+            {/* CHUM AI DATA ANALYSIS & KPIs (Combined to save vertical space) */}
+            <div className="flex flex-col lg:flex-row gap-4 mb-6 px-0 sm:px-2 shrink-0">
+                {/* AI Insight */}
+                <div className="flex-1 flex gap-4 items-center bg-[var(--bg-dark)]/30 border border-[var(--border-color)]/40 p-4 sm:p-5 rounded-3xl backdrop-blur-md shadow-sm">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center border border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/10 shadow-[0_0_15px_rgba(20,184,166,0.2)] shrink-0">
+                        <BrainCircuit size={20} className="text-[var(--accent-teal)]" />
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="text-sm font-bold text-[var(--text-main)] mb-1">Chum's Data Analysis</h3>
+                        <p className="text-[var(--text-muted)] text-xs leading-relaxed flex items-center gap-2">
+                            {chumInsight}
+                            <span className="w-2 h-2 rounded-full bg-[var(--accent-teal)] animate-pulse shrink-0 inline-block" />
+                        </p>
+                    </div>
                 </div>
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 rounded-2xl shadow-sm">
-                    <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest mb-1">{terms.completed}</p>
-                    <p className="text-3xl font-bold text-green-400">{displayCompleted}</p>
-                </div>
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 rounded-2xl shadow-sm">
-                    <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest mb-1">Average {terms.focusScore}</p>
-                    <p className="text-3xl font-bold text-[var(--accent-yellow)]">{averageFocusScore}</p>
+
+                {/* KPI ROW */}
+                <div className="flex lg:w-auto items-center justify-around gap-2 sm:gap-6 bg-[var(--bg-dark)]/30 border border-[var(--border-color)]/40 p-4 sm:p-5 rounded-3xl backdrop-blur-md shadow-sm">
+                    <div className="flex flex-col items-center text-center">
+                        <p className="text-[9px] sm:text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest mb-1">Total Hours</p>
+                        <p className="text-xl sm:text-2xl font-bold text-[var(--accent-teal)]">{actualTotalHours}</p>
+                    </div>
+                    <div className="flex flex-col items-center text-center border-x border-[var(--border-color)]/40 px-3 sm:px-6">
+                        <p className="text-[9px] sm:text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest mb-1">{terms.completed}</p>
+                        <p className="text-xl sm:text-2xl font-bold text-green-400">{displayCompleted}</p>
+                    </div>
+                    <div className="flex flex-col items-center text-center">
+                        <p className="text-[9px] sm:text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest mb-1">Current {terms.focusScore}</p>
+                        <p className="text-xl sm:text-2xl font-bold text-[var(--accent-yellow)]">{averageFocusScore}</p>
+                    </div>
                 </div>
             </div>
 
             {/* PIE CHART & BAR CHART ROW */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 shrink-0">
                 {/* Solid Pie Chart */}
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl shadow-sm lg:col-span-1 flex flex-col items-center">
+                <div className="lg:col-span-1 flex flex-col items-center p-2">
                     <h3 className="text-sm font-bold text-[var(--text-main)] self-start w-full mb-4">Quest Load Distribution</h3>
                     <div className="flex-1 w-full relative min-h-[200px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -320,7 +331,7 @@ export default function InsightsPage() {
                             </PieChart>
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span className="bg-[var(--bg-card)] px-3 py-1 rounded-full text-sm font-black shadow-md border border-[var(--border-color)]">100%</span>
+                            <span className="bg-[var(--bg-dark)] px-3 py-1 rounded-full text-sm font-black shadow-md border border-[var(--border-color)]">100%</span>
                         </div>
                     </div>
                     <div className="flex gap-4 mt-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">
@@ -331,7 +342,7 @@ export default function InsightsPage() {
                 </div>
 
                 {/* Hourly Bar Chart */}
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl shadow-sm lg:col-span-2 flex flex-col">
+                <div className="lg:col-span-2 flex flex-col p-2">
                     <h3 className="text-sm font-bold text-[var(--text-main)] mb-1 flex items-center gap-2">
                         <Clock size={16} className="text-[var(--accent-yellow)]" /> Peak Productivity Volume
                     </h3>
@@ -351,7 +362,7 @@ export default function InsightsPage() {
             </div>
 
             {/* FULL WIDTH LINE CHART */}
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl shadow-sm h-[300px] flex flex-col">
+            <div className="h-[300px] flex flex-col mb-12 shrink-0 p-2">
                 <h3 className="text-sm font-bold text-[var(--text-main)] mb-6 flex items-center gap-2">
                     <TrendingUp size={16} className="text-[var(--accent-teal)]" /> {terms.focusScore} History (Last 7 Days)
                 </h3>
@@ -379,7 +390,7 @@ export default function InsightsPage() {
             {/* ========================================== */}
             <div className="relative mt-12 pt-4">
 
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-6 px-2">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-[var(--accent-yellow)]/10 rounded-xl text-[var(--accent-yellow)] border border-[var(--accent-yellow)]/30">
                             <Sparkles size={20} />
@@ -421,7 +432,7 @@ export default function InsightsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
                     {/* Burnout Matrix */}
-                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl shadow-sm h-[320px] flex flex-col relative overflow-hidden">
+                    <div className="h-[320px] flex flex-col relative overflow-hidden p-2">
                         <div className="flex justify-between items-start mb-4">
                             <h3 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
                                 <BrainCircuit size={16} className="text-[#f87171]" /> Burnout Matrix
@@ -459,14 +470,14 @@ export default function InsightsPage() {
                     </div>
 
                     {/* Flow Score Component */}
-                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl shadow-sm flex items-center justify-center gap-8">
-                        <div className="relative w-40 h-40 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(20,184,166,0.1)]" style={{ background: `conic-gradient(var(--accent-teal) ${flowIntegrityScore}%, var(--bg-dark) 0)` }}>
-                            <div className="absolute inset-1 rounded-full bg-[var(--bg-card)] flex flex-col items-center justify-center">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-8 p-2">
+                        <div className="relative w-40 h-40 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(20,184,166,0.1)] shrink-0" style={{ background: `conic-gradient(var(--accent-teal) ${flowIntegrityScore}%, var(--bg-dark) 0)` }}>
+                            <div className="absolute inset-1 rounded-full bg-[var(--bg-dark)] flex flex-col items-center justify-center">
                                 <span className="text-4xl font-bold text-[var(--text-main)]">{flowIntegrityScore}%</span>
                                 <span className="text-[10px] font-black text-[var(--accent-teal)] uppercase tracking-widest mt-1">Integrity</span>
                             </div>
                         </div>
-                        <div className="flex-1 space-y-4">
+                        <div className="flex-1 space-y-4 w-full">
                             <h3 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2 mb-4">
                                 <TrendingUp size={16} className="text-[var(--accent-teal)]" /> Flow Score
                             </h3>
@@ -494,7 +505,7 @@ export default function InsightsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
 
                     {/* Estimation Accuracy */}
-                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl shadow-sm lg:col-span-3 flex flex-col">
+                    <div className="lg:col-span-3 flex flex-col p-2">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
                                     <BarChart3 size={16} className="text-[var(--accent-teal)]" /> Estimation Accuracy

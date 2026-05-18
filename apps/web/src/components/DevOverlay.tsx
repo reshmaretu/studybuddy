@@ -36,9 +36,31 @@ export default function DevOverlay() {
         const isHosting = status === 'hosting' || status === 'drafting';
         const spread = 15;
 
+        const firstNames = ['Aria', 'Kai', 'Luna', 'Rowan', 'Evelyn', 'Cyrus', 'Seraphina', 'Orion', 'Nova', 'Zephyr', 'Lyra', 'Sage', 'Freya', 'Atlas', 'Elowen', 'Kaelen', 'Mira', 'Soren', 'Thalia', 'Finn', 'Elena', 'Cassian', 'Isla', 'Ronan', 'Astrid', 'Leo', 'Celeste', 'Dante', 'Ivy', 'Jasper'];
+        const randomName = firstNames[Math.floor(Math.random() * firstNames.length)];
+
+        // Random Base Color from base1 to base17
+        const baseColors = ['base1', 'base2', 'base3', 'base4', 'base5', 'base6', 'base7', 'base8', 'base9', 'base10', 'base11', 'base12', 'base13', 'base14', 'base15', 'base16', 'base17'];
+        const randomBaseColor = baseColors[Math.floor(Math.random() * baseColors.length)];
+
+        // Random Accessories
+        const accessories = [];
+        if (Math.random() > 0.4) {
+            const clipNum = Math.floor(Math.random() * 5) + 1;
+            accessories.push({ id: `clip${clipNum}`, fileName: `clip${clipNum}.png`, zIndex: 40, name: `Clip ${clipNum}` });
+        }
+        if (Math.random() > 0.4) {
+            const glassesNum = Math.floor(Math.random() * 7) + 1;
+            accessories.push({ id: `glasses${glassesNum}`, fileName: `glasses${glassesNum}.png`, zIndex: 30, name: `Glasses ${glassesNum}` });
+        }
+        if (Math.random() > 0.5 && accessories.filter(a => a.zIndex === 40).length === 0) {
+            const hatNum = Math.floor(Math.random() * 6) + 1;
+            accessories.push({ id: `hat${hatNum}`, fileName: `hat${hatNum}.png`, zIndex: 50, name: `Hat ${hatNum}` });
+        }
+
         return {
             id: `mock-${id}`,
-            name: `Bot ${id}`,
+            name: `${randomName}`,
             chumLabel: "🤖 Bot",
             focusScore: Math.floor(Math.random() * 5000),
             status,
@@ -46,13 +68,16 @@ export default function DevOverlay() {
             isPremium: Math.random() > 0.5,
             isHosting,
             roomCode: isHosting ? `MCK${id.substring(0, 3)}` : undefined,
-            roomTitle: isHosting ? `Mock Sanctuary ${id}` : undefined,
+            roomTitle: isHosting ? `Sanctuary of ${randomName}` : undefined,
             gridX: Math.floor(Math.random() * spread) - 2,
             gridY: Math.floor(Math.random() * spread) - 2,
             gridZ: Math.floor(Math.random() * spread) - 2,
             jitterX: (Math.random() - 0.5) * 40,
             jitterY: (Math.random() - 0.5) * 40,
             jitterZ: (Math.random() - 0.5) * 40,
+            activeBaseColor: randomBaseColor,
+            activeAccessories: accessories,
+            useChumAvatar: true,
         };
     };
 

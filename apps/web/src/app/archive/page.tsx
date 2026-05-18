@@ -223,28 +223,31 @@ export default function TheForge() {
     };
 
     return (
-        <div className="min-h-[calc(100vh-4rem)] flex flex-col space-y-8 pb-12 relative">
+        <div className="relative z-10 max-w-[1600px] mx-auto px-4 lg:px-0 pb-24 lg:pb-12 h-full flex flex-col">
 
             {/* HEADER */}
-            <header id="archive-forge-header" className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-(--text-main) flex items-center gap-3">
-                        <Hammer className="text-(--accent-yellow)" size={32} />
-                        {isGamified ? "The Prism" : "Modules"}
-                    </h1>
-                    <p className="text-(--text-muted) mt-1">
-                        {isGamified ? "Input your raw notes to forge Shards. Train them to complete mastery." : "Input your raw notes to forge Modules. Train them to complete mastery."}
-                    </p>
+            <div id="archive-forge-header" className="flex items-center justify-between gap-4 mb-6 pt-2 shrink-0 relative z-30 pointer-events-auto">
+                <div className="flex items-center gap-1.5">
+                    <Hammer className="text-[var(--accent-yellow)] shrink-0" size={24} />
+                    <div className="flex flex-col leading-none">
+                        <span className="text-sm font-black text-[var(--accent-yellow)]">
+                            {isGamified ? "The" : "Knowledge"}
+                        </span>
+                        <span className="text-sm font-black text-[var(--accent-yellow)]">
+                            {isGamified ? "Prism" : "Modules"}
+                        </span>
+                    </div>
                 </div>
+
                 {/* STRIKE ANVIL BUTTON */}
                 <SquishyButton
                     id="archive-forge-trigger"
                     onClick={() => setIsForgeModalOpen(true)}
-                    className="bg-(--accent-yellow)/10 text-(--accent-yellow) border border-(--accent-yellow)/30 px-6 py-3 rounded-2xl font-bold hover:bg-(--accent-yellow) hover:text-[#0b1211] transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(250,204,21,0.15)]"
+                    className="bg-[var(--accent-yellow)] text-[#0b1211] px-3.5 py-2 rounded-xl font-black text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(234,179,8,0.3)] shrink-0"
                 >
-                    <Sparkles size={18} /> {isGamified ? "Extract Shards" : "Create Modules"}
+                    <Sparkles size={14} /> {isGamified ? "Extract Shards" : "Create Modules"}
                 </SquishyButton>
-            </header>
+            </div>
 
             {/* THE ARMORY (Shard Grid) */}
             <div id="archive-shard-vault">
@@ -287,16 +290,16 @@ export default function TheForge() {
             {/* FORGE MODAL */}
             <AnimatePresence>
                 {isForgeModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsForgeModalOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                    <div className="fixed inset-0 z-[100005] flex items-center justify-center p-4 overflow-y-auto custom-scrollbar">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsForgeModalOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
 
-                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-(--bg-sidebar) border border-(--border-color) rounded-3xl w-full max-w-2xl overflow-hidden relative z-10 shadow-2xl p-6">
-                            <div className="flex justify-between items-center mb-6">
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border-2 border-[var(--accent-yellow)]/30 rounded-3xl p-5 md:p-6 shadow-2xl relative z-10 w-full max-w-2xl flex flex-col my-auto max-h-[90vh] overflow-y-auto custom-scrollbar">
+                            <div className="flex justify-between items-center mb-6 shrink-0">
                                 <h2 className="text-2xl font-bold text-(--text-main) flex items-center gap-2"><Hammer size={24} className="text-(--accent-yellow)" /> Forge a Shard</h2>
                                 <SquishyButton onClick={() => setIsForgeModalOpen(false)} className="text-(--text-muted) hover:text-(--text-main) border-none bg-transparent shadow-none p-1"><X size={20} /></SquishyButton>
                             </div>
 
-                            <form onSubmit={handleForge} className="flex flex-col gap-4">
+                            <form onSubmit={handleForge} className="flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-1">
                                 <input type="text" placeholder="Shard Title (e.g., Biology Chapter 4)" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-(--bg-dark) border border-(--border-color) text-(--text-main) text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-(--accent-yellow) transition-colors placeholder:text-(--text-muted)/50 font-bold" />
 
                                 <textarea placeholder="Paste plain text, or notes here..." value={content} onChange={(e) => setContent(e.target.value)} rows={6} className="w-full bg-(--bg-dark) border border-(--border-color) text-(--text-main) text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-(--accent-yellow) transition-colors placeholder:text-(--text-muted)/50 custom-scrollbar" />
@@ -339,7 +342,7 @@ export default function TheForge() {
                                 <SquishyButton
                                     type="submit"
                                     disabled={isForging || (!title.trim() && !content.trim() && files.length === 0)}
-                                    className="mt-4 bg-(--accent-yellow) text-black px-6 py-3 rounded-xl font-bold hover:bg-yellow-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="mt-4 bg-(--accent-yellow) text-black px-6 py-3 rounded-xl font-bold hover:bg-yellow-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                                 >
                                     {isForging ? "Forging Shard..." : "Finalize Shard"}
                                 </SquishyButton>
@@ -350,10 +353,10 @@ export default function TheForge() {
 
                 {/* READ MODAL */}
                 {readShard && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setReadShard(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-(--bg-sidebar) border border-(--border-color) rounded-3xl w-full max-w-2xl max-h-[80vh] overflow-hidden relative z-10 shadow-2xl flex flex-col">
-                            <div className="p-6 border-b border-(--border-color) flex justify-between items-center">
+                    <div className="fixed inset-0 z-[100005] flex items-center justify-center p-4 overflow-y-auto custom-scrollbar">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setReadShard(null)} className="fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl w-full max-w-2xl max-h-[80vh] overflow-hidden relative z-10 shadow-2xl flex flex-col my-auto">
+                            <div className="p-6 border-b border-(--border-color) flex justify-between items-center shrink-0">
                                 <div>
                                     <h2 className="text-xl font-bold text-(--text-main)">{readShard.title}</h2>
                                     <span className="text-xs text-(--text-muted) font-mono">{new Date(readShard.createdAt).toLocaleString()}</span>

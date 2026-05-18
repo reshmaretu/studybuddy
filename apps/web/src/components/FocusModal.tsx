@@ -1,10 +1,10 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Play, Coffee, Waves, Lock, FileSignature, Timer, Bell, Sparkles } from "lucide-react";
+import { X, BrainCircuit, Play, Coffee, Waves, Lock, FileSignature, Timer, Bell, Sparkles } from "lucide-react";
 import { useStudyStore, Task } from "@/store/useStudyStore";
 import { useState } from "react";
-import { DndContext, useDraggable, useDroppable, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
+import { DndContext, useDraggable, useDroppable, DragEndEvent, DragOverlay, DragStartEvent, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import { SquishyButton } from "@studybuddy/ui";
 
 export default function FocusModal() {
@@ -21,13 +21,21 @@ export default function FocusModal() {
     const [isPomodoroSettingsOpen, setIsPomodoroSettingsOpen] = useState(false);
     const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: (typeof window !== 'undefined' &&
+                ((window as any).Capacitor?.isNativePlatform?.() || 'ontouchstart' in window))
+                ? { delay: 300, tolerance: 60 }
+                : { distance: 8 }
+        })
+    );
+
     // Sync state if opened from a specific card
     if (focusTaskId && selectedId !== focusTaskId) setSelectedId(focusTaskId);
 
-    // FIX 1: Filter out the currently selected task so it disappears from the Library
+    // Filter out completed tasks and apply search query
     const activeTasks = tasks.filter(t =>
         !t.isCompleted &&
-        t.id !== selectedId &&
         t.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -53,12 +61,17 @@ export default function FocusModal() {
 
     const DraggableMiniTask = ({ task }: { task: Task }) => {
         const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id });
+        const isSelected = selectedId === task.id;
         return (
             <div
                 ref={setNodeRef} {...listeners} {...attributes}
-                className={`bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl p-3 cursor-grab active:cursor-grabbing hover:border-[var(--accent-teal)] transition-colors ${isDragging ? "opacity-50" : ""}`}
+                onClick={() => setSelectedId(task.id)}
+                className={`bg-[var(--bg-dark)] border ${isSelected ? 'border-[var(--accent-teal)] bg-[var(--accent-teal)]/10 shadow-[0_0_15px_rgba(20,184,166,0.2)]' : 'border-[var(--border-color)]'} rounded-xl p-3 cursor-pointer hover:border-[var(--accent-teal)] transition-all ${isDragging ? "opacity-50" : ""}`}
             >
-                <h4 className="text-[var(--text-main)] font-bold text-sm truncate">{task.title}</h4>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                    <h4 className="text-[var(--text-main)] font-bold text-sm truncate">{task.title}</h4>
+                    {isSelected && <span className="w-2 h-2 rounded-full bg-[var(--accent-teal)] animate-pulse shrink-0" />}
+                </div>
                 <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-bold">{task.load} Load</span>
             </div>
         );
@@ -78,7 +91,7 @@ export default function FocusModal() {
                         <button onClick={() => setSelectedId(null)} className="text-xs text-[var(--text-muted)] hover:text-red-400 mt-2 transition-colors underline">Change Chapter</button>
                     </div>
                 ) : (
-                    <span className="text-[var(--text-muted)] text-sm font-medium z-10">Drag a chapter here</span>
+                    <span className="text-[var(--text-muted)] text-sm font-medium z-10">Drag or tap a chapter to select</span>
                 )}
             </div>
         );
@@ -141,25 +154,25 @@ export default function FocusModal() {
     if (!isFocusModalOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto custom-scrollbar">
             {/* Backdrop */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeFocusModal} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeFocusModal} className="fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
 
-            {/* Modal - FIX 2: Added strict height constraints (md:h-[600px] max-h-[90vh]) */}
+            {/* Modal - Standardized styling like Lantern Network friends modal */}
             <motion.div
                 initial={{ scale: 0.95, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.85, opacity: 0, y: -20 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-3xl w-full max-w-[95vw] md:max-w-3xl h-[90vh] md:h-[600px] overflow-hidden relative z-10 shadow-2xl flex flex-col md:flex-row"
+                className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-5 md:p-6 shadow-2xl relative z-10 w-full max-w-[95vw] md:max-w-3xl max-h-[90vh] flex flex-col md:flex-row my-auto overflow-y-auto md:overflow-hidden custom-scrollbar"
             >
 
                 {renderPomodoroSettings()}
 
-                {/* LEFT PANEL: Task Selection (DND) */}
-                <div className="w-full md:w-1/3 bg-[var(--bg-card)] border-r border-[var(--border-color)] p-4 sm:p-6 flex flex-col h-full min-h-0">
+                {/* LEFT PANEL: Task Selection (DND & Tap) - Desktop Only */}
+                <div className="hidden md:flex w-1/3 bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl p-4 sm:p-5 flex-col h-full min-h-0 mr-6 shrink-0 shadow-inner">
                     <h2 className="text-lg font-bold text-[var(--text-main)] mb-1 flex-shrink-0">Library</h2>
-                    <p className="text-xs text-[var(--text-muted)] mb-4 flex-shrink-0">Select your chapter.</p>
+                    <p className="text-xs text-[var(--text-muted)] mb-4 flex-shrink-0">Tap or drag your chapter.</p>
 
                     {/* Search Input */}
                     <div className="relative mb-4 flex-shrink-0">
@@ -168,12 +181,12 @@ export default function FocusModal() {
                             placeholder="Search chapters..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-teal)] transition-colors"
+                            className="w-full bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-teal)] transition-colors"
                         />
                     </div>
 
-                    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                        {/* Scrollable Area - FIX 2: Added min-h-0 so flex-1 scrolls properly */}
+                    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                        {/* Scrollable Area */}
                         <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar min-h-0">
                             {activeTasks.map(task => <DraggableMiniTask key={task.id} task={task} />)}
                             {activeTasks.length === 0 && (
@@ -181,7 +194,7 @@ export default function FocusModal() {
                             )}
                         </div>
 
-                        {/* Crucible Zone - Locked to the bottom */}
+                        {/* Crucible Zone - Locked to the bottom on desktop */}
                         <div className="mt-4 pt-4 border-t border-[var(--border-color)] flex-shrink-0">
                             <CrucibleDropZone />
                         </div>
@@ -195,7 +208,7 @@ export default function FocusModal() {
                 </div>
 
                 {/* RIGHT PANEL: Settings & Launch */}
-                <div className="w-full md:w-2/3 p-5 sm:p-8 flex flex-col justify-between h-full overflow-y-auto custom-scrollbar">
+                <div className="flex-1 flex flex-col justify-between h-auto md:h-full overflow-y-visible md:overflow-y-auto custom-scrollbar md:pr-2">
                     <div>
                         <div className="flex justify-between items-start mb-6">
                             <div>
@@ -203,6 +216,34 @@ export default function FocusModal() {
                                 <p className="text-sm text-[var(--text-muted)]">Configure your session.</p>
                             </div>
                             <SquishyButton onClick={closeFocusModal} className="text-[var(--text-muted)] hover:text-[var(--text-main)] bg-[var(--bg-dark)] p-2 rounded-full transition-colors border-none"><X size={20} /></SquishyButton>
+                        </div>
+
+                        {/* Task Selector for Mobile / Smaller Screens (APK & Small Desktop) */}
+                        <div className="mb-6 block md:hidden space-y-2">
+                            <label className="text-xs font-black uppercase tracking-wider text-[var(--accent-teal)]">Select Chapter</label>
+                            <div className="relative">
+                                <select
+                                    value={selectedId || ""}
+                                    onChange={(e) => setSelectedId(e.target.value || null)}
+                                    className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl px-4 py-3.5 text-sm font-bold text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-teal)] appearance-none cursor-pointer pr-10 shadow-inner"
+                                >
+                                    <option value="">-- No Chapter Selected (Free Focus) --</option>
+                                    {tasks.filter(t => !t.isCompleted).map(task => (
+                                        <option key={task.id} value={task.id}>
+                                            {task.title} ({task.load} load)
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
+                                    ▼
+                                </div>
+                            </div>
+                            {selectedTask && (
+                                <div className="flex items-center justify-between bg-[var(--accent-teal)]/10 border border-[var(--accent-teal)]/20 rounded-xl p-3 mt-2">
+                                    <span className="text-xs font-bold text-[var(--text-main)] truncate">{selectedTask.title}</span>
+                                    <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-[var(--accent-teal)] text-black shrink-0">{selectedTask.load}</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Toggles */}
@@ -239,7 +280,7 @@ export default function FocusModal() {
                             </div>
 
                             {/* Premium Ghost Mode */}
-                            <div 
+                            <div
                                 className={`flex items-center justify-between p-4 rounded-2xl border border-[var(--accent-yellow)]/20 bg-[var(--accent-yellow)]/5 relative overflow-hidden group transition-all ${isPremiumUser ? 'cursor-pointer hover:border-[var(--accent-yellow)]/40' : 'cursor-help'}`}
                                 onClick={() => {
                                     if (isPremiumUser) {
@@ -267,7 +308,7 @@ export default function FocusModal() {
                                         <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${isGhostModeActive ? "translate-x-6" : ""}`} />
                                     </div>
                                 ) : (
-                                    <button 
+                                    <button
                                         className="text-xs font-bold text-[var(--accent-yellow)] border border-[var(--accent-yellow)]/30 px-3 py-1.5 rounded-lg hover:bg-[var(--accent-yellow)] hover:text-black transition-colors"
                                     >
                                         Upgrade
@@ -277,27 +318,33 @@ export default function FocusModal() {
                         </div>
                     </div>
 
-                    {/* Launch Buttons */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-auto">
-                        <SquishyButton
-                            disabled={false}
-                            onClick={() => {
-                                useStudyStore.getState().startMode('studyCafe', selectedTask?.id || null);
-                            }}
-                            className="flex flex-col items-center justify-center gap-2 p-3 sm:p-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-dark)] hover:border-[var(--accent-cyan)] hover:bg-[var(--accent-cyan)]/5 transition-all group">
-                            <Coffee size={24} className="text-[var(--text-muted)] group-hover:text-[var(--accent-cyan)] transition-colors" />
-                            <span className="font-bold text-[var(--text-main)]">Study Cafe</span>
-                        </SquishyButton>
-                        <SquishyButton
-                            disabled={false}
-                            onClick={() => {
-                                useStudyStore.getState().startMode('flowState', selectedTask?.id || null);
-                            }}
-                            className="flex flex-col items-center justify-center gap-2 p-3 sm:p-4 rounded-2xl border border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/10 hover:bg-[var(--accent-teal)]/20 hover:border-[var(--accent-teal)] transition-all group shadow-[0_0_15px_rgba(20,184,166,0.1)] hover:shadow-[0_0_20px_rgba(20,184,166,0.3)]"
-                        >
-                            <Waves size={24} className="text-[var(--accent-teal)]" />
-                            <span className="font-bold text-[var(--text-main)]">FlowState</span>
-                        </SquishyButton>
+                    {/* Launch Buttons - Restored FlowState and StudyCafe separation */}
+                    <div className="mt-auto pt-4 border-t border-[var(--border-color)]">
+                        <div className="flex gap-4">
+                            <SquishyButton
+                                disabled={false}
+                                onClick={() => {
+                                    useStudyStore.getState().startMode('flowState', selectedTask?.id || null);
+                                }}
+                                className="flex-1 flex flex-col items-center justify-center p-4 rounded-2xl border border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/10 hover:bg-[var(--accent-teal)] hover:text-[#050808] hover:border-[var(--accent-teal)] transition-all group shadow-[0_0_15px_rgba(20,184,166,0.1)] hover:shadow-[0_0_20px_rgba(20,184,166,0.3)]"
+                            >
+                                <BrainCircuit size={24} className="mb-2 text-[var(--accent-teal)] group-hover:text-[#050808] transition-colors" />
+                                <span className="font-bold text-sm text-[var(--text-main)] group-hover:text-[#050808] transition-colors">FlowState</span>
+                                <span className="text-[10px] text-[var(--text-muted)] group-hover:text-[#050808]/70 mt-1 transition-colors">Deep Focus</span>
+                            </SquishyButton>
+
+                            <SquishyButton
+                                disabled={false}
+                                onClick={() => {
+                                    useStudyStore.getState().startMode('studyCafe', selectedTask?.id || null);
+                                }}
+                                className="flex-1 flex flex-col items-center justify-center p-4 rounded-2xl border border-[var(--accent-yellow)]/30 bg-[var(--accent-yellow)]/10 hover:bg-[var(--accent-yellow)] hover:text-[#050808] hover:border-[var(--accent-yellow)] transition-all group shadow-[0_0_15px_rgba(234,179,8,0.1)] hover:shadow-[0_0_20px_rgba(234,179,8,0.3)]"
+                            >
+                                <Coffee size={24} className="mb-2 text-[var(--accent-yellow)] group-hover:text-[#050808] transition-colors" />
+                                <span className="font-bold text-sm text-[var(--text-main)] group-hover:text-[#050808] transition-colors">StudyCafe</span>
+                                <span className="text-[10px] text-[var(--text-muted)] group-hover:text-[#050808]/70 mt-1 transition-colors">Social Study</span>
+                            </SquishyButton>
+                        </div>
                     </div>
                 </div>
 

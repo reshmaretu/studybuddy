@@ -100,8 +100,8 @@ export default function TactileCalendar() {
         useSensor(PointerSensor, {
             activationConstraint: (typeof window !== 'undefined' && 
                 ((window as any).Capacitor?.isNativePlatform?.() || 'ontouchstart' in window)) 
-                ? { delay: 250, tolerance: 20 }
-                : { distance: 10 }
+                ? { delay: 300, tolerance: 60 }
+                : { distance: 8 }
         }),
 
 
@@ -224,40 +224,42 @@ export default function TactileCalendar() {
 
     return (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className={`min-h-screen flex flex-col space-y-4 p-4 md:p-8 overflow-y-auto lg:overflow-hidden pb-24 ${isSwiping ? 'cursor-grabbing' : ''}`}>
+            <div className={`relative z-10 max-w-[1600px] mx-auto px-4 lg:px-0 pb-24 lg:pb-12 h-full flex flex-col ${isSwiping ? 'cursor-grabbing' : ''}`}>
 
                 {/* HEADER */}
-                <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-2">
-                    <div>
-                        <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-main)] flex items-center gap-3">
-                            <CalendarIcon className="text-[var(--accent-teal)]" size={26} />
-                            {terms.questForecast}
-                        </h1>
-                        <p className="text-[var(--text-muted)] mt-1">
-                            {isGamified ? "Plant quests from your Seed Bank to chart your journey." : "Plant quests from your Stash to chart your journey"}
-                        </p>
+                <div className="flex items-center justify-between gap-4 mb-6 pt-2 shrink-0 relative z-30 pointer-events-auto">
+                    <div className="flex items-center gap-1.5">
+                        <CalendarIcon className="text-[var(--accent-teal)] shrink-0" size={24} />
+                        <div className="flex flex-col leading-none">
+                            <span className="text-sm font-black text-[var(--accent-teal)]">
+                                {isGamified ? "Quest" : "Quest"}
+                            </span>
+                            <span className="text-sm font-black text-[var(--accent-teal)]">
+                                {isGamified ? "Forecast" : "Calendar"}
+                            </span>
+                        </div>
                     </div>
 
-                    {/* View Toggle */}
-                    <div id="calendar-view-toggle" className="flex bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-xl shadow-sm shrink-0 scale-90 sm:scale-100">
-                        <button onClick={() => setView('horizon')} className={`px-2 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${view === 'horizon' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5'}`}>
+                    {/* View Toggle without visible outer container */}
+                    <div id="calendar-view-toggle" className="flex items-center gap-2 shrink-0">
+                        <button onClick={() => setView('horizon')} className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all ${view === 'horizon' ? 'bg-[var(--accent-teal)] text-[#0b1211] shadow-[0_0_15px_rgba(20,184,166,0.3)]' : 'text-[var(--text-muted)] hover:text-white'}`}>
                             {terms.questForecast}
                         </button>
-                        <button onClick={() => setView('month')} className={`px-2 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${view === 'month' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5'}`}>
+                        <button onClick={() => setView('month')} className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all ${view === 'month' ? 'bg-[var(--accent-teal)] text-[#0b1211] shadow-[0_0_15px_rgba(20,184,166,0.3)]' : 'text-[var(--text-muted)] hover:text-white'}`}>
                             Month
                         </button>
                     </div>
-                </header>
+                </div>
 
-                {/* 💎 THE LENS BAR (Search & Filtering) */}
-                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-2xl shadow-sm z-10">
+                {/* 💎 THE LENS BAR (Search & Filtering without visible container) */}
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center z-10 mb-6 shrink-0">
 
                     {/* Search Input */}
                     <div className="relative flex-1 w-full">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
                         <input
                             type="text"
-                            placeholder=" Search your quests..."
+                            placeholder="Search your quests..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] text-[var(--text-main)] text-sm rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:border-[var(--accent-teal)] transition-colors placeholder:text-[var(--text-muted)]/70"
@@ -265,24 +267,23 @@ export default function TactileCalendar() {
                     </div>
 
                     {/* Load Filters */}
-                    <div className="flex items-center gap-2 pr-2 flex-wrap">
-                        <Filter size={16} className="text-[var(--text-muted)] mr-2" />
+                    <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto shrink-0 justify-between sm:justify-end overflow-x-auto pb-1 sm:pb-0 custom-scrollbar">
+                        <Filter size={16} className="text-[var(--text-muted)] shrink-0 hidden sm:block" />
                         {(['heavy', 'medium', 'light'] as const).map(load => {
                             const isActive = activeFilter === load;
 
-                            // Determine dynamic colors for the active pills
-                            let colorClass = 'bg-[var(--bg-dark)] text-[var(--text-muted)] border-transparent hover:border-[var(--border-color)]';
+                            let colorClass = 'bg-[var(--bg-dark)] text-[var(--text-muted)] border-[var(--border-color)] hover:border-[var(--accent-teal)]';
                             if (isActive) {
-                                if (load === 'heavy') colorClass = 'bg-red-500/20 text-red-400 border-red-500/30';
-                                if (load === 'medium') colorClass = 'bg-[var(--accent-yellow)]/20 text-[var(--accent-yellow)] border-[var(--accent-yellow)]/30';
-                                if (load === 'light') colorClass = 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] border-[var(--accent-teal)]/30';
+                                if (load === 'heavy') colorClass = 'bg-red-500/20 text-red-400 border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.2)]';
+                                if (load === 'medium') colorClass = 'bg-[var(--accent-yellow)]/20 text-[var(--accent-yellow)] border-[var(--accent-yellow)]/30 shadow-[0_0_15px_rgba(234,179,8,0.2)]';
+                                if (load === 'light') colorClass = 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] border-[var(--accent-teal)]/30 shadow-[0_0_15px_rgba(20,184,166,0.2)]';
                             }
 
                             return (
                                 <button
                                     key={load}
                                     onClick={() => setActiveFilter(isActive ? null : load)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${colorClass}`}
+                                    className={`flex-1 sm:flex-initial px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all border whitespace-nowrap text-center flex items-center justify-center shrink-0 ${colorClass}`}
                                 >
                                     {load === 'heavy' ? terms.heavyLoad : load === 'medium' ? terms.mediumLoad : terms.lightLoad}
                                 </button>
@@ -291,40 +292,11 @@ export default function TactileCalendar() {
                     </div>
                 </div>
 
-                {/* MAIN CONTENT AREA */}
+                {/* MAIN CONTENT AREA (Swapped: Calendar Timelines First, Stash Second) */}
                 <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 pt-2 lg:overflow-hidden pb-4">
 
-                    {/* LEFT: THE STASH */}
-                    <div id="calendar-seed-bank" className="w-full lg:w-80 h-[400px] lg:h-full flex flex-col bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 overflow-hidden shadow-sm relative shrink-0">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Inbox size={18} className="text-[var(--accent-yellow)]" />
-                            <h2 className="font-bold text-[var(--text-main)]">{terms.stash}</h2>
-                            <span className="ml-auto bg-[var(--bg-dark)] px-2 py-0.5 rounded-md text-xs font-bold text-[var(--text-muted)]">
-                                {stashedTasks.length}
-                            </span>
-                        </div>
-
-                        <div className="absolute inset-0 z-0"><DroppableStash /></div>
-
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 z-10 space-y-1">
-                            <AnimatePresence>
-                                {stashedTasks.map(task => (
-                                    <motion.div key={task.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }}>
-                                        <MiniTimelineCard task={task} />
-                                    </motion.div>
-                                ))}
-                            </AnimatePresence>
-                            {stashedTasks.length === 0 && (
-                                <div className="h-full flex flex-col items-center justify-center text-[var(--text-muted)] opacity-50 text-center p-4">
-                                    <Sparkles size={32} className="mb-2" />
-                                    <p className="text-sm font-medium">No chapters match your query.</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* RIGHT: THE TIMELINES */}
-                    <div id="calendar-temporal-nexus" className="flex-1 min-h-[500px] lg:h-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 flex flex-col overflow-hidden shadow-sm">
+                    {/* LEFT/TOP: THE TIMELINES */}
+                    <div id="calendar-temporal-nexus" className="flex-1 min-h-[500px] lg:h-full flex flex-col overflow-hidden">
 
                         {/* ── Horizon View ── */}
                         {view === 'horizon' && (
@@ -380,6 +352,36 @@ export default function TactileCalendar() {
                         )}
 
                     </div>
+
+                    {/* RIGHT/BOTTOM: THE STASH */}
+                    <div id="calendar-seed-bank" className="w-full lg:w-80 h-[400px] lg:h-full flex flex-col overflow-hidden relative shrink-0">
+                        <div className="flex items-center gap-2 mb-4 px-1">
+                            <Inbox size={18} className="text-[var(--accent-yellow)]" />
+                            <h2 className="font-bold text-[var(--text-main)]">{terms.stash}</h2>
+                            <span className="ml-auto bg-[var(--bg-dark)] px-2 py-0.5 rounded-md text-xs font-bold text-[var(--text-muted)]">
+                                {stashedTasks.length}
+                            </span>
+                        </div>
+
+                        <div className="absolute inset-0 z-0"><DroppableStash /></div>
+
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 z-10 space-y-1">
+                            <AnimatePresence>
+                                {stashedTasks.map(task => (
+                                    <motion.div key={task.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }}>
+                                        <MiniTimelineCard task={task} />
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                            {stashedTasks.length === 0 && (
+                                <div className="h-full flex flex-col items-center justify-center text-[var(--text-muted)] opacity-50 text-center p-4">
+                                    <Sparkles size={32} className="mb-2" />
+                                    <p className="text-sm font-medium">No chapters match your query.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                 </div>
 
                 <DragOverlay dropAnimation={null}>

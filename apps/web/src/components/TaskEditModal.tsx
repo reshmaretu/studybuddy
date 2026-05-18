@@ -52,32 +52,34 @@ export default function TaskEditModal() {
     return (
         <AnimatePresence>
             {isEditModalOpen && (
-                <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 overflow-y-auto custom-scrollbar">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={closeEditModal}
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
                     />
                     <motion.div
                         initial={{ scale: 0.95, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
-                        exit={{ scale: 0.8, opacity: 0, y: -20 }}
+                        exit={{ scale: 0.95, opacity: 0, y: 20 }}
                         transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                        className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2.5rem] w-full max-w-lg relative z-10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] overflow-hidden max-h-[90vh]"
+                        className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-5 md:p-6 shadow-2xl relative z-10 w-full max-w-lg flex flex-col my-auto max-h-[90vh]"
                     >
-                        <div className="p-6 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-sidebar)]/50">
+                        {/* Header */}
+                        <div className="flex justify-between items-center mb-4 shrink-0 border-b border-[var(--border-color)] pb-3">
                             <div className="flex items-center gap-3 font-black uppercase tracking-widest text-xs text-[var(--text-muted)]">
                                 <Edit3 size={16} className="text-[var(--accent-teal)]" />
                                 Edit Quest
                             </div>
-                            <SquishyButton onClick={closeEditModal} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-2 bg-[var(--bg-dark)] rounded-xl border border-[var(--border-color)] transition-all">
-                                <X size={18} />
-                            </SquishyButton>
+                            <button onClick={closeEditModal} className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all">
+                                <X size={20} />
+                            </button>
                         </div>
 
-                        <div className="p-6 sm:p-8 space-y-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                        {/* Content Area */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-6 mb-4">
                             <div className="space-y-4">
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Quest Title</label>
@@ -161,17 +163,18 @@ export default function TaskEditModal() {
                             </div>
                         </div>
 
-                        <div className="p-6 border-t border-[var(--border-color)] bg-[var(--bg-sidebar)]/30 flex gap-4">
+                        {/* Footer */}
+                        <div className="flex gap-3 pt-4 pb-2 border-t border-[var(--border-color)] shrink-0 mt-2">
                             <SquishyButton
                                 onClick={closeEditModal}
-                                className="flex-1 py-4 rounded-2xl border border-[var(--border-color)] text-sm font-black uppercase tracking-widest text-[var(--text-muted)] hover:bg-white/5 transition-all"
+                                className="w-full py-3.5 rounded-2xl border border-white/10 text-white/60 hover:text-white hover:bg-white/5 hover:border-white/20 text-xs font-extrabold transition-all shadow-none uppercase tracking-widest flex items-center justify-center m-0"
                             >
                                 Cancel
                             </SquishyButton>
                             <SquishyButton
                                 onClick={handleSave}
                                 disabled={!title.trim()}
-                                className="flex-[2] py-4 rounded-2xl bg-[var(--accent-teal)] text-[#0b1211] font-black uppercase tracking-[0.2em] text-sm transition-all shadow-[0_0_20px_rgba(45,212,191,0.2)] disabled:opacity-50"
+                                className="w-full py-3.5 rounded-2xl bg-[var(--accent-teal)] text-[#0b1211] hover:brightness-110 font-black uppercase tracking-widest text-xs transition-all shadow-lg flex items-center justify-center m-0 border-none disabled:opacity-50"
                             >
                                 Save Changes
                             </SquishyButton>

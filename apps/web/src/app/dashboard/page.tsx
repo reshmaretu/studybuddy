@@ -49,6 +49,8 @@ function CompletionDropZone() {
 export default function Dashboard() {
     const [time, setTime] = useState(new Date());
     const router = useRouter();
+    const [isOnline, setIsOnline] = useState(true);
+    const [isAPK, setIsAPK] = useState(false);
 
     // THE FIX: We exclusively use activeDragTask now!
     const [activeDragTask, setActiveDragTask] = useState<Task | null>(null);
@@ -63,7 +65,7 @@ export default function Dashboard() {
         requireCompletionConfirmation = true
     } = useStudyStore();
     const { terms } = useTerms();
-    const [activeTab, setActiveTab] = useState<'focus' | 'garden' | 'mastery'>('focus');
+
 
 
 
@@ -110,8 +112,8 @@ export default function Dashboard() {
         useSensor(PointerSensor, {
             activationConstraint: (typeof window !== 'undefined' && 
                 ((window as any).Capacitor?.isNativePlatform?.() || 'ontouchstart' in window)) 
-                ? { delay: 250, tolerance: 20 }
-                : { distance: 10 }
+                ? { delay: 300, tolerance: 60 }
+                : { distance: 8 }
         }),
 
         useSensor(KeyboardSensor, {
@@ -127,6 +129,27 @@ export default function Dashboard() {
     const hiddenTaskCount = Math.max(0, activeTasks.length - 4);
 
     const [sparkQuote, setSparkQuote] = useState("Sparking up the feed...");
+
+    useEffect(() => {
+        // Check if running in Capacitor (APK environment)
+        const checkAPK = () => {
+            return !!(window as any).capacitor || !!((window as any).Capacitor);
+        };
+        
+        setIsAPK(checkAPK());
+        setIsOnline(navigator.onLine);
+
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
 
     useEffect(() => {
         const initStore = async () => {
@@ -434,15 +457,10 @@ export default function Dashboard() {
                     </div>
                 </header>
 
-                {/* MOBILE TAB NAVIGATION */}
-                <nav className="flex md:hidden bg-[var(--bg-sidebar)]/80 backdrop-blur-md border border-[var(--border-color)] rounded-2xl p-1 mb-2 sticky top-4 z-[100] shadow-xl">
-                    <button onClick={() => setActiveTab('focus')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'focus' ? 'bg-[var(--accent-teal)] text-black shadow-lg shadow-[var(--accent-teal)]/20' : 'text-[var(--text-muted)] hover:text-white'}`}>Focus</button>
-                    <button onClick={() => setActiveTab('garden')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'garden' ? 'bg-[var(--accent-teal)] text-black shadow-lg shadow-[var(--accent-teal)]/20' : 'text-[var(--text-muted)] hover:text-white'}`}>Garden</button>
-                    <button onClick={() => setActiveTab('mastery')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'mastery' ? 'bg-[var(--accent-teal)] text-black shadow-lg shadow-[var(--accent-teal)]/20' : 'text-[var(--text-muted)] hover:text-white'}`}>Mastery</button>
-                </nav>
 
-                {/* SPARKS FEED (Hidden on mobile mastery/garden tabs) */}
-                {(activeTab === 'focus' || typeof window === 'undefined' || window.innerWidth >= 768) && (
+
+                {/* SPARKS FEED */}
+                {true && (
                     <fieldset id="sparks-feed" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 pb-5 pt-2 mt-4 mb-4">
                         <legend className="ml-4 px-2 flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
                             <Zap size={14} className="text-[var(--accent-yellow)]" /> {terms.sparksFeed}
@@ -455,7 +473,7 @@ export default function Dashboard() {
                 )}
 
                 {/* TOP ROW: Score, Reset, Timer */}
-                {(activeTab === 'focus' || typeof window === 'undefined' || window.innerWidth >= 768) && (
+                {true && (
                     <section id="dashboard-timer-core" className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
                         {/* UNIFIED WIDGET FOR MOBILE */}
                         <div className="md:hidden bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 flex flex-col gap-4 shadow-sm">
@@ -467,16 +485,30 @@ export default function Dashboard() {
                                     </svg>
                                     <div className="flex flex-col items-center z-10 mb-[-2px]">
                                         <span className="text-xl font-bold text-[var(--text-main)]">{focusScore}</span>
-                                        <span className="text-[7px] text-[var(--text-muted)] font-black uppercase tracking-widest">Focus</span>
+                                        <span className="text-[7px] text-[var(--text-muted)] font-black uppercase tracking-widest mt-0.5">FOCUS SCORE</span>
                                     </div>
                                 </div>
                                 <div className="flex-1 flex flex-col gap-2">
-                                    <SquishyButton onClick={() => useStudyStore.getState().openFocusModal()} className="w-full py-2.5 rounded-xl bg-[var(--accent-teal)] text-black font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(45,212,191,0.2)]">
-                                        <Pin size={12} /> Start Session
-                                    </SquishyButton>
-                                    <SquishyButton onClick={() => setIsBrainResetOpen(true)} className={`w-full py-2.5 rounded-xl border font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${isResetHighlighted ? "border-[var(--accent-teal)] bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] shadow-[0_0_10px_rgba(45,212,191,0.2)]" : "border-[var(--border-color)] text-[var(--text-muted)] bg-[var(--bg-dark)]/50"}`}>
-                                        <Brain size={12} /> Brain Reset
-                                    </SquishyButton>
+                                    <div className="flex items-center gap-3 bg-[var(--bg-dark)]/50 border border-[var(--border-color)] rounded-xl px-4 py-2 mb-1">
+                                        <Flame size={20} className="text-[var(--accent-teal)]" style={{ filter: 'drop-shadow(0px 0px 8px var(--accent-teal))' }} />
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-black text-[var(--text-main)] leading-none">{totalSessions} Focus Flows</span>
+                                            <span className="text-[7px] text-[var(--text-muted)] font-black uppercase tracking-[0.2em] mt-1">Global Momentum</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <SquishyButton onClick={() => useStudyStore.getState().openFocusModal()} className="flex-1 py-3 rounded-xl bg-[var(--accent-teal)] text-black font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(45,212,191,0.2)]">
+                                            <Pin size={12} /> Focus
+                                        </SquishyButton>
+                                        <div className={`relative flex-1 ${isResetHighlighted ? "animate-pulse" : ""}`}>
+                                            {isResetHighlighted && (
+                                                <div className="absolute inset-0 rounded-xl border-2 border-[var(--accent-teal)] opacity-0 animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]" />
+                                            )}
+                                            <SquishyButton onClick={() => setIsBrainResetOpen(true)} className={`w-full py-3 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${isResetHighlighted ? "border-[var(--accent-teal)] bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] shadow-[0_0_15px_rgba(45,212,191,0.3),inset_0_0_15px_rgba(45,212,191,0.1)] animate-pulse" : "border-[var(--border-color)] text-[var(--text-muted)] bg-[var(--bg-dark)]/50"}`}>
+                                                <Brain size={12} /> Reset
+                                            </SquishyButton>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -528,8 +560,8 @@ export default function Dashboard() {
                     </section>
                 )}
 
-                {/* MIDDLE ROW: Pet (Hidden on Mastery tab) */}
-                {(activeTab === 'focus' || activeTab === 'garden' || typeof window === 'undefined' || window.innerWidth >= 768) && (
+                {/* MIDDLE ROW: Pet */}
+                {true && (
                     <section id="dashboard-ascension-module" className="grid grid-cols-1 lg:grid-cols-1 gap-5">
                         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 shadow-sm cursor-pointer hover:border-[var(--accent-teal)]/50 transition-colors">
 
@@ -601,8 +633,8 @@ export default function Dashboard() {
                     </section>
                 )}
 
-                {/* CURRENT FOCUS (Hidden on Mastery/Garden tabs) */}
-                {(activeTab === 'focus' || typeof window === 'undefined' || window.innerWidth >= 768) && (
+                {/* CURRENT FOCUS */}
+                {true && (
                     <section className="pt-2 relative">
                         <div className="flex items-center gap-3 mb-4">
                             <h2 className="text-xl font-bold text-[var(--text-main)]">Current Focus</h2>
@@ -633,7 +665,7 @@ export default function Dashboard() {
                                         ))}
 
                                         {Array.from({ length: Math.max(0, 3 - activeTasks.length) }).map((_, i) => (
-                                            <div key={`empty-${i}`} className="min-h-[110px] sm:min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
+                                            <div key={`empty-${i}`} className="min-h-[100px] md:min-h-[120px] h-full border-2 border-dashed border-[var(--text-muted)]/40 rounded-xl md:rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs font-bold tracking-wide">
                                                 + Open Slot
                                             </div>
                                         ))}
@@ -654,14 +686,14 @@ export default function Dashboard() {
                                 <button
                                     type="button"
                                     onClick={() => router.push("/garden")}
-                                    className="min-h-[110px] sm:min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex flex-col items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--accent-teal)]"
+                                    className="min-h-[100px] md:min-h-[120px] h-full border-2 border-dashed border-[var(--text-muted)]/40 rounded-xl md:rounded-2xl flex flex-col items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--accent-teal)]"
                                 >
                                     <span className="text-lg md:text-xl mb-1">✨</span>
                                     <span className="text-[10px] md:text-xs font-bold tracking-wide uppercase">{terms.crystalGarden}</span>
                                     <span className="text-[9px] md:text-[10px] opacity-70 mt-1">+{hiddenTaskCount} hidden blooms</span>
                                 </button>
                             ) : (
-                                <div className="min-h-[110px] sm:min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
+                                <div className="min-h-[100px] md:min-h-[120px] h-full border-2 border-dashed border-[var(--text-muted)]/40 rounded-xl md:rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs font-bold tracking-wide">
                                     + Open Slot
                                 </div>
                             )}
@@ -743,25 +775,9 @@ export default function Dashboard() {
                         )}
                     </AnimatePresence>
 
-                {/* 3D GARDEN TAB (Mobile only) */}
-                {(activeTab === 'garden' && typeof window !== 'undefined' && window.innerWidth < 768) && (
-                    <section className="space-y-4">
-                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 flex flex-col items-center text-center gap-4">
-                            <div className="w-20 h-20 bg-[var(--accent-teal)]/10 rounded-full flex items-center justify-center border border-[var(--accent-teal)]/30">
-                                <Sprout size={40} className="text-[var(--accent-teal)]" />
-                            </div>
-                            <h2 className="text-xl font-black text-[var(--text-main)]">Crystal Garden</h2>
-                            <p className="text-sm text-[var(--text-muted)]">Your digital sanctuary is blooming. Open the full garden to manage your framework and see your growth.</p>
-                            <SquishyButton onClick={() => router.push("/garden")} className="w-full py-4 bg-[var(--accent-teal)] text-black font-black uppercase tracking-widest rounded-xl">
-                                Enter Garden
-                            </SquishyButton>
-                        </div>
-                    </section>
-                )}
-
-                {/* MASTERY TAB / QUEST PROGRESS / FEED */}
-                {(activeTab === 'mastery' || typeof window === 'undefined' || window.innerWidth >= 768) && (
-                    <section id="hall-of-mastery-section" className="space-y-4 md:space-y-6">
+                {/* QUEST PROGRESS (Desktop Only) */}
+                {true && (
+                    <section id="hall-of-mastery-section" className="hidden md:block space-y-4 md:space-y-6">
                         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-8 shadow-sm">
                             <h3 className="text-lg font-bold text-[var(--text-main)] mb-4 md:mb-6">Quest Progress</h3>
                             <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center mb-4 md:mb-8 border-b border-[var(--border-color)] pb-4 md:pb-8">
@@ -769,13 +785,13 @@ export default function Dashboard() {
                                     <span className="text-xl md:text-4xl font-bold text-[var(--text-main)] leading-none">{activeTasks.length}</span>
                                     <span className="text-[8px] md:text-xs text-[var(--text-muted)] font-black uppercase tracking-tighter mt-1 whitespace-nowrap">{terms.incomplete}</span>
                                 </div>
-                                <div className="flex flex-col items-center justify-center border-x border-[var(--border-color)]">
+                                <div className="flex flex-col items-center justify-center border-l border-r border-[var(--border-color)] px-1 sm:px-2">
                                     <span className="text-xl md:text-4xl font-bold text-[var(--text-main)] leading-none">{completedTasks.length}</span>
-                                    <span className="text-[8px] md:text-xs text-[var(--text-muted)] font-black uppercase tracking-tighter mt-1 whitespace-nowrap">{terms.completed}</span>
+                                    <span className="text-[8px] md:text-xs text-[var(--text-muted)] font-black uppercase tracking-tighter mt-1 whitespace-nowrap">Completed</span>
                                 </div>
                                 <div className="flex flex-col items-center justify-center">
-                                    <span className="text-xl md:text-4xl font-bold text-[var(--text-main)] leading-none">{(totalSecondsTracked / 3600).toFixed(1)}</span>
-                                    <span className="text-[8px] md:text-xs text-[var(--text-muted)] font-black uppercase tracking-tighter mt-1 whitespace-nowrap">Hours</span>
+                                    <span className="text-xl md:text-4xl font-bold text-[var(--accent-teal)] leading-none">{(totalSecondsTracked / 3600).toFixed(1)}</span>
+                                    <span className="text-[8px] md:text-xs text-[var(--accent-teal)] font-black uppercase tracking-tighter mt-1 whitespace-nowrap">Hours</span>
                                 </div>
                             </div>
 
@@ -788,14 +804,12 @@ export default function Dashboard() {
                                 ) : (
                                     <div className="w-full">
                                         {completedTasks.length > 0 ? (
-                                            <div className="flex flex-wrap justify-center gap-3 md:gap-4 w-full">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
                                                 {completedTasks
                                                     .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime())
                                                     .slice(0, 4)
                                                     .map((task) => (
-                                                        <div key={task.id} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1rem)] min-w-[200px] md:min-w-[280px]">
-                                                            <TaskCard task={task} locked={true} isMinimized={true} />
-                                                        </div>
+                                                        <TaskCard key={task.id} task={task} locked={true} />
                                                     ))
                                                 }
                                             </div>
@@ -810,6 +824,12 @@ export default function Dashboard() {
                             </div>
                         </div>
 
+                    </section>
+                )}
+
+                {/* SYNTHETIC FEED (Network Activity - Hidden when offline in APK) */}
+                {!(isAPK && !isOnline) && (
+                    <section id="synthetic-feed-section" className="space-y-4 md:space-y-6">
                         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-6 shadow-sm">
                             <SyntheticFeed />
                         </div>

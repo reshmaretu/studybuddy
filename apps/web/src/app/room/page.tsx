@@ -22,7 +22,11 @@ const ROOM_THEMES = [
 
 // Background assets with proper URLs
 const STATIC_BG_ASSETS = [
-    { name: 'Cozy Library', url: '/assets/bgs/static/tomoe_mami.jpg' },
+    { name: 'Evening Skies', url: '/assets/bgs/static/evening_skies.jpg' },
+    { name: 'Bubblegum Skyline', url: '/assets/bgs/static/bubblegum_skyline.jpg' },
+    { name: 'Cozy Room Night', url: '/assets/bgs/static/cozy_room_night.jpg' },
+    { name: 'Lofi Girl 1', url: '/assets/bgs/static/lofi_girl_1.jpg' },
+    { name: 'Lofi Girl 2', url: '/assets/bgs/static/lofi_girl_2.jpg' }
 ];
 
 const LIVE_BG_ASSETS = [
@@ -32,17 +36,21 @@ const LIVE_BG_ASSETS = [
 const STATIC_BGS = STATIC_BG_ASSETS.map(a => a.name);
 const LIVE_BGS = LIVE_BG_ASSETS.map(a => a.name);
 const AUDIO_TRACKS = [
-    { name: 'None', pro: false }, { name: 'White Noise', pro: false },
-    { name: 'Brown Noise', pro: false }, { name: 'Lofi Beats 1', pro: false },
-    { name: 'Relaxing Rain', pro: false }, { name: 'Gentle Rain', pro: false },
-    { name: 'Test', pro: false }, { name: 'Light Rain', pro: false },
-    { name: 'Deep Focus Ambient', pro: true }, { name: 'Binaural Alpha Waves', pro: true }
+    { name: 'None', pro: false, artist: '' },
+    { name: 'White Noise', pro: false, artist: 'Lantern Sound Lab' },
+    { name: 'Brown Noise', pro: false, artist: 'Lantern Sound Lab' },
+    { name: 'dream food', pro: false, artist: 'Snoozy Beats' },
+    { name: 'city lights', pro: true, artist: 'Snoozy Beats' },
+    { name: 'Happy Hour', pro: false, artist: 'Lo-fi miku' },
+    { name: 'Write You a Letter', pro: true, artist: 'Lo-fi miku' },
+    { name: 'Rainy Day Date', pro: true, artist: 'Lo-fi miku' },
+    { name: 'Hide Away', pro: true, artist: 'Lo-fi miku' }
 ];
 
 import { RealtimeChannel } from "@supabase/supabase-js";
 
 interface CustomSelectProps {
-    options: (string | { name: string, pro: boolean })[];
+    options: (string | { name: string, pro: boolean, artist?: string })[];
     value: string;
     onChange: (val: string) => void;
     disabled?: boolean;
@@ -52,6 +60,9 @@ interface CustomSelectProps {
 }
 
 const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUser = true, isOpen, onToggle }: CustomSelectProps) => {
+    const activeOpt = options.find(o => (typeof o === 'string' ? o : o.name) === value);
+    const activeArtist = typeof activeOpt === 'string' ? undefined : activeOpt?.artist;
+
     return (
         <div className={`relative ${isOpen ? 'z-[100]' : 'z-10'}`}>
             <button
@@ -60,7 +71,12 @@ const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUse
                 onClick={onToggle} // ⚡ Controlled by parent
                 className={`w-full bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-xl text-xs font-bold flex justify-between items-center transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-[var(--text-muted)]'}`}
             >
-                <span className={(typeof value === 'string' && value.includes('(Pro)') && !isPremiumUser) ? 'text-[var(--text-muted)]' : 'text-[var(--accent-teal)]'}>{value}</span>
+                <div className="flex flex-col min-w-0 text-left pr-2">
+                    <span className={`truncate ${(typeof value === 'string' && value.includes('(Pro)') && !isPremiumUser) ? 'text-[var(--text-muted)]' : 'text-[var(--accent-teal)]'}`}>{value}</span>
+                    {activeArtist && (
+                        <span className="text-[9px] font-normal text-[var(--text-muted)] truncate">{activeArtist}</span>
+                    )}
+                </div>
                 <ChevronDown size={14} className={`text-[var(--text-muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             <AnimatePresence>
@@ -71,6 +87,7 @@ const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUse
                     >
                         {options.map((opt) => {
                             const optName = typeof opt === 'string' ? opt : opt.name;
+                            const optArtist = typeof opt === 'string' ? undefined : (opt as any).artist;
                             const isProLocked = (typeof opt === 'string' && opt.includes('(Pro)') && !isPremiumUser) || (typeof opt !== 'string' && opt.pro && !isPremiumUser);
                             return (
                                 <button
@@ -78,9 +95,14 @@ const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUse
                                     onClick={() => { onChange(optName); onToggle(); }}
                                     className={`w-full text-left px-4 py-3 text-xs font-bold flex items-center justify-between transition-colors ${value === optName ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-sidebar)] hover:text-[var(--text-main)]'} ${isProLocked ? 'opacity-30 cursor-not-allowed' : ''}`}
                                 >
-                                    {optName}
-                                    {isProLocked && <Lock size={12} />}
-                                    {value === optName && <Check size={12} />}
+                                    <div className="flex flex-col min-w-0 pr-2">
+                                        <span className="truncate">{optName}</span>
+                                        {optArtist && <span className="text-[9px] font-normal opacity-70 truncate">{optArtist}</span>}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        {isProLocked && <Lock size={12} />}
+                                        {value === optName && <Check size={12} />}
+                                    </div>
                                 </button>
                             );
                         })}
@@ -112,15 +134,15 @@ const AtmosphereVisuals = ({ settings }: { settings: RoomSettings }) => {
             />
         );
     }
-    
+
     // For static backgrounds
     const bgUrl = settings.vibeAsset.includes('Void')
         ? 'none'
         : `url(${(devAsset as any)?.url || prodStaticAsset?.url || `/assets/bgs/static/${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg`})`;
-    
+
     return (
-        <div 
-            className="w-full h-full bg-cover bg-center opacity-70 transition-all duration-1000" 
+        <div
+            className="w-full h-full bg-cover bg-center opacity-70 transition-all duration-1000"
             style={{ backgroundImage: bgUrl === 'url(none)' ? 'none' : bgUrl }}
             onError={() => {
                 if (bgUrl && bgUrl !== 'none') {
@@ -139,7 +161,7 @@ const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: Room
 
     const devTrack = DEV_AUDIO_TRACKS.find(t => t.name === settings.audioTrack);
     const fileName = settings.audioTrack === 'None' ? '' : settings.audioTrack.toLowerCase().replace(/ /g, '_');
-    const targetSrc = devTrack?.url || (fileName ? `/assets/audio/${fileName}.ogg` : '');
+    const targetSrc = devTrack?.url || (fileName ? `/assets/audio/${fileName}.mp3` : '');
     const currentSrcRef = useRef(targetSrc);
 
     // Fade and Play/Pause logic
@@ -354,6 +376,23 @@ export default function StudyRoom() {
         }
     }, [roomCode, router, triggerChumToast]);
 
+    // 📱 Force Landscape Orientation for APK / Mobile Web
+    useEffect(() => {
+        try {
+            if (typeof window !== 'undefined' && window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
+                (window.screen.orientation as any).lock('landscape').catch((e: any) => console.log('Orientation lock info:', e));
+            }
+        } catch (e) { console.log('Orientation lock error:', e); }
+
+        return () => {
+            try {
+                if (typeof window !== 'undefined' && window.screen && window.screen.orientation && (window.screen.orientation as any).unlock) {
+                    (window.screen.orientation as any).unlock();
+                }
+            } catch (e) { console.log('Orientation unlock error:', e); }
+        };
+    }, []);
+
     const [isRoomPremium, setIsRoomPremium] = useState(false);
 
 
@@ -469,13 +508,15 @@ export default function StudyRoom() {
     }, [status]);
 
     // 2. INIT REALTIME & AUTH
+    // 2. INIT REALTIME & AUTH
     useEffect(() => {
         let activeChannel: RealtimeChannel | null = null;
+        let isMounted = true;
 
         const initRoom = async () => {
             try {
                 console.log('🌐 ROOM INIT: Starting room initialization for roomCode:', roomCode);
-                
+
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) {
                     console.error('❌ ROOM INIT: No user authenticated');
@@ -484,199 +525,212 @@ export default function StudyRoom() {
                 console.log('✅ ROOM INIT: User authenticated:', user.id);
                 setCurrentUserId(user.id); // ⚡ Track ID for the "You" effect
 
-            // 1. Fetch Room Data first to establish Host context
-            let roomData = null;
-            console.log('📡 ROOM INIT: Fetching room data...');
-            for (let i = 0; i < 3; i++) {
-                console.log(`📡 ROOM INIT: Attempt ${i + 1}/3 to fetch room data`);
-                const { data } = await supabase
-                    .from('rooms')
-                    .select('*')
-                    .eq('room_code', roomCode)
-                    .maybeSingle();
-                if (data) { 
-                    console.log('✅ ROOM INIT: Room data found:', data);
-                    roomData = data; 
-                    break; 
+                // 1. Fetch Room Data first to establish Host context
+                let roomData = null;
+                console.log('📡 ROOM INIT: Fetching room data...');
+                for (let i = 0; i < 3; i++) {
+                    console.log(`📡 ROOM INIT: Attempt ${i + 1}/3 to fetch room data`);
+                    const { data } = await supabase
+                        .from('rooms')
+                        .select('*')
+                        .eq('room_code', roomCode)
+                        .maybeSingle();
+                    if (data) {
+                        console.log('✅ ROOM INIT: Room data found:', data);
+                        roomData = data;
+                        break;
+                    }
+                    await new Promise(r => setTimeout(r, 800));
                 }
-                await new Promise(r => setTimeout(r, 800));
-            }
 
-            if (!roomData) {
-                console.warn('⚠️ ROOM INIT: Room data not found in initial attempts, retrying with limited select...');
-                // ⚡ RESILIENCE: Before kicking, check if we're just hitting a cold DB or RLS
-                await new Promise(r => setTimeout(r, 2000));
-                const { data: retryData, error: retryError } = await supabase.from('rooms').select('*').eq('room_code', roomCode).maybeSingle();
-                if (!retryData) {
-                    console.error('❌ ROOM INIT: Room still not found after retry. Error:', retryError);
-                    return router.push('/lantern?error=room_not_found');
+                if (!roomData) {
+                    console.warn('⚠️ ROOM INIT: Room data not found in initial attempts, retrying with limited select...');
+                    // ⚡ RESILIENCE: Before kicking, check if we're just hitting a cold DB or RLS
+                    await new Promise(r => setTimeout(r, 2000));
+                    const { data: retryData, error: retryError } = await supabase.from('rooms').select('*').eq('room_code', roomCode).maybeSingle();
+                    if (!retryData) {
+                        console.error('❌ ROOM INIT: Room still not found after retry. Error:', retryError);
+                        return router.push('/lantern?error=room_not_found');
+                    }
+                    console.log('✅ ROOM INIT: Room data found on retry:', retryData);
+                    roomData = retryData;
                 }
-                console.log('✅ ROOM INIT: Room data found on retry:', retryData);
-                roomData = retryData;
-            }
 
-            console.log('✅ ROOM INIT: Room data ready. Host ID:', roomData.host_id, 'Current user:', user.id);
-            const isActuallyHost = roomData.host_id === user.id;
-            console.log('✅ ROOM INIT: Is host?', isActuallyHost);
-            setIsHost(isActuallyHost);
-            setHostId(roomData.host_id);
+                console.log('✅ ROOM INIT: Room data ready. Host ID:', roomData.host_id, 'Current user:', user.id);
+                const isActuallyHost = roomData.host_id === user.id;
+                console.log('✅ ROOM INIT: Is host?', isActuallyHost);
+                setIsHost(isActuallyHost);
+                setHostId(roomData.host_id);
 
-            // 2. ⚡ FETCH CURRENT USER DETAILS (For Presence)
-            console.log('📡 ROOM INIT: Fetching user profile data...');
-            const [profileRes, statsRes, wardrobeRes] = await Promise.all([
-                supabase.from('profiles').select('display_name, full_name, is_premium, avatar_url').eq('id', user.id).single(),
-                supabase.from('user_stats').select('focus_score').eq('user_id', user.id).single(),
-                supabase.from('chum_wardrobe').select('active_chum_base_color, active_accessories').eq('user_id', user.id).maybeSingle()
-            ]);
-
-            if (profileRes.error) console.error('❌ ROOM INIT: Profile fetch error:', profileRes.error);
-            if (statsRes.error) console.error('❌ ROOM INIT: Stats fetch error:', statsRes.error);
-            if (wardrobeRes.error) console.error('❌ ROOM INIT: Wardrobe fetch error:', wardrobeRes.error);
-            
-            console.log('✅ ROOM INIT: User data fetched - Profile:', profileRes.data, 'Stats:', statsRes.data, 'Wardrobe:', wardrobeRes.data);
-
-            const myProfile = (profileRes.data || {}) as any;
-            const myStats = (statsRes.data || {}) as any;
-            const myWardrobe = (wardrobeRes.data || {}) as any;
-
-            const finalName = (myProfile.display_name && myProfile.display_name.trim() !== '') ? myProfile.display_name
-                : (myProfile.full_name && myProfile.full_name.trim() !== '') ? myProfile.full_name
-                    : user.email?.split('@')[0] || "Chum";
-            // 👻 FALLBACK: Use a default emoji as base_emoji is deprecated in favor of ChumRenderer colors
-            const finalAvatar = "👻";
-            console.log('✅ ROOM INIT: Resolved name:', finalName, 'Avatar:', finalAvatar);
-
-            setResolvedName(finalName);
-            setResolvedAvatar(finalAvatar);
-            // ⚡ Use store as source of truth for current user if profile data is missing
-            if (!storeAvatarUrl && myProfile.avatar_url) {
-                useStudyStore.setState({ avatarUrl: myProfile.avatar_url });
-            }
-
-
-            // 3. ⚡ FETCH HOST PREMIUM STATUS (For Room Capabilities)
-            if (isActuallyHost) {
-                setIsRoomPremium(myProfile.is_premium || false);
-            } else {
-                const [hostProfileRes] = await Promise.all([
-                    supabase.from('profiles').select('is_premium').eq('id', roomData.host_id).single()
+                // 2. ⚡ FETCH CURRENT USER DETAILS (For Presence)
+                console.log('📡 ROOM INIT: Fetching user profile data...');
+                const [profileRes, statsRes, wardrobeRes] = await Promise.all([
+                    supabase.from('profiles').select('display_name, full_name, is_premium, avatar_url').eq('id', user.id).single(),
+                    supabase.from('user_stats').select('focus_score').eq('user_id', user.id).single(),
+                    supabase.from('chum_wardrobe').select('active_chum_base_color, active_accessories').eq('user_id', user.id).maybeSingle()
                 ]);
 
-                setIsRoomPremium(hostProfileRes.data?.is_premium || false);
-            }
+                if (profileRes.error) console.error('❌ ROOM INIT: Profile fetch error:', profileRes.error);
+                if (statsRes.error) console.error('❌ ROOM INIT: Stats fetch error:', statsRes.error);
+                if (wardrobeRes.error) console.error('❌ ROOM INIT: Wardrobe fetch error:', wardrobeRes.error);
 
-            if (isActuallyHost && roomData.status === 'DRAFT') {
-                setStatus('DRAFT');
-            } else if (roomData.status === 'ACTIVE') {
-                setStatus('ACTIVE');
-                setIsActive(true);
-            }
+                console.log('✅ ROOM INIT: User data fetched - Profile:', profileRes.data, 'Stats:', statsRes.data, 'Wardrobe:', wardrobeRes.data);
 
-            // ⚡ MODE FIX: Map 'flowstate' or 'cafe' DB values back to 'pomodoro' to prevent UI breakage
-            const safeMode = (roomData.mode === 'flowstate' || roomData.mode === 'cafe') ? 'pomodoro' : roomData.mode;
+                const myProfile = (profileRes.data || {}) as any;
+                const myStats = (statsRes.data || {}) as any;
+                const myWardrobe = (wardrobeRes.data || {}) as any;
 
-            // 🚀 PHASE SYNC
-            if (roomData.status === 'ACTIVE') {
-                setStatus('ACTIVE');
-                setIsActive(true);
-                setSettings(s => ({
-                    ...s, name: roomData.name || s.name, mode: safeMode || s.mode,
-                    workDuration: roomData.work_duration || s.workDuration, breakDuration: roomData.break_duration || s.breakDuration
-                }));
-                setSecondsLeft(roomData.work_duration * 60);
-            } else {
-                setSettings(s => ({
-                    ...s, name: roomData.name || s.name, mode: safeMode || s.mode, workDuration: roomData.work_duration || s.workDuration
-                }));
-            }
+                const finalName = (myProfile.display_name && myProfile.display_name.trim() !== '') ? myProfile.display_name
+                    : (myProfile.full_name && myProfile.full_name.trim() !== '') ? myProfile.full_name
+                        : user.email?.split('@')[0] || "Chum";
+                // 👻 FALLBACK: Use a default emoji as base_emoji is deprecated in favor of ChumRenderer colors
+                const finalAvatar = "👻";
+                console.log('✅ ROOM INIT: Resolved name:', finalName, 'Avatar:', finalAvatar);
 
-            console.log('✅ ROOM INIT: Setting status and updating profile...');
-            
-            await supabase.from('profiles').update({
-                status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
-                joined_room_code: roomCode
-            }).eq('id', user.id);
+                setResolvedName(finalName);
+                setResolvedAvatar(finalAvatar);
+                // ⚡ Use store as source of truth for current user if profile data is missing
+                if (!storeAvatarUrl && myProfile.avatar_url) {
+                    useStudyStore.setState({ avatarUrl: myProfile.avatar_url });
+                }
 
-            console.log('📡 ROOM INIT: Creating realtime channel...');
-            const channel = supabase.channel(`room:${roomCode}`, { config: { presence: { key: user.id } } });
-             console.log('📡 ROOM INIT: Setting up channel listeners...');
-            channel
-                .on('presence', { event: 'sync' }, () => {
-                    const state = channel.presenceState();
-                    const all = Object.values(state).flat();
-                    // ⚡ FIX: Deduplicate by unique ID to prevent multiple "You" or duplicate joiners
-                    const unique = Array.from(new Map(all.map((p) => [(p as unknown as Participant).id, p as unknown as Participant])).values());
-                    setParticipants(unique);
-                })
-                .on('broadcast', { event: 'launch' }, () => setStatus('LAUNCHING'))
-                .on('broadcast', { event: 'sync_settings' }, ({ payload }) => {
-                    // ⚡ INSTANT SETTINGS SYNC FOR JOINERS
-                    setSettings(prev => ({ ...prev, ...payload }));
-                    if (status === 'DRAFT') setSecondsLeft(payload.workDuration * 60);
-                })
-                .on('broadcast', { event: 'room_closed' }, () => router.push('/lantern'))
-                // 🤝 THE HANDSHAKE: Joiner asks, Host answers
-                .on('broadcast', { event: 'request_sync' }, () => {
-                    if (isActuallyHost) { // Host broadcasts current time
-                        channel.send({ type: 'broadcast', event: 'sync_response', payload: timerStateRef.current });
-                    }
-                })
-                .on('broadcast', { event: 'sync_response' }, ({ payload }) => {
-                    if (!isActuallyHost) { // Joiner receives time
-                        setSecondsLeft(payload.secondsLeft);
-                        setIsActive(payload.isActive);
-                        setStatus(payload.status);
-                        setIsBreak(payload.isBreak);
 
-                        // ⚡ SYNC ALL SETTINGS (Not just currentCycle)
-                        setSettings(prev => ({
-                            ...prev,
-                            currentCycle: payload.currentCycle,
-                            vibeAsset: payload.vibeAsset,
-                            vibeCategory: payload.vibeCategory,
-                            audioTrack: payload.audioTrack,
-                            showVisualizer: payload.showVisualizer,
-                            visualizerColor: payload.visualizerColor,
-                            visualizerMirrored: payload.visualizerMirrored,
-                            visualizerScale: payload.visualizerScale,
-                            visualizerWidth: payload.visualizerWidth,
-                            visualizerHeight: payload.visualizerHeight,
-                            isGhostMode: payload.isGhostMode,
-                            roomTheme: payload.roomTheme
-                        }));
-                        setIsSyncing(false); // Remove loading modal!
-                    }
-                })
-                .subscribe(async (status) => {
-                    console.log('📡 ROOM REALTIME: Subscription status:', status);
-                    if (status === 'SUBSCRIBED') {
-                        console.log('✅ ROOM REALTIME: Successfully subscribed. Tracking presence...');
-                        await channel.track({
-                            id: user.id,
-                            name: finalName,
-                            avatar: finalAvatar,
-                            avatarUrl: storeUseChumAvatar ? null : (storeAvatarUrl || myProfile.avatar_url),
+                // 3. ⚡ FETCH HOST PREMIUM STATUS (For Room Capabilities)
+                if (isActuallyHost) {
+                    setIsRoomPremium(myProfile.is_premium || false);
+                } else {
+                    const [hostProfileRes] = await Promise.all([
+                        supabase.from('profiles').select('is_premium').eq('id', roomData.host_id).single()
+                    ]);
 
-                            is_premium: myProfile.is_premium || false,
-                            joined_at: new Date().toISOString(),
-                            status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
-                            roomCode: roomCode,
-                            roomTitle: settings.name,
-                            focusScore: myStats.focus_score || 0,
-                            totalHours: 0,
-                        });
+                    setIsRoomPremium(hostProfileRes.data?.is_premium || false);
+                }
 
-                        
-                        // Joiner handshakes host
-                        if (!isActuallyHost) {
-                            console.log('📡 ROOM REALTIME: Sending sync request...');
-                            channel.send({ type: 'broadcast', event: 'request_sync', payload: {} });
+                if (isActuallyHost && roomData.status === 'DRAFT') {
+                    setStatus('DRAFT');
+                } else if (roomData.status === 'ACTIVE') {
+                    setStatus('ACTIVE');
+                    setIsActive(true);
+                }
+
+                // ⚡ MODE FIX: Map 'flowstate' or 'cafe' DB values back to 'pomodoro' to prevent UI breakage
+                const safeMode = (roomData.mode === 'flowstate' || roomData.mode === 'cafe') ? 'pomodoro' : roomData.mode;
+
+                // 🚀 PHASE SYNC
+                if (roomData.status === 'ACTIVE') {
+                    setStatus('ACTIVE');
+                    setIsActive(true);
+                    setSettings(s => ({
+                        ...s, name: roomData.name || s.name, mode: safeMode || s.mode,
+                        workDuration: roomData.work_duration || s.workDuration, breakDuration: roomData.break_duration || s.breakDuration
+                    }));
+                    setSecondsLeft(roomData.work_duration * 60);
+                } else {
+                    setSettings(s => ({
+                        ...s, name: roomData.name || s.name, mode: safeMode || s.mode, workDuration: roomData.work_duration || s.workDuration
+                    }));
+                }
+
+                console.log('✅ ROOM INIT: Setting status and updating profile...');
+
+                await supabase.from('profiles').update({
+                    status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
+                    joined_room_code: roomCode
+                }).eq('id', user.id);
+
+                if (!isMounted) {
+                    console.log('⚠️ ROOM INIT: Component unmounted during async init. Aborting channel creation.');
+                    return;
+                }
+
+                console.log('📡 ROOM INIT: Purging any stale channels for this room...');
+                const staleChannels = supabase.getChannels().filter(c => c.topic === `room:${roomCode}`);
+                for (const stale of staleChannels) {
+                    await supabase.removeChannel(stale);
+                }
+
+                console.log('📡 ROOM INIT: Creating realtime channel...');
+                const channel = supabase.channel(`room:${roomCode}`, { config: { presence: { key: user.id } } });
+                activeChannel = channel;
+                channelRef.current = channel;
+                console.log('📡 ROOM INIT: Setting up channel listeners...');
+                channel
+                    .on('presence', { event: 'sync' }, () => {
+                        const state = channel.presenceState();
+                        const all = Object.values(state).flat();
+                        // ⚡ FIX: Deduplicate by unique ID to prevent multiple "You" or duplicate joiners
+                        const unique = Array.from(new Map(all.map((p) => [(p as unknown as Participant).id, p as unknown as Participant])).values());
+                        setParticipants(unique);
+                    })
+                    .on('broadcast', { event: 'launch' }, () => setStatus('LAUNCHING'))
+                    .on('broadcast', { event: 'sync_settings' }, ({ payload }) => {
+                        // ⚡ INSTANT SETTINGS SYNC FOR JOINERS
+                        setSettings(prev => ({ ...prev, ...payload }));
+                        if (status === 'DRAFT') setSecondsLeft(payload.workDuration * 60);
+                    })
+                    .on('broadcast', { event: 'room_closed' }, () => router.push('/lantern'))
+                    // 🤝 THE HANDSHAKE: Joiner asks, Host answers
+                    .on('broadcast', { event: 'request_sync' }, () => {
+                        if (isActuallyHost) { // Host broadcasts current time
+                            channel.send({ type: 'broadcast', event: 'sync_response', payload: timerStateRef.current });
                         }
-                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                        console.error('❌ ROOM REALTIME: Subscription error!', status);
-                        triggerChumToast?.("Sync Relay Failed. Retrying...", "warning");
-                    }
-                });
+                    })
+                    .on('broadcast', { event: 'sync_response' }, ({ payload }) => {
+                        if (!isActuallyHost) { // Joiner receives time
+                            setSecondsLeft(payload.secondsLeft);
+                            setIsActive(payload.isActive);
+                            setStatus(payload.status);
+                            setIsBreak(payload.isBreak);
+
+                            // ⚡ SYNC ALL SETTINGS (Not just currentCycle)
+                            setSettings(prev => ({
+                                ...prev,
+                                currentCycle: payload.currentCycle,
+                                vibeAsset: payload.vibeAsset,
+                                vibeCategory: payload.vibeCategory,
+                                audioTrack: payload.audioTrack,
+                                showVisualizer: payload.showVisualizer,
+                                visualizerColor: payload.visualizerColor,
+                                visualizerMirrored: payload.visualizerMirrored,
+                                visualizerScale: payload.visualizerScale,
+                                visualizerWidth: payload.visualizerWidth,
+                                visualizerHeight: payload.visualizerHeight,
+                                isGhostMode: payload.isGhostMode,
+                                roomTheme: payload.roomTheme
+                            }));
+                            setIsSyncing(false); // Remove loading modal!
+                        }
+                    })
+                    .subscribe(async (status) => {
+                        console.log('📡 ROOM REALTIME: Subscription status:', status);
+                        if (status === 'SUBSCRIBED') {
+                            console.log('✅ ROOM REALTIME: Successfully subscribed. Tracking presence...');
+                            await channel.track({
+                                id: user.id,
+                                name: finalName,
+                                avatar: finalAvatar,
+                                avatarUrl: storeUseChumAvatar ? null : (storeAvatarUrl || myProfile.avatar_url),
+
+                                is_premium: myProfile.is_premium || false,
+                                joined_at: new Date().toISOString(),
+                                status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
+                                roomCode: roomCode,
+                                roomTitle: settings.name,
+                                focusScore: myStats.focus_score || 0,
+                                totalHours: 0,
+                            });
+
+
+                            // Joiner handshakes host
+                            if (!isActuallyHost) {
+                                console.log('📡 ROOM REALTIME: Sending sync request...');
+                                channel.send({ type: 'broadcast', event: 'request_sync', payload: {} });
+                            }
+                        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                            console.error('❌ ROOM REALTIME: Subscription error!', status);
+                            triggerChumToast?.("Sync Relay Failed. Retrying...", "warning");
+                        }
+                    });
 
 
             } catch (error) {
@@ -691,10 +745,16 @@ export default function StudyRoom() {
         };
 
         initRoom();
-        return () => { 
+        return () => {
+            isMounted = false;
+            console.log('📡 ROOM CLEANUP: Removing active channel...');
             if (activeChannel) {
-                console.log('📡 ROOM CLEANUP: Removing active channel...');
                 supabase.removeChannel(activeChannel);
+            } else {
+                const staleChannels = supabase.getChannels().filter(c => c.topic === `room:${roomCode}`);
+                for (const stale of staleChannels) {
+                    supabase.removeChannel(stale);
+                }
             }
             // ⚡ CLEANUP: Reset status to idle when leaving the sanctuary
             supabase.auth.getUser().then(({ data: { user } }) => {
@@ -952,6 +1012,8 @@ export default function StudyRoom() {
             {tooltip && <InfoTooltip text={tooltip} />}
         </label>
     );
+
+    const activeAudioTrackObj = [...AUDIO_TRACKS, ...DEV_AUDIO_TRACKS].find(t => t.name === settings.audioTrack) as any;
 
     return (
         // ⚡ FIX: High z-index and fixed inset ensure the room fits the screen perfectly
@@ -1306,9 +1368,14 @@ export default function StudyRoom() {
                                         <Sparkles size={10} className="text-[var(--accent-yellow)]" />
                                         <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{settings.vibeAsset}</span>
                                     </div>
-                                    <div className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-lg border border-white/5">
+                                    <div className="flex items-center gap-2 px-2.5 py-1 bg-white/5 rounded-lg border border-white/5">
                                         <Activity size={10} className="text-[var(--accent-teal)]" />
-                                        <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{settings.audioTrack}</span>
+                                        <div className="flex flex-col leading-none pr-1">
+                                            <span className="text-[9px] font-black text-[var(--text-main)] uppercase tracking-widest">{settings.audioTrack}</span>
+                                            {activeAudioTrackObj?.artist && (
+                                                <span className="text-[7px] font-bold text-[var(--accent-teal)]/70 uppercase tracking-wider truncate max-w-[120px] mt-0.5">{activeAudioTrackObj.artist}</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -1354,7 +1421,12 @@ export default function StudyRoom() {
                                 {/* LIVE PREVIEW FOR JOINERS */}
                                 <div className="flex justify-between items-center">
                                     <span className="text-[10px] font-black text-[var(--text-muted)] uppercase">Audio Track</span>
-                                    <span className="text-xs font-bold text-[var(--text-main)] truncate max-w-[150px]">{settings.audioTrack}</span>
+                                    <div className="flex flex-col items-end leading-tight max-w-[150px]">
+                                        <span className="text-xs font-bold text-[var(--text-main)] truncate w-full text-right">{settings.audioTrack}</span>
+                                        {activeAudioTrackObj?.artist && (
+                                            <span className="text-[9px] font-medium text-[var(--accent-teal)]/70 truncate w-full text-right">{activeAudioTrackObj.artist}</span>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="flex justify-between items-center pt-2 border-t border-[var(--border-color)]">
                                     <span className="text-[10px] font-black text-[var(--text-muted)] uppercase">Active Protocols</span>
@@ -1431,78 +1503,78 @@ export default function StudyRoom() {
                     >
 
 
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
-                            <Users size={14} /> Presence ({participants.length})
-                        </h3>
-                        <button
-                            onClick={() => setIsSidebarMinimized(true)}
-                            className="p-1 hover:text-[var(--accent-teal)] transition-colors text-[var(--text-muted)]"
-                        >
-                            <ChevronRight size={16} />
-                        </button>
-                    </div>
-                    <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar">
-                        {participants.map(p => {
-                            const isMe = p.id === currentUserId;
-                            const isRoomHost = p.id === hostId;
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
+                                <Users size={14} /> Presence ({participants.length})
+                            </h3>
+                            <button
+                                onClick={() => setIsSidebarMinimized(true)}
+                                className="p-1 hover:text-[var(--accent-teal)] transition-colors text-[var(--text-muted)]"
+                            >
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                        <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar">
+                            {participants.map(p => {
+                                const isMe = p.id === currentUserId;
+                                const isRoomHost = p.id === hostId;
 
-                            // ⚡ Extract ONLY the emoji (e.g., "👻" from "👻 Ghost")
-                            const avatarEmoji = p.avatar ? p.avatar.split(' ')[0] : '👻';
-
-
-                            return (
-                                <div key={p.id} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${isMe ? 'bg-[var(--bg-sidebar)] border-[var(--text-muted)]/40 shadow-[0_0_15px_rgba(255,255,255,0.1)]'
-                                    : isRoomHost ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/30' : 'bg-[var(--bg-sidebar)]/50 border-[var(--border-color)]'
-                                    }`}
-                                >
-                                    {/* ⚡ Avatar Circle: Forced 40x40px, no shrinking, no overflowing */}
-                                    <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg overflow-hidden border border-(--border-color) ${isRoomHost ? 'bg-[var(--accent-teal)]/20 shadow-[0_0_10px_rgba(45,212,191,0.2)]' : 'bg-black/20'
-                                        }`}>
-                                        {p.avatarUrl ? (
-                                            <img 
-                                                src={p.avatarUrl} 
-                                                alt="" 
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                    (e.target as HTMLImageElement).parentElement!.innerText = isRoomHost ? '👑' : avatarEmoji;
-                                                }}
-                                            />
-                                        ) : isRoomHost ? '👑' : avatarEmoji}
-                                    </div>
+                                // ⚡ Extract ONLY the emoji (e.g., "👻" from "👻 Ghost")
+                                const avatarEmoji = p.avatar ? p.avatar.split(' ')[0] : '👻';
 
 
-                                    {/* ⚡ Text Container: Flex-col, min-w-0 prevents breaking parent width */}
-                                    <div className="flex flex-col min-w-0 flex-1">
-                                        <div className="flex items-center gap-2 overflow-hidden">
-                                            <span className="text-sm font-bold text-[var(--text-main)] truncate">
-                                                {p.name || "Anonymous"}
-                                            </span>
-                                            {isMe && (
-                                                <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-[var(--text-main)]/70 bg-[var(--bg-sidebar)] px-1.5 py-0.5 rounded-md">
-                                                    You
+                                return (
+                                    <div key={p.id} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${isMe ? 'bg-[var(--bg-sidebar)] border-[var(--text-muted)]/40 shadow-[0_0_15px_rgba(255,255,255,0.1)]'
+                                        : isRoomHost ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/30' : 'bg-[var(--bg-sidebar)]/50 border-[var(--border-color)]'
+                                        }`}
+                                    >
+                                        {/* ⚡ Avatar Circle: Forced 40x40px, no shrinking, no overflowing */}
+                                        <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg overflow-hidden border border-(--border-color) ${isRoomHost ? 'bg-[var(--accent-teal)]/20 shadow-[0_0_10px_rgba(45,212,191,0.2)]' : 'bg-black/20'
+                                            }`}>
+                                            {p.avatarUrl ? (
+                                                <img
+                                                    src={p.avatarUrl}
+                                                    alt=""
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).style.display = 'none';
+                                                        (e.target as HTMLImageElement).parentElement!.innerText = isRoomHost ? '👑' : avatarEmoji;
+                                                    }}
+                                                />
+                                            ) : isRoomHost ? '👑' : avatarEmoji}
+                                        </div>
+
+
+                                        {/* ⚡ Text Container: Flex-col, min-w-0 prevents breaking parent width */}
+                                        <div className="flex flex-col min-w-0 flex-1">
+                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                <span className="text-sm font-bold text-[var(--text-main)] truncate">
+                                                    {p.name || "Anonymous"}
                                                 </span>
-                                            )}
-                                        </div>
-                                        <p className="text-[9px] font-black uppercase tracking-widest text-[var(--accent-teal)] mt-0.5 truncate">
-                                            {isBreak ? "Resting" : "Focusing"}
-                                        </p>
-                                        <div className="flex gap-2 mt-1">
-                                            <div className="flex items-center gap-1 opacity-60">
-                                                <Activity size={8} className="text-[var(--accent-teal)]" />
-                                                <span className="text-[8px] font-bold text-[var(--text-main)]">{(p as any).totalHours || 0}h</span>
+                                                {isMe && (
+                                                    <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-[var(--text-main)]/70 bg-[var(--bg-sidebar)] px-1.5 py-0.5 rounded-md">
+                                                        You
+                                                    </span>
+                                                )}
                                             </div>
-                                            <div className="flex items-center gap-1 opacity-60">
-                                                <Zap size={8} className="text-[var(--accent-yellow)]" />
-                                                <span className="text-[8px] font-bold text-[var(--text-main)]">{(p as any).focusScore || 0}</span>
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-[var(--accent-teal)] mt-0.5 truncate">
+                                                {isBreak ? "Resting" : "Focusing"}
+                                            </p>
+                                            <div className="flex gap-2 mt-1">
+                                                <div className="flex items-center gap-1 opacity-60">
+                                                    <Activity size={8} className="text-[var(--accent-teal)]" />
+                                                    <span className="text-[8px] font-bold text-[var(--text-main)]">{(p as any).totalHours || 0}h</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 opacity-60">
+                                                    <Zap size={8} className="text-[var(--accent-yellow)]" />
+                                                    <span className="text-[8px] font-bold text-[var(--text-main)]">{(p as any).focusScore || 0}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
                     </motion.aside>
                 )}
             </AnimatePresence>

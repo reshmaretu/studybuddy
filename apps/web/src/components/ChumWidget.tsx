@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Flame, X, Send, CheckCircle2, Edit3, LogOut, Plus, BrainCircuit, Network, Cpu, WifiOff, Settings, History, Sparkles } from "lucide-react";
 import { useStudyStore, ChatMessage, TutorSession, Shard, TaskLoad } from "@/store/useStudyStore";
-import { supabase } from '@/lib/supabase';
+import { supabase, getChatUrl } from '@/lib/supabase';
 import ChumRenderer from "@/components/ChumRenderer";
+import { useTerms } from "@/hooks/useTerms";
+import { SquishyButton } from "@studybuddy/ui";
 
 interface ChumToast {
     id: string;
@@ -36,6 +38,7 @@ function TypewriterText({ text, speed = 40 }: { text: string, speed?: number }) 
 }
 
 export default function ChumWidget() {
+    const { terms, isGamified } = useTerms();
     const [isOpen, setIsOpen] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -55,7 +58,8 @@ export default function ChumWidget() {
         shards, updateShardMastery, aiTier, setAITier, aiKeys, updateAIKeys, selectedModel, setSelectedModel, ollamaUrl, setOllamaUrl,
         normalChatHistory, tutorChatHistory, setNormalChatHistory, setTutorChatHistory,
         tutorSessionState, updateTutorSessionState, completeTutorSession, pastTutorSessions, toggleMindDump,
-        showNodeBadge, setShowNodeBadge, chumToasts, addTask, isPremiumUser, aiPrimaryNode, setAIPrimaryNode, activeFramework
+        showNodeBadge, setShowNodeBadge, chumToasts, addTask, isPremiumUser, aiPrimaryNode, setAIPrimaryNode, activeFramework,
+        tasks, triggerChumToast
     } = useStudyStore();
 
     const [widgetPos, setWidgetPos] = useState({ isLeft: false, isTop: false });
@@ -168,6 +172,49 @@ export default function ChumWidget() {
         }
     };
 
+    useLayoutEffect(() => {
+        if (showTaskForm) {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            setNewTask(prev => ({ ...prev, deadline: now.toISOString().slice(0, 16) }));
+            setIsScheduled(true);
+        }
+    }, [showTaskForm]);
+
+    const handlePlantQuest = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newTask.title.trim()) return;
+
+        const activeQuests = (tasks || []).filter((t: any) => !t.isCompleted);
+        const heavyCount = activeQuests.filter((t: any) => t.load === 'heavy').length;
+
+        // 1. Burnout Hard Stop
+        if (newTask.load === 'heavy' && heavyCount >= 2) {
+            triggerChumToast?.(
+                <span><strong className="text-red-400">Burnout Risk Detected! ⚠️</strong><br />You already have {heavyCount} Heavy tasks today. Adding more severely reduces focus. Try breaking this into Medium tasks.</span>,
+                'warning'
+            );
+            return;
+        }
+
+        // 2. Soft Limits for 1-3-5 Mode
+        if (activeFramework === '1-3-5') {
+            const mediumCount = activeQuests.filter((t: any) => t.load === 'medium').length;
+            const lightCount = activeQuests.filter((t: any) => t.load === 'light').length;
+
+            if (newTask.load === 'medium' && mediumCount >= 3) {
+                triggerChumToast?.("You're loading up! Usually we keep it to 3 medium tasks in this framework.", 'info');
+            } else if (newTask.load === 'light' && lightCount >= 5) {
+                triggerChumToast?.("That's a lot of small plants! Try to stay under 5 light tasks.", 'info');
+            }
+        }
+
+        addTask({ ...newTask, deadline: isScheduled ? newTask.deadline : undefined });
+        setShowTaskForm(false);
+        setNewTask({ title: "", description: "", load: "medium", deadline: undefined, isFrog: false });
+        setIsScheduled(false);
+    };
+
     const handleSendMessage = async (e?: React.FormEvent, forcePrimer = false) => {
         if (e) e.preventDefault();
 
@@ -209,7 +256,8 @@ export default function ChumWidget() {
 
         let systemPrompt = "";
         if (isTutorModeActive && activeShard) {
-            const totalContent = `Base Notes: ${activeShard.content}`;
+            const truncatedContent = activeShard.content.length > 12000 ? activeShard.content.slice(0, 12000) + "\n...[Content truncated for AI token limits]" : activeShard.content;
+            const totalContent = `Base Notes: ${truncatedContent}`;
             const shardHistory = pastTutorSessions.filter(s => s.shardId === activeShard.id).slice(-1);
             const historySummary = shardHistory.map(s => {
                 const pastQA = s.history
@@ -261,10 +309,12 @@ export default function ChumWidget() {
         const tryCloudChat = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             const activeHistory = isTutorModeActive ? tutorChatHistory : normalChatHistory;
-            const historyToSend = activeHistory.map(msg => ({
-                role: msg.role === 'chum' ? 'assistant' : 'user',
-                content: msg.text
-            }));
+            const historyToSend = activeHistory
+                .filter(msg => msg.text && msg.text.trim().length > 0)
+                .map(msg => ({
+                    role: msg.role === 'chum' ? 'assistant' : 'user',
+                    content: msg.text
+                }));
 
             const messagesPayload = [
                 { role: "system", content: systemPrompt },
@@ -273,10 +323,8 @@ export default function ChumWidget() {
             ];
 
             try {
-                const baseUrl = (typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.()) 
-                    ? (process.env.NEXT_PUBLIC_APP_URL || 'https://studybuddy-ai.vercel.app') // Fallback to production URL
-                    : '';
-                const res = await fetch(`${baseUrl}/api/chat`, {
+                const chatUrl = getChatUrl();
+                const res = await fetch(chatUrl, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -289,25 +337,52 @@ export default function ChumWidget() {
                         openrouter_key: useStudyStore.getState().aiKeys.openrouter,
                         groq_key: useStudyStore.getState().aiKeys.groq,
                         gemini_key: useStudyStore.getState().aiKeys.gemini,
+                        stream: false
                     })
                 });
 
-                const contentType = res.headers.get('content-type');
-                if (!res.ok || !contentType?.includes('application/json')) {
-                    if (contentType?.includes('text/html')) {
-                        throw new Error("Neural link reached an error page (HTML). The backend service might be unavailable.");
+                const contentType = res.headers.get('content-type') || "";
+                if (!res.ok) {
+                    if (contentType.includes('text/html')) {
+                        throw new Error("Neural link reached an error page (HTML). The backend service might be unavailable or you might be behind a login wall.");
                     }
                     const errorData = await res.json().catch(() => ({}));
                     const errorMsg = errorData.error || `Neural link failed (Status ${res.status}).`;
                     throw new Error(errorMsg);
                 }
 
-                if (!res.body) throw new Error("No neural stream received.");
-
                 usedNode = res.headers.get('X-Node-Used') || "Cloud Node";
-
-                // Inject empty message to start streaming
                 setCurrentHistory([...newHistory, { role: 'chum', text: "", node: usedNode }]);
+
+                if (contentType.includes('application/json')) {
+                    const data = await res.json().catch(() => ({}));
+                    if (data.success === false || data.error) {
+                        throw new Error(data.error || "Neural link returned a failure status.");
+                    }
+                    const aiText = data.response || data.text || "";
+                    aiResponse = aiText;
+                    
+                    // Simulate smooth typewriter streaming
+                    let currentText = "";
+                    const chunkSize = Math.max(1, Math.floor(aiText.length / 30));
+                    for (let i = 0; i < aiText.length; i += chunkSize) {
+                        currentText += aiText.substring(i, i + chunkSize);
+                        setCurrentHistory((prev: ChatMessage[]) => {
+                            const updated = [...prev];
+                            updated[updated.length - 1] = { ...updated[updated.length - 1], text: currentText };
+                            return updated;
+                        });
+                        await new Promise(r => setTimeout(r, 20));
+                    }
+                    setCurrentHistory((prev: ChatMessage[]) => {
+                        const updated = [...prev];
+                        updated[updated.length - 1] = { ...updated[updated.length - 1], text: aiText };
+                        return updated;
+                    });
+                    return true;
+                }
+
+                if (!res.body) throw new Error("No neural stream received.");
 
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
@@ -331,6 +406,7 @@ export default function ChumWidget() {
                         return updated;
                     });
                 }
+                aiResponse = fullText;
                 return true;
             } catch (e: unknown) {
                 const err = e as Error;
@@ -539,7 +615,7 @@ export default function ChumWidget() {
                                                         placeholder: 'sk-or-v1-...',
                                                         models: [
                                                             { id: 'mistralai/mistral-7b-instruct:free', label: 'Mistral 7B Instruct v0.3' },
-                                                            { id: 'google/gemini-2.0-flash-lite:preview-02-05', label: 'Gemini 2.5 Flash Lite' },
+                                                            { id: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
                                                             { id: 'meta-llama/llama-3.2-3b-instruct:free', label: 'Llama 3.2 3B Instruct' }
                                                         ]
                                                     },
@@ -557,7 +633,7 @@ export default function ChumWidget() {
                                                         label: 'Gemini (Direct)',
                                                         placeholder: 'AIza...',
                                                         models: [
-                                                            { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+                                                            { id: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash' },
                                                             { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' }
                                                         ]
                                                     }
@@ -686,11 +762,7 @@ export default function ChumWidget() {
                                         {currentHistory.map((msg, i) => (
                                             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} flex-col`}>
                                                 <div className={`p-3 text-sm rounded-xl max-w-[85%] shadow-sm whitespace-pre-wrap ${msg.role === 'user' ? 'bg-(--accent-teal)/20 border border-(--accent-teal)/30 text-(--text-main) rounded-tr-none' : 'bg-(--bg-dark) border border-(--border-color) text-(--text-muted) rounded-tl-none'}`}>
-                                                    {msg.role === 'chum' && i === currentHistory.length - 1 && !isTyping ? (
-                                                        <TypewriterText text={msg.text} />
-                                                    ) : (
-                                                        msg.text
-                                                    )}
+                                                    {msg.text}
 
                                                     {msg.node && msg.role === 'chum' && showNodeBadge && (
                                                         <div className="mt-2 pt-2 border-t border-(--border-color)/30 flex items-center gap-1.5 opacity-50 select-none">
@@ -762,7 +834,7 @@ export default function ChumWidget() {
                                     </div>
 
                                     {/* QUICK ACTIONS */}
-                                    <div className="px-3 py-2 border-t border-(--border-color) bg-(--bg-sidebar)/50 flex flex-wrap gap-2">
+                                    <div className="px-3 py-2 border-t border-(--border-color) bg-(--bg-sidebar)/50 flex flex-wrap items-center gap-2">
                                         {isTutorModeActive ? (
                                             <button onClick={exitTutorMode} className="text-[10px] font-bold text-red-400 px-3 py-1.5 rounded-lg border border-red-400/20 hover:bg-red-400/10 transition-colors flex items-center gap-1.5">
                                                 <LogOut size={12} /> Abort Training
@@ -777,7 +849,7 @@ export default function ChumWidget() {
                                             <>
                                                 <button onClick={() => setShowTaskForm(true)} className="text-[10px] font-bold text-(--accent-teal) px-3 py-1.5 rounded-lg border border-(--accent-teal)/20 hover:bg-(--accent-teal)/10 flex items-center gap-1.5"><Plus size={12} /> Pen a Chapter</button>
                                                 <button onClick={() => setShowQuickArchive(true)} className="text-[10px] font-bold text-(--text-muted) px-3 py-1.5 rounded-lg border border-(--border-color) hover:text-(--text-main) flex items-center gap-1.5"><CheckCircle2 size={12} /> Quick Archive</button>
-                                                <button onClick={() => setShowSessions(true)} className="text-[10px] font-bold text-(--text-muted) px-3 py-1.5 rounded-lg border border-(--border-color) hover:text-(--text-main) flex items-center gap-1.5 ml-auto"><History size={12} /> Neural Archives</button>
+                                                <button onClick={() => setShowSessions(true)} className="text-[10px] font-bold text-(--text-muted) px-3 py-1.5 rounded-lg border border-(--border-color) hover:text-(--text-main) flex items-center gap-1.5"><History size={12} /> Neural Archives</button>
                                             </>
                                         )}
                                     </div>
@@ -954,84 +1026,85 @@ export default function ChumWidget() {
             <AnimatePresence>
                 {showTaskForm && (
                     <div className="fixed inset-0 z-100005 flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowTaskForm(false)} className="absolute inset-0 bg-(--bg-dark)/60 backdrop-blur-sm cursor-pointer" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-(--bg-sidebar) border border-(--border-color) rounded-3xl w-full max-w-sm relative z-10 shadow-2xl flex flex-col overflow-hidden" onPointerDown={(e) => e.stopPropagation()}>
-                            <div className="p-4 border-b border-(--border-color) flex justify-between items-center bg-(--bg-card)">
-                                <h2 className="text-sm font-bold text-(--text-main) flex items-center gap-2"><Plus size={14} className="text-(--accent-teal)" /> Pen a Chapter</h2>
-                                <button onClick={() => setShowTaskForm(false)} className="text-(--text-muted) hover:text-(--text-main)"><X size={16} /></button>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowTaskForm(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
+                        <motion.form
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            onSubmit={handlePlantQuest} className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-6 shadow-2xl relative z-10 w-full max-w-2xl flex flex-col overflow-hidden"
+                            onPointerDown={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex justify-between items-center mb-4 border-b border-[var(--border-color)] pb-3">
+                                <h3 className="text-lg font-bold text-[var(--text-main)] flex items-center gap-2"><Plus size={18} className="text-[var(--accent-teal)]" /> {isGamified ? "Seed a New Quest" : "Create New Task"}</h3>
+                                <button type="button" onClick={() => setShowTaskForm(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)]"><X size={20} /></button>
                             </div>
-                            <div className="p-4 flex flex-col gap-3">
-                                <input autoFocus type="text" placeholder="Quest Title" value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} className="w-full bg-(--bg-dark) border border-(--border-color) rounded-lg px-3 py-2 text-sm text-(--text-main) outline-none focus:border-(--accent-teal)" />
-                                <textarea placeholder="Optional description..." value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} className="w-full bg-(--bg-dark) border border-(--border-color) rounded-lg px-3 py-2 text-xs text-(--text-main) outline-none focus:border-(--accent-teal) resize-none h-16 custom-scrollbar" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div className="space-y-4">
+                                    <input autoFocus type="text" required placeholder={isGamified ? "Quest Title" : "Task Title"} value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
+                                    <textarea placeholder="Description..." rows={3} value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] resize-none custom-scrollbar" />
 
-                                <div className="flex gap-2">
-                                    {(['light', 'medium', 'heavy'] as const).map(load => (
-                                        <button key={load} onClick={() => setNewTask({ ...newTask, load })} className={`flex-1 py-1.5 rounded-md border text-xs font-bold uppercase ${newTask.load === load ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'bg-[var(--bg-dark)] border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>
-                                            {load}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* 🔥 PREMIUM: Estimated Pomodoros Input */}
-                                {isPremiumUser && (
-                                    <div className="bg-[var(--bg-dark)] border border-[var(--accent-yellow)]/30 rounded-xl p-3 shadow-[inset_0_0_15px_rgba(250,204,21,0.05)]">
-                                        <label className="text-xs font-bold text-[var(--accent-yellow)] uppercase mb-2 flex items-center gap-1.5">
-                                            <Sparkles size={12} /> Estimated Pomodoros
-                                        </label>
-                                        <input
-                                            type="number" min="1" max="20" placeholder="e.g. 2"
-                                            value={newTask.estimatedPomos || ''}
-                                            onChange={e => setNewTask({ ...newTask, estimatedPomos: parseInt(e.target.value) || 1 })}
-                                            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-yellow)]"
-                                        />
+                                    {/* 🐸 FROG SPECIAL */}
+                                    <div
+                                        onClick={() => setNewTask({ ...newTask, isFrog: !newTask.isFrog })}
+                                        className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex justify-between items-center ${newTask.isFrog ? 'border-orange-400 bg-orange-400/10 shadow-[0_0_15px_rgba(251,146,60,0.15)]' : 'border-[var(--border-color)] bg-[var(--bg-dark)] opacity-60 hover:opacity-100'}`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Flame size={16} className={newTask.isFrog ? 'text-orange-400 animate-bounce' : 'text-[var(--text-muted)]'} />
+                                            <span className={`text-xs font-black uppercase tracking-wider ${newTask.isFrog ? 'text-orange-400' : 'text-[var(--text-muted)]'}`}>This is my Frog</span>
+                                        </div>
+                                        <div className={`w-3.5 h-3.5 rounded-full transition-all ${newTask.isFrog ? 'bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.5)]' : 'bg-transparent border border-[var(--border-color)]'}`} />
                                     </div>
-                                )}
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl p-3">
+                                        <label className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2 block">{terms.taskLoad}</label>
+                                        <div className="flex gap-2">
+                                            {(['light', 'medium', 'heavy'] as const).map((weight) => (
+                                                <button key={weight} type="button" onClick={() => setNewTask({ ...newTask, load: weight })} className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase border transition-colors ${newTask.load === weight ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)] shadow-sm' : 'border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)] bg-[var(--bg-card)]'}`}>{weight}</button>
+                                            ))}
+                                        </div>
+                                        {isPremiumUser && (
+                                            <div className="bg-[var(--bg-dark)] border border-[var(--accent-yellow)]/30 rounded-xl p-3 mt-4 shadow-[inset_0_0_15px_rgba(250,204,21,0.05)]">
+                                                <label className="text-xs font-bold text-[var(--accent-yellow)] uppercase mb-2 flex items-center gap-1.5">
+                                                    <Sparkles size={12} /> Estimated {terms.pomodoro}s
+                                                </label>
+                                                <input
+                                                    type="number" min="1" max="20" placeholder="e.g. 2"
+                                                    value={newTask.estimatedPomos || ''}
+                                                    onChange={e => setNewTask({ ...newTask, estimatedPomos: parseInt(e.target.value) || 1 })}
+                                                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-yellow)]"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
 
-                                <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg p-3 flex flex-col gap-2">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs font-bold text-(--text-muted) uppercase tracking-wider">Best Before</span>
-                                        <div onClick={() => handleToggleSchedule(!isScheduled)} className="flex items-center gap-2 cursor-pointer group">
-                                            <span className={`text-xs font-bold transition-colors ${isScheduled ? 'text-(--accent-teal)' : 'text-(--text-muted) group-hover:text-gray-400'}`}>
-                                                {isScheduled ? 'Scheduled' : 'Unscheduled'}
-                                            </span>
-                                            <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors duration-300 ${isScheduled ? 'bg-(--accent-teal)' : 'bg-(--bg-sidebar) border border-(--border-color)'}`}>
-                                                <div className={`w-3 h-3 rounded-full shadow-sm transition-transform duration-300 ${isScheduled ? 'translate-x-4 bg-(--bg-dark)' : 'translate-x-0 bg-(--text-muted)'}`} />
+                                    <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl p-3 flex flex-col gap-2 transition-all">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-xs font-bold text-[var(--text-muted)] uppercase block">{isGamified ? "Best Before (Deadline)" : "Deadline"}</label>
+                                            <div onClick={() => handleToggleSchedule(!isScheduled)} className="flex items-center gap-2 cursor-pointer group">
+                                                <span className={`text-xs font-bold transition-colors ${isScheduled ? 'text-[var(--accent-teal)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>
+                                                    {isScheduled ? 'Scheduled' : 'Unscheduled'}
+                                                </span>
+                                                <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors duration-300 ${isScheduled ? 'bg-[var(--accent-teal)]' : 'bg-[var(--bg-sidebar)] border border-[var(--border-color)]'}`}>
+                                                    <div className={`w-3 h-3 rounded-full shadow-sm transition-transform duration-300 ${isScheduled ? 'translate-x-4 bg-[#0b1211]' : 'translate-x-0 bg-[var(--text-muted)]'}`} />
+                                                </div>
                                             </div>
                                         </div>
+                                        <AnimatePresence>
+                                            {isScheduled && (
+                                                <motion.input
+                                                    initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                                                    type="datetime-local" required value={newTask.deadline || ""} onChange={e => setNewTask({ ...newTask, deadline: e.target.value })}
+                                                    className="w-full bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] mt-1"
+                                                />
+                                            )}
+                                        </AnimatePresence>
                                     </div>
-                                    <AnimatePresence>
-                                        {isScheduled && (
-                                            <motion.input initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} type="datetime-local" value={newTask.deadline || ""} onChange={(e) => setNewTask({ ...newTask, deadline: e.target.value })} className="w-full bg-(--bg-card) border border-(--border-color) rounded-md px-3 py-1.5 text-xs text-(--text-main) outline-none focus:border-(--accent-teal) mt-1" />
-                                        )}
-                                    </AnimatePresence>
                                 </div>
-
-                                {/* 🐸 FROG SPECIAL */}
-                                <div
-                                    onClick={() => setNewTask({ ...newTask, isFrog: !newTask.isFrog })}
-                                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all flex justify-between items-center ${newTask.isFrog ? 'border-orange-400 bg-orange-400/10' : 'border-(--border-color) bg-(--bg-dark) opacity-60'}`}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <Flame size={14} className={newTask.isFrog ? 'text-orange-400' : 'text-(--text-muted)'} />
-                                        <span className={`text-[10px] font-black uppercase ${newTask.isFrog ? 'text-orange-400' : 'text-(--text-muted)'}`}>This is my Frog</span>
-                                    </div>
-                                    <div className={`w-3 h-3 rounded-full ${newTask.isFrog ? 'bg-orange-400 animate-pulse' : 'bg-transparent border border-(--border-color)'}`} />
-                                </div>
-
-                                <button
-                                    disabled={!newTask.title.trim()}
-                                    onClick={() => {
-                                        addTask({ ...newTask, deadline: isScheduled ? newTask.deadline : undefined });
-                                        setNewTask({ title: "", description: "", load: "medium", deadline: undefined, isFrog: false });
-                                        setIsScheduled(false);
-                                        setShowTaskForm(false);
-                                    }}
-                                    className="mt-2 w-full py-2.5 bg-(--accent-teal) text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 hover:bg-teal-400"
-                                >
-                                    Plant Seed
-                                </button>
                             </div>
-                        </motion.div>
+                            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-color)]">
+                                <SquishyButton type="button" onClick={() => setShowTaskForm(false)} className="px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors border-none shadow-none">Cancel</SquishyButton>
+                                <SquishyButton type="submit" className="bg-[var(--accent-teal)] text-[#0b1211] px-6 py-2 rounded-xl text-sm font-bold hover:bg-teal-400 transition-colors disabled:opacity-50" disabled={!newTask.title.trim()}>{isGamified ? "Plant Seed" : "Create Task"}</SquishyButton>
+                            </div>
+                        </motion.form>
                     </div>
                 )}
             </AnimatePresence>

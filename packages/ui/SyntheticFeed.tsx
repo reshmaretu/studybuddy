@@ -9,12 +9,11 @@ import { SquishyButton } from './SquishyButton';
 import { playTick } from '@studybuddy/api';
 
 export const SyntheticFeed = () => {
-  const { broadcasts, fetchBroadcasts, triggerChumToast, sparkBroadcast, setSparkBurst, userId } = useStudyStore();
+  const { broadcasts, fetchBroadcasts, sparkBroadcast, triggerChumToast, userId } = useStudyStore();
   const [loading, setLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(userId ?? null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(userId || null);
+  const [visibleCount, setVisibleCount] = useState(5);
   const [sparkedIds, setSparkedIds] = useState<Set<string>>(new Set());
-
   const [cooldownUntil, setCooldownUntil] = useState(0);
 
   useEffect(() => {
@@ -127,9 +126,9 @@ export const SyntheticFeed = () => {
         </div>
       ) : (
         <>
-          <div className="space-y-3 max-h-[500px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="space-y-3 max-h-[600px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {broadcasts
-              .slice(0, 10)
+              .slice(0, visibleCount)
               .map((broadcast) => {
                 const displayName = broadcast.profiles?.display_name || 'Anonymous';
                 const isSelf = currentUserId ? broadcast.user_id === currentUserId : false;
@@ -242,6 +241,20 @@ export const SyntheticFeed = () => {
             })}
           </div>
 
+          {broadcasts.length > visibleCount && (
+            <button
+              onClick={() => {
+                playTick();
+                setVisibleCount(prev => prev + 5);
+                if (visibleCount + 5 >= broadcasts.length) {
+                  loadMore();
+                }
+              }}
+              className="w-full py-2.5 rounded-xl border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--accent-teal)] hover:border-[var(--accent-teal)]/30 text-[10px] font-black uppercase tracking-widest transition-all bg-[var(--bg-dark)]/30"
+            >
+              Load More Feeds
+            </button>
+          )}
         </>
       )}
     </div>

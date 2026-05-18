@@ -48,7 +48,7 @@ export default function UnDoneModal({ onClose }: { onClose: () => void }) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.8, y: -20 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2.5rem] p-6 sm:p-8 max-w-2xl w-full shadow-2xl flex flex-col max-h-[90vh] relative overflow-y-auto"
+                className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2.5rem] p-6 sm:p-8 max-w-2xl w-full shadow-2xl flex flex-col max-h-[95vh] relative overflow-y-auto custom-scrollbar"
             >
                 <SquishyButton 
                     onClick={onClose}
@@ -69,7 +69,7 @@ export default function UnDoneModal({ onClose }: { onClose: () => void }) {
                     </p>
                 </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2 mb-6 min-h-[100px]">
+                <div className="flex-1 space-y-3 mb-6 min-h-[100px]">
                     {unresolvedQuests.length === 0 ? (
                         <div className="h-40 flex flex-col items-center justify-center text-[var(--text-muted)] italic gap-2 opacity-50">
                             <Check size={32} />

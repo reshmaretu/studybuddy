@@ -2,9 +2,9 @@
 // These are only injected when 'Enable Dev-Only Room Options' is toggled in the DevOverlay.
 
 export const DEV_AUDIO_TRACKS = [
-    { name: 'Propane Nightmares', pro: true, url: '/assets/audio/propane_nightmares.mp3' },
-    { name: 'Dev: Cybernetic Pulse', pro: true, url: '/assets/audio/dev_cybernetic_pulse.ogg' },
-    { name: 'Dev: Glitch Static', pro: true, url: '/assets/audio/dev_glitch_static.ogg' }
+    { name: 'Propane Nightmares', pro: true, url: '/assets/audio/propane_nightmares.mp3', artist: 'Pendulum' },
+    { name: 'Dev: Cybernetic Pulse', pro: true, url: '/assets/audio/dev_cybernetic_pulse.ogg', artist: 'Dev Records' },
+    { name: 'Dev: Glitch Static', pro: true, url: '/assets/audio/dev_glitch_static.ogg', artist: 'Dev Records' }
 ];
 
 export const DEV_LIVE_BGS = [

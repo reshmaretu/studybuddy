@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useStudyStore, TaskLoad, Task } from "@/store/useStudyStore";
-import { Sprout, Search, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit, Maximize2, Minimize2, CheckCircle2, Check, Plus, Moon, Eye } from "lucide-react";
+import { Map, Sprout, Search, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit, Maximize2, Minimize2, CheckCircle2, Check, Plus, Moon, Eye, Filter, Gem } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import TaskCard from "@/components/TaskCard";
@@ -31,7 +31,7 @@ function MasteryContainer({ id, masteryTab, setMasteryTab, children, isEmpty, em
     const { isOver, setNodeRef } = useDroppable({ id });
     const { terms } = useTerms();
     return (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col h-full">
+        <div className="lg:bg-[var(--bg-card)] lg:border lg:border-[var(--border-color)] lg:rounded-2xl lg:p-5 flex flex-col flex-1 min-h-0">
 
 
             <div className="flex justify-between items-center mb-4 shrink-0 gap-4">
@@ -39,8 +39,7 @@ function MasteryContainer({ id, masteryTab, setMasteryTab, children, isEmpty, em
                 <SquishyButton onClick={() => setMasteryTab('shards')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'shards' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>{terms.shards}</SquishyButton>
                 <SquishyButton onClick={() => setMasteryTab('crystals')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'crystals' ? 'border-[var(--accent-yellow)] text-[var(--accent-yellow)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>Crystals</SquishyButton>
             </div>
-            {/* STYLING FIX: Invisible scrollbars applied */}
-            <div ref={setNodeRef} className={`flex-1 rounded-xl p-4 transition-all duration-300 flex flex-col gap-3 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] border-2 border-dashed ${isOver ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]" : "bg-[var(--bg-dark)] border-[var(--border-color)]/50"}`}>
+            <div ref={setNodeRef} className={`flex-1 lg:rounded-xl lg:p-4 transition-all duration-300 flex flex-col gap-3 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] lg:border-2 lg:border-dashed ${isOver ? "bg-[var(--accent-teal)]/10 border-2 border-dashed border-[var(--accent-teal)]" : "lg:bg-[var(--bg-dark)] lg:border-[var(--border-color)]/50"}`}>
                 {isEmpty ? <div className="h-full flex items-center justify-center text-[var(--text-muted)] text-sm font-medium text-center px-4">{emptyText}</div> : children}
             </div>
         </div>
@@ -184,17 +183,17 @@ function IvySlot({ rank, task, isLocked, isActive, onToggleSelect, selectedIds, 
             <div className="flex-1 min-w-0 flex flex-col justify-center">
                 {/* THE MINIMIZED FIX: Passing the new prop to the TaskCard! */}
                 {task ? (
-                        <TaskCard
-                            task={task}
-                            locked={isLocked}
-                            isMinimized={true}
-                            onToggleSelect={onToggleSelect}
-                            selected={selectedIds.includes(task.id)}
-                            completionEffect="glide"
-                            isAnimating={animatingTaskId === task.id}
-                            layoutId={task.id}
-                            isRecentlyCompleted={recentlyCompletedTaskId === task.id}
-                        />
+                    <TaskCard
+                        task={task}
+                        locked={isLocked}
+                        isMinimized={true}
+                        onToggleSelect={onToggleSelect}
+                        selected={selectedIds.includes(task.id)}
+                        completionEffect="glide"
+                        isAnimating={animatingTaskId === task.id}
+                        layoutId={task.id}
+                        isRecentlyCompleted={recentlyCompletedTaskId === task.id}
+                    />
                 ) : (
                     <div className="px-4 py-2 text-xs font-bold text-[var(--text-muted)] italic">Awaiting Assignment...</div>
                 )}
@@ -440,7 +439,7 @@ export default function CrystalGarden() {
         completeTask, deleteTask, addTask, updateTask, triggerChumToast, isPremiumUser,
         protocolLimits, updateProtocolLimits,
         crystalGrowth, masteredCrystals, rebirthCrystal,
-        setSettings
+        setSettings, isMorningModalOpen, setIsMorningModalOpen
     } = useStudyStore();
 
 
@@ -448,10 +447,10 @@ export default function CrystalGarden() {
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
-            activationConstraint: (typeof window !== 'undefined' && 
-                ((window as any).Capacitor?.isNativePlatform?.() || 'ontouchstart' in window)) 
-                ? { delay: 250, tolerance: 20 }
-                : { distance: 10 }
+            activationConstraint: (typeof window !== 'undefined' &&
+                ((window as any).Capacitor?.isNativePlatform?.() || 'ontouchstart' in window))
+                ? { delay: 300, tolerance: 60 }
+                : { distance: 8 }
         }),
 
     );
@@ -459,7 +458,7 @@ export default function CrystalGarden() {
     const [searchQuery, setSearchQuery] = useState("");
     const [isAdding, setIsAdding] = useState(false);
     const [activeDragTask, setActiveDragTask] = useState<Task | null>(null);
-    const [showMorningModal, setShowMorningModal] = useState(false);
+    // showMorningModal replaced by isMorningModalOpen in store
     const [showUnDoneModal, setShowUnDoneModal] = useState(false);
     const [showProtocolSettings, setShowProtocolSettings] = useState(false);
     const [showUnrankedModal, setShowUnrankedModal] = useState(false);
@@ -479,6 +478,31 @@ export default function CrystalGarden() {
     const viewMenuRef = useRef<HTMLDivElement>(null);
     const [showFrameworkMenu, setShowFrameworkMenu] = useState(false);
     const frameworkMenuRef = useRef<HTMLDivElement>(null);
+
+    // Mobile APK specific states
+    const [showMobileSearch, setShowMobileSearch] = useState(false);
+    const [showMobileFilterMenu, setShowMobileFilterMenu] = useState(false);
+    const [showMobileFrameworkMenu, setShowMobileFrameworkMenu] = useState(false);
+    const mobileFilterRef = useRef<HTMLDivElement>(null);
+    const mobileFrameworkRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+            const target = event.target as Node;
+            if (mobileFilterRef.current && !mobileFilterRef.current.contains(target)) {
+                setShowMobileFilterMenu(false);
+            }
+            if (mobileFrameworkRef.current && !mobileFrameworkRef.current.contains(target)) {
+                setShowMobileFrameworkMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handlePointerDown);
+        document.addEventListener('touchstart', handlePointerDown);
+        return () => {
+            document.removeEventListener('mousedown', handlePointerDown);
+            document.removeEventListener('touchstart', handlePointerDown);
+        };
+    }, [showMobileFilterMenu, showMobileFrameworkMenu]);
 
     const [showCurrentFocus, setShowCurrentFocus] = useState(true);
     const [showGarden3D, setShowGarden3D] = useState(true);
@@ -612,6 +636,10 @@ export default function CrystalGarden() {
     useEffect(() => {
         if (!isInitialized) return;
 
+        // Use getState() to ensure we have the absolute latest store values, avoiding React batching delays
+        const currentLastPlannedDate = useStudyStore.getState().lastPlannedDate;
+        const currentActiveFramework = useStudyStore.getState().activeFramework;
+
         const now = new Date();
         const today4AM = new Date();
         today4AM.setHours(4, 0, 0, 0);
@@ -620,13 +648,13 @@ export default function CrystalGarden() {
             today4AM.setDate(today4AM.getDate() - 1);
         }
 
-        const lastPlan = lastPlannedDate ? new Date(lastPlannedDate as string) : null;
-        const needsPlanning = !lastPlan || isNaN(lastPlan.getTime()) || lastPlan < today4AM;
+        const lastPlan = currentLastPlannedDate ? new Date(currentLastPlannedDate as string) : null;
+        const needsPlanning = (!lastPlan || isNaN(lastPlan.getTime()) || lastPlan < today4AM) && !currentActiveFramework;
 
-        if (needsPlanning !== showMorningModal) {
-            setShowMorningModal(needsPlanning);
+        if (needsPlanning && !isMorningModalOpen) {
+            setIsMorningModalOpen(true);
         }
-    }, [isInitialized, lastPlannedDate, showMorningModal]);
+    }, [isInitialized, lastPlannedDate, activeFramework, isMorningModalOpen, setIsMorningModalOpen]);
 
     // 9:00 PM Nudge Logic
     useEffect(() => {
@@ -666,7 +694,7 @@ export default function CrystalGarden() {
 
     const [newTask, setNewTask] = useState<{ title: string, description: string, load: TaskLoad, deadline: string, estimatedPomos?: number }>({ title: "", description: "", load: "medium", deadline: "" });
     const [isScheduled, setIsScheduled] = useState(false);
-    
+
     // 3D Garden maximize state
     const [isGarden3DMaximized, setIsGarden3DMaximized] = useState(false);
 
@@ -679,10 +707,10 @@ export default function CrystalGarden() {
             setSettings({ isSidebarHidden: false });
         }
     }, [isGarden3DMaximized, setSettings]);
-    
+
     // View menu and task load filter state
 
-    
+
     // Close view menu when clicking outside
     useEffect(() => {
         if (!showViewMenu) return;
@@ -699,15 +727,15 @@ export default function CrystalGarden() {
             document.removeEventListener('touchstart', handlePointerDown);
         };
     }, [showViewMenu]);
-    
+
     // Helper: Check if at least one widget is visible
     const visibleWidgetCount = [showCurrentFocus, showGarden3D, showHallOfMastery].filter(Boolean).length;
-    
 
-    
+
+
     // Filter tasks by load type
     const filteredTasksByLoad = activeQuests.filter(t => taskLoadFilters.includes(t.load));
-    
+
     // Helper to filter by both framework AND load type
     const filterByFrameworkAndLoad = (tasks: Task[], filterFn?: (t: Task) => boolean) => {
         let filtered = tasks.filter(t => taskLoadFilters.includes(t.load));
@@ -828,10 +856,10 @@ export default function CrystalGarden() {
     return (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragEnd}>
             {/* Full-height container, responsive scroll logic */}
-            <div id="garden-main-zone" className={`flex flex-col h-full p-6 lg:p-8 bg-[var(--bg-dark)] overflow-hidden relative ${isGarden3DMaximized ? 'hidden' : ''}`}>
+            <div id="garden-main-zone" className={`flex flex-col h-full p-0 lg:p-8 bg-[var(--bg-dark)] overflow-hidden relative ${isGarden3DMaximized ? 'hidden' : ''}`}>
 
                 <AnimatePresence>
-                    {showMorningModal && <MorningPlanningModal />}
+                    <MorningPlanningModal />
                     {showUnDoneModal && <UnDoneModal onClose={() => setShowUnDoneModal(false)} />}
 
                     {/* Plant Quest Modal */}
@@ -955,10 +983,10 @@ export default function CrystalGarden() {
                                             setTimeout(async () => {
                                                 // Switch to tasks tab so destination is visible
                                                 setMasteryTab('tasks');
-                                                
+
                                                 // Actual move
                                                 completeTask(task.id, isPremiumUser ? { actualPomos, stressLevel } : undefined);
-                                                
+
                                                 if (activeFramework === 'ivy' && completedIvyRank) {
                                                     activeQuests.forEach(t => {
                                                         if (t.ivyRank && t.ivyRank > completedIvyRank && t.id !== task.id) {
@@ -974,7 +1002,7 @@ export default function CrystalGarden() {
                                                 setTimeout(() => {
                                                     setRecentlyCompletedTaskId(task.id);
                                                     playChime();
-                                                    
+
                                                     confetti({
                                                         particleCount: 100,
                                                         spread: 70,
@@ -1026,630 +1054,754 @@ export default function CrystalGarden() {
                     )}
                 </AnimatePresence>
 
-                <div className="relative z-10 max-w-[1600px] mx-auto px-4 md:px-0 pb-12">
-                {/* 📱 Mobile Tabs (Only on small screens) */}
-                <div className="md:hidden flex bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-xl mb-6">
-                    <button onClick={() => setActiveGardenTab('incomplete')} className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${activeGardenTab === 'incomplete' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)]'}`}>Focus</button>
-                    <button onClick={() => setActiveGardenTab('3d')} className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${activeGardenTab === '3d' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)]'}`}>Garden</button>
-                    <button onClick={() => setActiveGardenTab('complete')} className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${activeGardenTab === 'complete' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)]'}`}>Mastery</button>
-                </div>
-
-                {/* GARDEN HEADER */}
-                <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 pt-4 md:pt-0">
-                    <div>
-                        <h1 className="text-3xl md:text-5xl font-black text-[var(--text-main)] flex items-center gap-4">
-                            <Sprout className="text-[var(--accent-teal)]" size={40} />
-                            {terms.crystalGarden}
-                        </h1>
-                        <p className="text-[var(--text-muted)] font-bold tracking-[0.2em] uppercase text-[10px] md:text-xs mt-2">Nurture your focus, harvest your potential.</p>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-                        <div className="relative flex-1 md:flex-none">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
-                            <input
-                                type="text"
-                                placeholder="Search quests..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full md:w-80 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl pl-12 pr-6 py-4 text-sm font-medium focus:outline-none focus:border-[var(--accent-teal)] transition-colors placeholder:text-[var(--text-muted)]/50"
-                            />
-                        </div>
-
-                        {/* Lens / View Menu */}
-                        <div ref={viewMenuRef} className="relative">
-                            <SquishyButton
-                                onClick={() => setShowViewMenu(!showViewMenu)}
-                                className={`h-full px-6 py-4 rounded-2xl text-sm font-bold flex items-center gap-2 border transition-all ${showViewMenu ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'}`}
-                            >
-                                <Eye size={18} />
-                                <span className="hidden sm:inline">Lens</span>
-                            </SquishyButton>
-
-                            <AnimatePresence>
-                                {showViewMenu && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 10 }}
-                                        className="absolute top-full right-0 mt-2 w-56 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden z-[60]"
-                                    >
-                                        {/* Widget Visibility Controls */}
-                                        <div className="p-4 border-b border-[var(--border-color)]">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">Widgets</p>
-                                            <div className="space-y-2">
-                                                <button
-                                                    onClick={() => setShowCurrentFocus(!showCurrentFocus)}
-                                                    disabled={isOnlyWidgetVisible('focus')}
-                                                    className={`w-full text-left px-3 py-2 rounded-lg border transition-all text-sm font-bold ${
-                                                        showCurrentFocus
-                                                            ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]'
-                                                            : 'bg-transparent border-[var(--border-color)] text-[var(--text-muted)] hover:text-white disabled:opacity-50'
-                                                    } ${isOnlyWidgetVisible('focus') ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                                                >
-                                                    {showCurrentFocus ? '✓' : ''} Current Focus
-                                                </button>
-                                                <button
-                                                    onClick={() => setShowGarden3D(!showGarden3D)}
-                                                    disabled={isOnlyWidgetVisible('garden')}
-                                                    className={`w-full text-left px-3 py-2 rounded-lg border transition-all text-sm font-bold ${
-                                                        showGarden3D
-                                                            ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]'
-                                                            : 'bg-transparent border-[var(--border-color)] text-[var(--text-muted)] hover:text-white disabled:opacity-50'
-                                                    } ${isOnlyWidgetVisible('garden') ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                                                >
-                                                    {showGarden3D ? '✓' : ''} 3D Garden
-                                                </button>
-                                                <button
-                                                    onClick={() => setShowHallOfMastery(!showHallOfMastery)}
-                                                    disabled={isOnlyWidgetVisible('mastery')}
-                                                    className={`w-full text-left px-3 py-2 rounded-lg border transition-all text-sm font-bold ${
-                                                        showHallOfMastery
-                                                            ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]'
-                                                            : 'bg-transparent border-[var(--border-color)] text-[var(--text-muted)] hover:text-white disabled:opacity-50'
-                                                    } ${isOnlyWidgetVisible('mastery') ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                                                >
-                                                    {showHallOfMastery ? '✓' : ''} Hall of Mastery
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* Task Load Filters */}
-                                        <div className="p-4">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">Task Load Filter</p>
-                                            <div className="space-y-2">
-                                                {(['light', 'medium', 'heavy'] as const).map((load) => (
-                                                    <button
-                                                        key={load}
-                                                        onClick={() => {
-                                                            setTaskLoadFilters(prev =>
-                                                                prev.includes(load)
-                                                                    ? prev.filter(l => l !== load)
-                                                                    : [...prev, load]
-                                                            );
-                                                        }}
-                                                        className={`w-full text-left px-3 py-2 rounded-lg border transition-all text-sm font-bold capitalize ${
-                                                            taskLoadFilters.includes(load)
-                                                                ? load === 'light' ? 'bg-teal-400/20 border-teal-400 text-teal-400' :
-                                                                  load === 'medium' ? 'bg-yellow-400/20 border-yellow-400 text-yellow-400' :
-                                                                  'bg-red-400/20 border-red-400 text-red-400'
-                                                                : 'bg-transparent border-[var(--border-color)] text-[var(--text-muted)] hover:text-white'
-                                                        }`}
-                                                    >
-                                                        {taskLoadFilters.includes(load) ? '✓' : ''} {load}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-
-                        
-                        {/* 🔥 THE FRAMEWORK DROPDOWN 🔥 */}
-                        <div ref={frameworkMenuRef} className="relative z-50">
-                            <SquishyButton
-                                onClick={() => setShowFrameworkMenu(!showFrameworkMenu)}
-                                className={`h-full px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border transition-all capitalize shadow-none ${activeFramework
-                                    ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/50 text-[var(--accent-teal)]'
-                                    : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'
-                                    }`}
-                            >
-                                {activeFramework
-                                    ? `${terms.framework}: ${activeFramework === 'ivy'
-                                        ? 'Ivy Lee Method'
-                                        : activeFramework === 'eisenhower'
-                                            ? 'Eisenhower Matrix'
-                                            : activeFramework === '1-3-5'
-                                                ? '1-3-5 Method'
-                                                : activeFramework
-                                    }`
-                                    : `Standard ${terms.shards}`}
-                                <ChevronDown
-                                    size={14}
-                                    className={`transition-transform duration-300 ${showFrameworkMenu ? 'rotate-180' : ''
-                                        }`}
-                                />
-                            </SquishyButton>
-                            <AnimatePresence>
-                                {showFrameworkMenu && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 10 }}
-                                        className="absolute top-full right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden"
-                                    >
-                                        {(
-                                            [
-                                                { id: null, label: 'Standard List' },
-                                                { id: '1-3-5', label: '1-3-5 Method' },
-                                                { id: 'eisenhower', label: 'Eisenhower Matrix' },
-                                                { id: 'ivy', label: 'Ivy Lee Method' },
-                                            ] as { id: 'eisenhower' | '1-3-5' | 'ivy' | null; label: string }[]
-                                        ).map((fw) => {
-                                            const isActive = activeFramework === fw.id;
-                                            const selection = fw.id ?? 'standard';
-                                            return (
-                                            <SquishyButton
-                                                key={fw.label}
-                                                onClick={() => {
-                                                    setShowFrameworkMenu(false);
-                                                    if (activeFramework !== fw.id) setPendingFramework(selection);
-                                                }}
-                                                className={`w-full text-left px-4 py-3 text-sm font-bold transition-colors border-none shadow-none rounded-none ${
-                                                    isActive
-                                                        ? 'bg-[var(--bg-sidebar)] text-[var(--text-main)]'
-                                                        : 'text-[var(--text-muted)] hover:bg-[var(--bg-sidebar)] hover:text-[var(--text-main)]'
-                                                }`}
-                                                aria-current={isActive ? 'true' : undefined}
-                                            >
-                                                <span className="flex items-center justify-between w-full">
-                                                    <span>{fw.label}</span>
-                                                    {isActive && <Check size={14} className="text-[var(--accent-teal)]" />}
-                                                </span>
-                                            </SquishyButton>
-                                            );
-                                        })}
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                        <SquishyButton onClick={() => setShowUnDoneModal(true)} className="bg-[var(--bg-sidebar)] border border-(--border-color) px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-main)] hover:text-[var(--accent-teal)] hover:border-[var(--accent-teal)] transition-colors flex items-center justify-center whitespace-nowrap gap-2 shrink-0">
-                            <Moon size={16} /> Wrap Up
-                        </SquishyButton>
-                        <SquishyButton id="garden-add-task-btn" onClick={() => setIsAdding(true)} className="bg-[var(--accent-teal)] text-[#0b1211] px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 hover:brightness-110 shadow-[0_0_10px_rgba(20,184,166,0.2)] shrink-0">
-                            <Plus size={16} /> Plant Quest
-                        </SquishyButton>
-                    </div>
-                </header>
-
-                <ConfirmationModal
-                    isOpen={showBulkDeleteConfirm}
-                    title="Release All Selected?"
-                    message={`Are you sure you want to release ${selectedTaskIds.length} quests? This action cannot be undone.`}
-                    confirmText="Release All"
-                    cancelText="Keep Quests"
-                    isDangerous={true}
-                    onConfirm={confirmBulkDelete}
-                    onCancel={() => setShowBulkDeleteConfirm(false)}
-                />
-                
-                {/* 3. The Strict 3-Column Layout! (Responsive stack on mobile) */}
-                <div className={`flex-1 grid gap-6 min-h-0 overflow-y-auto lg:overflow-hidden no-scrollbar ${
-                    showCurrentFocus && showGarden3D && showHallOfMastery ? 'grid-cols-1 lg:grid-cols-3' :
-                    (showCurrentFocus && showGarden3D) || (showCurrentFocus && showHallOfMastery) || (showGarden3D && showHallOfMastery) ? 'grid-cols-1 lg:grid-cols-2' :
-                    'grid-cols-1'
-                }`}>
-
-                    {/* LEFT Column: Active Quests (Cinematic Shape-Shifter) */}
-                    <AnimatePresence>
-                        {showCurrentFocus && (
-                            <motion.section
-                                id="garden-framework-zone"
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                transition={{ duration: 0.3 }}
-                                className="h-[420px] lg:h-full flex flex-col shrink-0"
-                            >
-                                <div id="garden-active-quests" className="bg-[var(--bg-card)] border border-(--border-color) rounded-2xl p-4 sm:p-5 flex flex-col h-full overflow-hidden shadow-sm">
-
-                            {/* Static Header */}
-                            <div className="flex justify-between items-center mb-4 shrink-0">
-                                <div className="flex items-center gap-3">
-                                    <h2 className="text-xl font-bold text-[var(--text-main)]">Current Focus</h2>
+                <div className="relative z-10 max-w-[1600px] mx-auto px-4 lg:px-0 pb-4 lg:pb-12 h-full flex flex-col">
+                    {/* 📱 Mobile APK Header (Global for all 3 Tabs) */}
+                    <div className="lg:hidden flex flex-col mb-6 pt-2 shrink-0 relative">
+                        {/* Row 1: Title & Actions */}
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-1.5">
+                                <Sprout className="text-[var(--accent-teal)] shrink-0" size={24} />
+                                <div className="flex flex-col leading-none">
+                                    <span className="text-sm font-black text-[var(--accent-teal)]">Crystal</span>
+                                    <span className="text-sm font-black text-[var(--accent-teal)]">Garden</span>
                                 </div>
-                                <span className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
-                                    {activeFramework === 'eisenhower' ? terms.eisenhowerQuadrant : activeFramework === '1-3-5' ? '1-3-5 Protocol' : activeFramework === 'ivy' ? terms.ivyRank : `Standard ${terms.shards}`}
-                                </span>
-                            </div>
-
-                            <AnimatePresence>
-                                {showProtocolSettings && activeFramework === '1-3-5' && (
-                                    <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: 'auto' }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        className="mb-4 bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl p-4 overflow-hidden"
-                                    >
-                                        <div className="flex items-center justify-between mb-3">
-                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--accent-teal)]">Protocol Limits</h4>
-                                            <button onClick={() => setShowProtocolSettings(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)]"><X size={14} /></button>
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-3">
-                                            {(['heavy', 'medium', 'light'] as const).map(l => (
-                                                <div key={l} className="space-y-1.5 text-center">
-                                                    <p className="text-[9px] font-bold text-[var(--text-muted)] uppercase">{l}</p>
-                                                    <input
-                                                        type="number" min="1" max="9"
-                                                        value={protocolLimits[l]}
-                                                        onChange={(e) => updateProtocolLimits({ [l]: parseInt(e.target.value) || 1 })}
-                                                        className="w-full bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-xl py-1 text-center text-xs font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]"
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-
-                            {/* Dynamic Morphing Arena */}
-                            <div className="flex-1 relative min-h-0">
-                                <AnimatePresence mode="wait">
-
-                                    {activeFramework === 'eisenhower' ? (
-                                        <motion.div
-                                            key="eisenhower"
-                                            initial={{ opacity: 0, scale: 0.95, filter: "blur(5px)" }}
-                                            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                                            exit={{ opacity: 0, scale: 1.05, filter: "blur(5px)" }}
-                                            transition={{ duration: 0.3, ease: "easeInOut" }}
-                                            className="absolute inset-0 flex flex-col gap-4"
-                                        >
-                                            <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0">
-                                                <MatrixZone id="quadrant-1" title="Do First" subtitle={`${terms.urgency} & ${terms.importance}`} tasks={filterByFrameworkAndLoad(activeQuests, (t: Task) => t.eisenhowerQuadrant === 1)} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" activeBorder="border-red-400" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
-                                                <MatrixZone id="quadrant-2" title="Schedule" subtitle={`Not ${terms.urgency}, ${terms.importance}`} tasks={filterByFrameworkAndLoad(activeQuests, (t: Task) => t.eisenhowerQuadrant === 2)} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" activeBorder="border-[var(--accent-teal)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
-                                                <MatrixZone id="quadrant-3" title="Delegate" subtitle={`${terms.urgency}, Not ${terms.importance}`} tasks={filterByFrameworkAndLoad(activeQuests, (t: Task) => t.eisenhowerQuadrant === 3)} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" activeBorder="border-[var(--accent-yellow)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
-                                                <MatrixZone id="quadrant-4" title="Don't Do" subtitle={`Not ${terms.urgency}, Not ${terms.importance}`} tasks={filterByFrameworkAndLoad(activeQuests, (t: Task) => t.eisenhowerQuadrant === 4)} color="text-[var(--text-muted)]" bg="bg-[var(--bg-dark)]" border="border-[var(--border-color)]" activeBorder="border-[var(--text-muted)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
-                                            </div>
-                                            {filterByFrameworkAndLoad(activeQuests, (t: Task) => !t.eisenhowerQuadrant).length > 0 && (
-                                                <div className="h-[30%] min-h-[160px] shrink-0">
-                                                    <UnsortedZone id="seed-bank" tasks={filterByFrameworkAndLoad(activeQuests, (t: Task) => !t.eisenhowerQuadrant)} title="Unsorted Quests (Drag to Quadrant)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
-                                                </div>
-                                            )}
-                                        </motion.div>
-
-                                    ) : activeFramework === '1-3-5' ? (
-                                        <motion.div
-                                            key="135"
-                                            initial={{ opacity: 0, x: -30, filter: "blur(5px)" }}
-                                            animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                                            exit={{ opacity: 0, x: 30, filter: "blur(5px)" }}
-                                            transition={{ duration: 0.3, type: "spring", bounce: 0.2 }}
-                                            className="absolute inset-0 flex flex-col gap-4 overflow-y-auto pr-1 pb-1"
-                                        >
-                                            {/* ✅ Using the new interactive dropdown slots! */}
-                                            <DropdownCapacityZone loadType="heavy" title="1 Heavy Quest" max={1} allTasks={filteredTasksByLoad} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
-                                            <DropdownCapacityZone loadType="medium" title="3 Medium Quests" max={3} allTasks={filteredTasksByLoad} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
-                                            <DropdownCapacityZone loadType="light" title="5 Light Quests" max={5} allTasks={filteredTasksByLoad} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
-                                        </motion.div>
-
-                                    ) : activeFramework === 'ivy' ? (
-                                        <motion.div
-                                            key="ivy"
-                                            initial={{ opacity: 0, y: 30, filter: "blur(5px)" }}
-                                            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                                            exit={{ opacity: 0, y: -30, filter: "blur(5px)" }}
-                                            transition={{ duration: 0.3, type: "spring", bounce: 0.2 }}
-                                            className="absolute inset-0 flex flex-col gap-4 overflow-hidden"
-                                        >
-                                            {/* 🔥 PADDED SCROLL CONTAINER: px-1 and -mx-1 gives the glow room to breathe! */}
-                                            <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col gap-3 pb-6 px-1 -mx-1">
-                                                {[1, 2, 3, 4, 5, 6].map(rank => {
-                                                    const task = filteredTasksByLoad.find(t => t.ivyRank === rank);
-                                                    const activeRank = [1, 2, 3, 4, 5, 6].find(r => {
-                                                        const t = filteredTasksByLoad.find(t => t.ivyRank === r);
-                                                        return !t || !t.isCompleted;
-                                                    }) || 1;
-                                                    const isLocked = !!(task && rank > activeRank);
-
-                                                    return <IvySlot key={rank} rank={rank} task={task || null} isLocked={isLocked} isActive={rank === activeRank} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />;
-                                                })}
-                                            </div>
-                                            {filterByFrameworkAndLoad(activeQuests, (t: Task) => !t.ivyRank).length > 0 && (
-                                                <div className="h-1/3 min-h-[150px] shrink-0">
-                                                    <UnsortedZone id="seed-bank" tasks={filterByFrameworkAndLoad(activeQuests, (t: Task) => !t.ivyRank)} title="Unranked Quests (Drag to Rank)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
-                                                </div>
-                                            )}
-                                        </motion.div>
-                                    ) : (
-                                        <motion.div
-                                            key="standard"
-                                            initial={{ opacity: 0, filter: "blur(5px)" }}
-                                            animate={{ opacity: 1, filter: "blur(0px)" }}
-                                            exit={{ opacity: 0, filter: "blur(5px)" }}
-                                            transition={{ duration: 0.3 }}
-                                            className="absolute inset-0 flex flex-col p-1"
-                                        >
-                                            <StandardZone id="current-focus" tasks={sortedQuests.filter(t => taskLoadFilters.includes(t.load))} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </div>
-                        </div>
-                            </motion.section>
-                        )}
-                    </AnimatePresence>
-
-                    {/* MIDDLE Column: The Terrarium Drop Zone */}
-                    <AnimatePresence>
-                        {showGarden3D && (
-                            <motion.div
-                                id="garden-crystal-visual"
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ duration: 0.3 }}
-                                className="h-[400px] lg:h-full relative flex flex-col pt-0 shrink-0"
-                            >
-                        <div ref={setGeodeRef} className={`flex-1 relative rounded-2xl md:rounded-[2.5rem] p-0.5 md:p-1 transition-colors duration-300 ${isGeodeOver ? 'bg-[var(--accent-teal)] shadow-[0_0_30px_rgba(20,184,166,0.3)]' : 'bg-[#111] shadow-[inset_0_4px_20px_rgba(0,0,0,0.6),0_0_0_1px_var(--border-color)]'}`}>
-                            <div className={`w-full h-full rounded-xl md:rounded-[1.8rem] overflow-hidden relative shadow-[inset_0_0_60px_rgba(0,0,0,0.9)] transition-all ${isGeodeOver ? 'border-2 border-[var(--bg-dark)]' : 'border border-white/10'}`}>
-                                <div className="absolute top-5 left-5 z-10 pointer-events-none">
-                                    <h2 className="text-xl font-black text-white drop-shadow-lg tracking-wide">Daily Synthesization</h2>
-                                    <p className="text-xs font-bold text-white/80 uppercase tracking-widest mt-1 drop-shadow-md">
-                                        {completionRatio >= 1 ? "Protocol Fulfilled" : "Synthesizing Momentum"}
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setIsGarden3DMaximized(!isGarden3DMaximized)}
-                                    className="absolute top-5 right-5 z-10 p-2 rounded-lg bg-[var(--bg-dark)]/80 hover:bg-[var(--bg-dark)] text-white/70 hover:text-white transition-all"
-                                    title={isGarden3DMaximized ? "Minimize" : "Maximize"}
-                                >
-                                    {isGarden3DMaximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                                </button>
-                                {crystalGrowth >= 100 && (
-                                    <div className="absolute bottom-5 right-5 z-10">
-                                        <button
-                                            onClick={() => setIsCrystalMasteryOpen(true)}
-                                            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-[var(--accent-yellow)] text-black shadow-[0_0_15px_rgba(234,179,8,0.35)] hover:brightness-110 transition-all"
-                                        >
-                                            Rebirth Crystal
-                                        </button>
-                                    </div>
-                                )}
-                                <GeodeScene
-                                    completionRatio={completionRatio}
-                                    snipingShard={snipingShard}
-                                    setSnipingShard={setSnipingShard}
-                                    isRebirthing={isRebirthing}
-                                />
-                            </div>
-                        </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* RIGHT Column: Hall of Mastery */}
-                    <AnimatePresence>
-                        {showHallOfMastery && (
-                            <motion.section
-                                id="garden-mastery-col"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 20 }}
-                                transition={{ duration: 0.3 }}
-                                className="h-[500px] lg:h-full overflow-hidden flex flex-col"
-                            >
-                        <MasteryContainer
-                            id="hall-of-mastery"
-                            masteryTab={masteryTab}
-                            setMasteryTab={setMasteryTab}
-                            isEmpty={
-                                masteryTab === 'tasks' ? archivedQuests.length === 0
-                                    : masteryTab === 'shards' ? masteredShards.length === 0
-                                        : masteredCrystals.length === 0
-                            }
-                            emptyText={
-                                masteryTab === 'tasks' ? "No archived quests yet"
-                                    : masteryTab === 'shards' ? "No knowledge shards have reached 100% mastery yet."
-                                        : "No perfected crystals yet."
-                            }
-                        >
-                            {masteryTab === 'tasks' ? (
-                                archivedQuests.map((task: Task) => (
-                                    <TaskCard 
-                                        key={task.id} 
-                                        task={task} 
-                                        onToggleSelect={handleToggleSelect} 
-                                        selected={selectedTaskIds.includes(task.id)} 
-                                        layoutId={task.id}
-                                        isRecentlyCompleted={recentlyCompletedTaskId === task.id}
-                                    />
-                                ))
-                            ) : masteryTab === 'shards' ? (
-                                masteredShards.map((shard: Shard) => (
-                                    <MasteredShardCard
-                                        key={shard.id}
-                                        shard={shard}
-                                        onSnipe={() => setSnipingShard(shard)}
-                                    />
-                                ))
-                            ) : (
-                                masteredCrystals.map((crystal: any) => (
-                                    <MasteredCrystalCard
-                                        key={crystal.id}
-                                        name={crystal.crystal_name}
-                                        masteredAt={crystal.mastered_at}
-                                    />
-                                ))
-                            )}
-                        </MasteryContainer>
-                    </motion.section>
-                        )}
-                    </AnimatePresence>
-
-                </div>
-
-                <DragOverlay dropAnimation={null}>
-                    {activeDragTask ? <TaskCard task={activeDragTask} isOverlay /> : null}
-                </DragOverlay>
-
-                {/* 🔥 UNRANKED QUESTS MODAL 🔥 */}
-                <AnimatePresence>
-                    {showUnrankedModal && (
-                        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-6">
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowUnrankedModal(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
-                            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border-2 border-[var(--border-color)] rounded-[2.5rem] p-8 w-full max-w-2xl h-[80vh] flex flex-col shadow-2xl relative z-10 overflow-hidden">
-                                <div className="flex justify-between items-center mb-6 shrink-0">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-[var(--accent-teal)]/10 rounded-2xl flex items-center justify-center border border-[var(--accent-teal)]/20 shadow-[0_0_15px_rgba(20,184,166,0.1)]">
-                                            <Maximize2 size={24} className="text-[var(--accent-teal)]" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl font-black text-[var(--text-main)] uppercase tracking-widest">Unsorted Quests</h3>
-                                            <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Awaiting Command Initialized ({filteredTasksByLoad.filter((t: Task) => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).length})</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => setShowUnrankedModal(false)} className="bg-[var(--bg-dark)] border border-[var(--border-color)] p-3 rounded-2xl text-[var(--text-muted)] hover:text-white transition-all hover:scale-110 active:scale-95"><X size={20} /></button>
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
-                                    {filteredTasksByLoad.filter((t: Task) => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).map(task => (
-                                        <TaskCard key={task.id} task={task} completionEffect="glide" layoutId={task.id} isRecentlyCompleted={recentlyCompletedTaskId === task.id} />
-                                    ))}
-                                    {filteredTasksByLoad.filter((t: Task) => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).length === 0 && (
-                                        <div className="col-span-full h-full flex flex-col items-center justify-center text-[var(--text-muted)] gap-4 py-20 opacity-50">
-                                            <Sprout size={48} />
-                                            <p className="text-sm font-bold uppercase tracking-widest">No unranked quests found</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>
-
-                {/* BULK ACTION BAR */}
-                <AnimatePresence>
-                    {selectedTaskIds.length > 0 && (
-                        <motion.div
-                            initial={{ y: 100, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: 100, opacity: 0 }}
-                            className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[var(--bg-card)] border-2 border-[var(--accent-teal)] rounded-2xl px-6 py-4 shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex items-center gap-6 z-[1000] backdrop-blur-md"
-                        >
-                            <div className="flex items-center gap-3 pr-6 border-r border-[var(--border-color)]">
-                                <span className="bg-[var(--accent-teal)] text-black text-xs font-black px-2 py-1 rounded-md">
-                                    {selectedTaskIds.length}
-                                </span>
-                                <span className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wider">Quests Selected</span>
                             </div>
 
                             <div className="flex items-center gap-3">
-                                <SquishyButton
-                                    onClick={handleBulkComplete}
-                                    className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[var(--accent-teal)] transition-all shadow-lg border-none"
-                                >
-                                    <CheckCircle2 size={14} /> Complete
-                                </SquishyButton>
-                                <SquishyButton
-                                    onClick={handleBulkDelete}
-                                    className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/30 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-none"
-                                >
-                                    <X size={14} /> Delete
-                                </SquishyButton>
-                                <SquishyButton
-                                    onClick={() => setSelectedTaskIds([])}
-                                    className="text-xs font-bold text-[var(--text-muted)] hover:text-white transition-colors ml-2 border-none bg-transparent shadow-none p-1"
-                                >
-                                    Cancel
+                                <button onClick={() => setShowMobileSearch(!showMobileSearch)} className="text-[var(--text-muted)] hover:text-white p-1" aria-label="Search">
+                                    <Search size={18} />
+                                </button>
+                                <SquishyButton id="garden-mobile-add-task-btn" onClick={() => setIsAdding(true)} className="bg-[var(--accent-teal)] text-[#0b1211] px-3.5 py-2 rounded-xl font-black text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(20,184,166,0.3)] shrink-0">
+                                    <Plus size={14} /> Plant Quest
                                 </SquishyButton>
                             </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                        </div>
 
-                <AnimatePresence>
-                    {isCrystalMasteryOpen && (
-                        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-6">
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                onClick={() => setIsCrystalMasteryOpen(false)}
-                                className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
-                            />
-                            <motion.div
-                                initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                                animate={{ scale: 1, opacity: 1, y: 0 }}
-                                exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                                className="bg-[var(--bg-card)] border-2 border-[var(--accent-yellow)] rounded-[2.5rem] p-8 w-full max-w-xl shadow-2xl relative z-10"
-                            >
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-[var(--accent-yellow)]/15 border border-[var(--accent-yellow)]/30 flex items-center justify-center">
-                                        <Sparkles size={22} className="text-[var(--accent-yellow)]" />
+                        {/* Search Bar Floating Dropdown */}
+                        <AnimatePresence>
+                            {showMobileSearch && (
+                                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-[52px] left-0 right-0 z-50 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-2 shadow-2xl backdrop-blur-xl">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={14} />
+                                        <input
+                                            type="text"
+                                            placeholder="Search quests..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl pl-9 pr-4 py-3 text-xs font-medium focus:outline-none focus:border-[var(--accent-teal)] text-white placeholder:text-[var(--text-muted)]/50"
+                                            autoFocus
+                                        />
                                     </div>
-                                    <div>
-                                        <h3 className="text-xl font-black text-[var(--text-main)]">Crystal Mastery Reached</h3>
-                                        <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Name your perfected crystal</p>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Row 2: Filter, Framework, Wrap Up */}
+                        <div className="flex items-center justify-between gap-2 mt-4 pt-1">
+                            <div className="flex items-center gap-2 flex-1">
+                                {/* Filter Dropdown */}
+                                <div ref={mobileFilterRef} className="relative flex-1 max-w-[140px]">
+                                    <button
+                                        onClick={() => setShowMobileFilterMenu(!showMobileFilterMenu)}
+                                        className={`w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-xs font-bold flex items-center justify-between gap-1.5 transition-colors ${showMobileFilterMenu ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'text-[var(--text-muted)] hover:border-white/20'}`}
+                                    >
+                                        <div className="flex items-center gap-1.5 truncate">
+                                            <Filter size={14} />
+                                            <span>Filter</span>
+                                        </div>
+                                        <ChevronDown size={14} className={`transition-transform duration-300 ${showMobileFilterMenu ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    <AnimatePresence>
+                                        {showMobileFilterMenu && (
+                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute left-0 top-full mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden z-50 p-2 space-y-1">
+                                                <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] px-2 py-1">Task Load</p>
+                                                {(['light', 'medium', 'heavy'] as const).map((load) => {
+                                                    const isActive = taskLoadFilters.includes(load);
+                                                    return (
+                                                        <button
+                                                            key={load}
+                                                            onClick={() => {
+                                                                setTaskLoadFilters(prev => prev.includes(load) ? prev.filter(l => l !== load) : [...prev, load]);
+                                                            }}
+                                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors ${isActive ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)]' : 'text-[var(--text-muted)] hover:bg-white/5 hover:text-white'}`}
+                                                        >
+                                                            <span className="capitalize">{load} Quests</span>
+                                                            {isActive && <Check size={14} className="text-[var(--accent-teal)]" />}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+
+                                {/* Framework Dropdown */}
+                                <div ref={mobileFrameworkRef} className="relative flex-1 max-w-[150px]">
+                                    <button
+                                        onClick={() => setShowMobileFrameworkMenu(!showMobileFrameworkMenu)}
+                                        className={`w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-xs font-bold flex items-center justify-between gap-1.5 transition-colors ${showMobileFrameworkMenu || activeFramework ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'text-[var(--text-muted)] hover:border-white/20'}`}
+                                    >
+                                        <div className="flex items-center gap-1.5 truncate">
+                                            <BrainCircuit size={14} />
+                                            <span className="truncate capitalize">{activeFramework || 'Framework'}</span>
+                                        </div>
+                                        <ChevronDown size={14} className={`transition-transform duration-300 ${showMobileFrameworkMenu ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    <AnimatePresence>
+                                        {showMobileFrameworkMenu && (
+                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute left-0 top-full mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden z-50">
+                                                {(
+                                                    [
+                                                        { id: null, label: 'Standard List' },
+                                                        { id: '1-3-5', label: '1-3-5 Method' },
+                                                        { id: 'eisenhower', label: 'Eisenhower Matrix' },
+                                                        { id: 'ivy', label: 'Ivy Lee Method' },
+                                                    ] as { id: 'eisenhower' | '1-3-5' | 'ivy' | null; label: string }[]
+                                                ).map((fw) => {
+                                                    const isActive = activeFramework === fw.id;
+                                                    const selection = fw.id ?? 'standard';
+                                                    return (
+                                                        <button
+                                                            key={fw.label}
+                                                            onClick={() => {
+                                                                setShowMobileFrameworkMenu(false);
+                                                                if (activeFramework !== fw.id) setPendingFramework(selection);
+                                                            }}
+                                                            className={`w-full text-left px-4 py-3 text-xs font-bold transition-colors flex items-center justify-between ${isActive ? 'bg-[var(--bg-sidebar)] text-[var(--accent-teal)]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-sidebar)] hover:text-[var(--text-main)]'}`}
+                                                        >
+                                                            <span>{fw.label}</span>
+                                                            {isActive && <Check size={14} className="text-[var(--accent-teal)]" />}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            </div>
+
+                            {/* Wrap Up Button */}
+                            <button onClick={() => setShowUnDoneModal(true)} className="text-xs font-bold text-[var(--text-muted)] hover:text-white flex items-center gap-1.5 pl-2 shrink-0">
+                                <Moon size={14} /> Wrap Up
+                            </button>
+                        </div>
+
+                        {/* Row 3: The 3 Navigation Tabs */}
+                        <div className="flex border-b border-[var(--border-color)] mt-6 mb-2">
+                            <button onClick={() => setActiveGardenTab('incomplete')} className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-wider text-center border-b-2 transition-all ${activeGardenTab === 'incomplete' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>Incomplete Quests</button>
+                            <button onClick={() => setActiveGardenTab('3d')} className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-wider text-center border-b-2 transition-all ${activeGardenTab === '3d' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>Garden Scene</button>
+                            <button onClick={() => setActiveGardenTab('complete')} className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-wider text-center border-b-2 transition-all ${activeGardenTab === 'complete' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>Complete & Mastery</button>
+                        </div>
+                    </div>
+
+                    {/* DESKTOP GARDEN HEADER */}
+                    <header className="hidden lg:flex flex-row justify-between items-center gap-6 mb-8 pt-0">
+                        <div>
+                            <h1 className="text-2xl md:text-4xl font-black text-[var(--text-main)] flex items-center gap-3">
+                                <Sprout className="text-[var(--accent-teal)]" size={32} />
+                                {terms.crystalGarden}
+                            </h1>
+                            <p className="text-[var(--text-muted)] font-bold tracking-[0.15em] uppercase text-[9px] md:text-xs mt-1">Nurture your focus, harvest your potential.</p>
+                        </div>
+
+                        <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-3 w-full xl:w-auto">
+                            {/* Group 1: Search & Lens */}
+                            <div className="flex items-center gap-2 w-full xl:w-auto">
+                                <div className="relative flex-1 xl:flex-none">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search quests..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full xl:w-64 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl pl-10 pr-24 py-3 text-xs md:text-sm font-medium focus:outline-none focus:border-[var(--accent-teal)] transition-colors placeholder:text-[var(--text-muted)]/50"
+                                    />
+                                    {/* Inline Load Filters (Mobile & Desktop) */}
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 bg-[var(--bg-dark)]/50 p-1 rounded-lg backdrop-blur-sm border border-white/5">
+                                        {(['light', 'medium', 'heavy'] as const).map((load) => (
+                                            <button
+                                                key={load}
+                                                onClick={() => {
+                                                    setTaskLoadFilters(prev => prev.includes(load) ? prev.filter(l => l !== load) : [...prev, load]);
+                                                }}
+                                                className={`w-3 h-3 md:w-4 md:h-4 rounded-full transition-all border ${taskLoadFilters.includes(load)
+                                                        ? load === 'light' ? 'bg-teal-400 border-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.5)]'
+                                                            : load === 'medium' ? 'bg-yellow-400 border-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.5)]'
+                                                                : 'bg-red-400 border-red-400 shadow-[0_0_8px_rgba(248,113,113,0.5)]'
+                                                        : 'bg-transparent border-[var(--border-color)] hover:border-white/30'
+                                                    }`}
+                                                title={`Toggle ${load} quests`}
+                                            />
+                                        ))}
                                     </div>
                                 </div>
 
-                                <input
-                                    value={crystalNameInput}
-                                    onChange={(e) => setCrystalNameInput(e.target.value)}
-                                    placeholder="Crystal name"
-                                    className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-[var(--accent-yellow)]"
-                                />
-
-                                <div className="mt-6 flex items-center gap-3">
+                                {/* Lens / View Menu (Hidden on mobile APK) */}
+                                <div ref={viewMenuRef} className="relative shrink-0 hidden xl:block">
                                     <SquishyButton
-                                        onClick={() => setIsCrystalMasteryOpen(false)}
-                                        className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 text-sm font-bold hover:bg-white/5 transition-all shadow-none"
+                                        onClick={() => setShowViewMenu(!showViewMenu)}
+                                        className={`h-full px-4 py-3 rounded-xl text-xs md:text-sm font-bold flex items-center gap-2 border transition-all ${showViewMenu ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'}`}
                                     >
-                                        Later
+                                        <Eye size={16} />
+                                        <span className="hidden sm:inline">Lens</span>
+                                    </SquishyButton>
+
+                                    <AnimatePresence>
+                                        {showViewMenu && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: 10 }}
+                                                className="absolute top-full right-0 mt-2 w-56 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden z-[60]"
+                                            >
+                                                {/* Widget Visibility Controls */}
+                                                <div className="p-4 border-b border-[var(--border-color)]">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">Widgets</p>
+                                                    <div className="space-y-2">
+                                                        <button
+                                                            onClick={() => setShowCurrentFocus(!showCurrentFocus)}
+                                                            disabled={isOnlyWidgetVisible('focus')}
+                                                            className={`w-full text-left px-3 py-2 rounded-lg border transition-all text-sm font-bold ${showCurrentFocus
+                                                                    ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]'
+                                                                    : 'bg-transparent border-[var(--border-color)] text-[var(--text-muted)] hover:text-white disabled:opacity-50'
+                                                                } ${isOnlyWidgetVisible('focus') ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                                                        >
+                                                            {showCurrentFocus ? '✓' : ''} Current Focus
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setShowGarden3D(!showGarden3D)}
+                                                            disabled={isOnlyWidgetVisible('garden')}
+                                                            className={`w-full text-left px-3 py-2 rounded-lg border transition-all text-sm font-bold ${showGarden3D
+                                                                    ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]'
+                                                                    : 'bg-transparent border-[var(--border-color)] text-[var(--text-muted)] hover:text-white disabled:opacity-50'
+                                                                } ${isOnlyWidgetVisible('garden') ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                                                        >
+                                                            {showGarden3D ? '✓' : ''} 3D Garden
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setShowHallOfMastery(!showHallOfMastery)}
+                                                            disabled={isOnlyWidgetVisible('mastery')}
+                                                            className={`w-full text-left px-3 py-2 rounded-lg border transition-all text-sm font-bold ${showHallOfMastery
+                                                                    ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]'
+                                                                    : 'bg-transparent border-[var(--border-color)] text-[var(--text-muted)] hover:text-white disabled:opacity-50'
+                                                                } ${isOnlyWidgetVisible('mastery') ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                                                        >
+                                                            {showHallOfMastery ? '✓' : ''} Hall of Mastery
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            </div> {/* <-- Closes Group 1 */}
+
+                            {/* Group 2: Framework & Actions */}
+                            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full xl:w-auto">
+                                {/* 🔥 THE FRAMEWORK DROPDOWN 🔥 */}
+                                <div ref={frameworkMenuRef} className="relative z-50 flex-1 sm:min-w-[200px]">
+                                    <SquishyButton
+                                        onClick={() => setShowFrameworkMenu(!showFrameworkMenu)}
+                                        className={`w-full h-full px-4 py-3 rounded-xl text-xs md:text-sm font-bold flex items-center justify-between gap-2 border transition-all capitalize shadow-none ${activeFramework
+                                            ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/50 text-[var(--accent-teal)]'
+                                            : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'
+                                            }`}
+                                    >
+                                        {activeFramework
+                                            ? `${terms.framework}: ${activeFramework === 'ivy'
+                                                ? 'Ivy Lee Method'
+                                                : activeFramework === 'eisenhower'
+                                                    ? 'Eisenhower Matrix'
+                                                    : activeFramework === '1-3-5'
+                                                        ? '1-3-5 Method'
+                                                        : activeFramework
+                                            }`
+                                            : 'Standard'}
+                                        <ChevronDown
+                                            size={14}
+                                            className={`transition-transform duration-300 ${showFrameworkMenu ? 'rotate-180' : ''
+                                                }`}
+                                        />
+                                    </SquishyButton>
+                                    <AnimatePresence>
+                                        {showFrameworkMenu && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: 10 }}
+                                                className="absolute top-full right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden"
+                                            >
+                                                {(
+                                                    [
+                                                        { id: null, label: 'Standard List' },
+                                                        { id: '1-3-5', label: '1-3-5 Method' },
+                                                        { id: 'eisenhower', label: 'Eisenhower Matrix' },
+                                                        { id: 'ivy', label: 'Ivy Lee Method' },
+                                                    ] as { id: 'eisenhower' | '1-3-5' | 'ivy' | null; label: string }[]
+                                                ).map((fw) => {
+                                                    const isActive = activeFramework === fw.id;
+                                                    const selection = fw.id ?? 'standard';
+                                                    return (
+                                                        <SquishyButton
+                                                            key={fw.label}
+                                                            onClick={() => {
+                                                                setShowFrameworkMenu(false);
+                                                                if (activeFramework !== fw.id) setPendingFramework(selection);
+                                                            }}
+                                                            className={`w-full text-left px-4 py-3 text-sm font-bold transition-colors border-none shadow-none rounded-none ${isActive
+                                                                    ? 'bg-[var(--bg-sidebar)] text-[var(--text-main)]'
+                                                                    : 'text-[var(--text-muted)] hover:bg-[var(--bg-sidebar)] hover:text-[var(--text-main)]'
+                                                                }`}
+                                                            aria-current={isActive ? 'true' : undefined}
+                                                        >
+                                                            <span className="flex items-center justify-between w-full">
+                                                                <span>{fw.label}</span>
+                                                                {isActive && <Check size={14} className="text-[var(--accent-teal)]" />}
+                                                            </span>
+                                                        </SquishyButton>
+                                                    );
+                                                })}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                                <SquishyButton onClick={() => setShowUnDoneModal(true)} className="flex-1 sm:flex-none bg-[var(--bg-sidebar)] border border-(--border-color) px-4 py-3 rounded-xl text-xs md:text-sm font-bold text-[var(--text-main)] hover:text-[var(--accent-teal)] hover:border-[var(--accent-teal)] transition-colors flex items-center justify-center whitespace-nowrap gap-2 shrink-0">
+                                    <Moon size={14} /> Wrap Up
+                                </SquishyButton>
+                                <SquishyButton id="garden-add-task-btn" onClick={() => setIsAdding(true)} className="flex-1 sm:flex-none bg-[var(--accent-teal)] text-[#0b1211] px-4 py-3 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 hover:brightness-110 shadow-[0_0_10px_rgba(20,184,166,0.2)] shrink-0">
+                                    <Plus size={14} /> Plant Quest
+                                </SquishyButton>
+                            </div>
+                        </div>
+                    </header>
+
+                    <ConfirmationModal
+                        isOpen={showBulkDeleteConfirm}
+                        title="Release All Selected?"
+                        message={`Are you sure you want to release ${selectedTaskIds.length} quests? This action cannot be undone.`}
+                        confirmText="Release All"
+                        cancelText="Keep Quests"
+                        isDangerous={true}
+                        onConfirm={confirmBulkDelete}
+                        onCancel={() => setShowBulkDeleteConfirm(false)}
+                    />
+
+                    {/* 3. The Strict 3-Column Layout! (Responsive stack on mobile) */}
+                    <div className={`flex-1 grid gap-6 min-h-0 ${activeGardenTab === '3d' ? 'overflow-hidden' : 'overflow-y-auto lg:overflow-hidden'} no-scrollbar ${showCurrentFocus && showGarden3D && showHallOfMastery ? 'grid-cols-1 lg:grid-cols-3 lg:grid-rows-1' :
+                            (showCurrentFocus && showGarden3D) || (showCurrentFocus && showHallOfMastery) || (showGarden3D && showHallOfMastery) ? 'grid-cols-1 lg:grid-cols-2 lg:grid-rows-1' :
+                                'grid-cols-1 lg:grid-rows-1'
+                        }`}>
+
+                        {/* LEFT Column: Active Quests */}
+                        <AnimatePresence>
+                            {showCurrentFocus && (
+                                <motion.section
+                                    id="garden-framework-zone"
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={{ duration: 0.3 }}
+                                    className={`h-full w-full flex-col shrink-0 ${activeGardenTab === 'incomplete' ? 'flex' : 'hidden lg:flex'}`}
+                                >
+                                    <div id="garden-active-quests" className="lg:bg-[var(--bg-card)] lg:border lg:border-(--border-color) lg:rounded-2xl lg:p-5 flex flex-col flex-1 min-h-0 overflow-hidden lg:shadow-sm">
+
+                                        {/* Static Header */}
+                                        <div className="flex justify-between items-center mb-4 shrink-0">
+                                            <div className="flex items-center gap-3">
+                                                <h2 className="text-xl font-bold text-[var(--text-main)]">Current Focus</h2>
+                                            </div>
+                                            <span className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
+                                                {activeFramework === 'eisenhower' ? terms.eisenhowerQuadrant : activeFramework === '1-3-5' ? '1-3-5 Protocol' : activeFramework === 'ivy' ? terms.ivyRank : 'Standard'}
+                                            </span>
+                                        </div>
+
+                                        <AnimatePresence>
+                                            {showProtocolSettings && activeFramework === '1-3-5' && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    className="mb-4 bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl p-4 overflow-hidden"
+                                                >
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--accent-teal)]">Protocol Limits</h4>
+                                                        <button onClick={() => setShowProtocolSettings(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)]"><X size={14} /></button>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-3">
+                                                        {(['heavy', 'medium', 'light'] as const).map(l => (
+                                                            <div key={l} className="space-y-1.5 text-center">
+                                                                <p className="text-[9px] font-bold text-[var(--text-muted)] uppercase">{l}</p>
+                                                                <input
+                                                                    type="number" min="1" max="9"
+                                                                    value={protocolLimits[l]}
+                                                                    onChange={(e) => updateProtocolLimits({ [l]: parseInt(e.target.value) || 1 })}
+                                                                    className="w-full bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-xl py-1 text-center text-xs font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]"
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+
+                                        {/* Dynamic Morphing Arena */}
+                                        <div className="flex-1 relative min-h-0">
+                                            <AnimatePresence mode="wait">
+
+                                                {activeFramework === 'eisenhower' ? (
+                                                    <motion.div
+                                                        key="eisenhower"
+                                                        initial={{ opacity: 0, scale: 0.95, filter: "blur(5px)" }}
+                                                        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                                                        exit={{ opacity: 0, scale: 1.05, filter: "blur(5px)" }}
+                                                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                                                        className="absolute inset-0 flex flex-col gap-4"
+                                                    >
+                                                        <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0">
+                                                            <MatrixZone id="quadrant-1" title="Do First" subtitle={`${terms.urgency} & ${terms.importance}`} tasks={filterByFrameworkAndLoad(activeQuests, (t: Task) => t.eisenhowerQuadrant === 1)} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" activeBorder="border-red-400" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                                            <MatrixZone id="quadrant-2" title="Schedule" subtitle={`Not ${terms.urgency}, ${terms.importance}`} tasks={filterByFrameworkAndLoad(activeQuests, (t: Task) => t.eisenhowerQuadrant === 2)} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" activeBorder="border-[var(--accent-teal)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                                            <MatrixZone id="quadrant-3" title="Delegate" subtitle={`${terms.urgency}, Not ${terms.importance}`} tasks={filterByFrameworkAndLoad(activeQuests, (t: Task) => t.eisenhowerQuadrant === 3)} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" activeBorder="border-[var(--accent-yellow)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                                            <MatrixZone id="quadrant-4" title="Don't Do" subtitle={`Not ${terms.urgency}, Not ${terms.importance}`} tasks={filterByFrameworkAndLoad(activeQuests, (t: Task) => t.eisenhowerQuadrant === 4)} color="text-[var(--text-muted)]" bg="bg-[var(--bg-dark)]" border="border-[var(--border-color)]" activeBorder="border-[var(--text-muted)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                                        </div>
+                                                        {filterByFrameworkAndLoad(activeQuests, (t: Task) => !t.eisenhowerQuadrant).length > 0 && (
+                                                            <div className="h-[30%] min-h-[160px] shrink-0">
+                                                                <UnsortedZone id="seed-bank" tasks={filterByFrameworkAndLoad(activeQuests, (t: Task) => !t.eisenhowerQuadrant)} title="Unsorted Quests (Drag to Quadrant)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                                            </div>
+                                                        )}
+                                                    </motion.div>
+
+                                                ) : activeFramework === '1-3-5' ? (
+                                                    <motion.div
+                                                        key="135"
+                                                        initial={{ opacity: 0, x: -30, filter: "blur(5px)" }}
+                                                        animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                                                        exit={{ opacity: 0, x: 30, filter: "blur(5px)" }}
+                                                        transition={{ duration: 0.3, type: "spring", bounce: 0.2 }}
+                                                        className="absolute inset-0 flex flex-col gap-4 overflow-y-auto pr-1 pb-1"
+                                                    >
+                                                        {/* ✅ Using the new interactive dropdown slots! */}
+                                                        <DropdownCapacityZone loadType="heavy" title="1 Heavy Quest" max={1} allTasks={filteredTasksByLoad} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                                        <DropdownCapacityZone loadType="medium" title="3 Medium Quests" max={3} allTasks={filteredTasksByLoad} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                                        <DropdownCapacityZone loadType="light" title="5 Light Quests" max={5} allTasks={filteredTasksByLoad} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                                    </motion.div>
+
+                                                ) : activeFramework === 'ivy' ? (
+                                                    <motion.div
+                                                        key="ivy"
+                                                        initial={{ opacity: 0, y: 30, filter: "blur(5px)" }}
+                                                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                                                        exit={{ opacity: 0, y: -30, filter: "blur(5px)" }}
+                                                        transition={{ duration: 0.3, type: "spring", bounce: 0.2 }}
+                                                        className="absolute inset-0 flex flex-col gap-4 overflow-hidden"
+                                                    >
+                                                        {/* 🔥 PADDED SCROLL CONTAINER: px-1 and -mx-1 gives the glow room to breathe! */}
+                                                        <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col gap-3 pb-6 px-1 -mx-1">
+                                                            {[1, 2, 3, 4, 5, 6].map(rank => {
+                                                                const task = filteredTasksByLoad.find(t => t.ivyRank === rank);
+                                                                const activeRank = [1, 2, 3, 4, 5, 6].find(r => {
+                                                                    const t = filteredTasksByLoad.find(t => t.ivyRank === r);
+                                                                    return !t || !t.isCompleted;
+                                                                }) || 1;
+                                                                const isLocked = !!(task && rank > activeRank);
+
+                                                                return <IvySlot key={rank} rank={rank} task={task || null} isLocked={isLocked} isActive={rank === activeRank} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />;
+                                                            })}
+                                                        </div>
+                                                        {filterByFrameworkAndLoad(activeQuests, (t: Task) => !t.ivyRank).length > 0 && (
+                                                            <div className="h-1/3 min-h-[150px] shrink-0">
+                                                                <UnsortedZone id="seed-bank" tasks={filterByFrameworkAndLoad(activeQuests, (t: Task) => !t.ivyRank)} title="Unranked Quests (Drag to Rank)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                                            </div>
+                                                        )}
+                                                    </motion.div>
+                                                ) : (
+                                                    <motion.div
+                                                        key="standard"
+                                                        initial={{ opacity: 0, filter: "blur(5px)" }}
+                                                        animate={{ opacity: 1, filter: "blur(0px)" }}
+                                                        exit={{ opacity: 0, filter: "blur(5px)" }}
+                                                        transition={{ duration: 0.3 }}
+                                                        className="absolute inset-0 flex flex-col p-1"
+                                                    >
+                                                        <StandardZone id="current-focus" tasks={sortedQuests.filter(t => taskLoadFilters.includes(t.load))} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+                                </motion.section>
+                            )}
+                        </AnimatePresence>
+
+                        {/* MIDDLE Column: The Terrarium Drop Zone */}
+                        <AnimatePresence>
+                            {showGarden3D && (
+                                <motion.div
+                                    id="garden-crystal-visual"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    transition={{ duration: 0.3 }}
+                                    onAnimationComplete={() => { window.dispatchEvent(new Event('resize')); }}
+                                    className={`flex-1 min-h-0 w-full h-full relative flex-col shrink-0 ${activeGardenTab === '3d' ? 'flex' : 'hidden lg:flex'}`}
+                                >
+                                    <div ref={setGeodeRef} className={`flex-1 min-h-0 flex flex-col w-full relative rounded-2xl md:rounded-[2.5rem] p-0.5 md:p-1 transition-colors duration-300 ${isGeodeOver ? 'bg-[var(--accent-teal)] shadow-[0_0_30px_rgba(20,184,166,0.3)]' : 'bg-[#111] shadow-[inset_0_4px_20px_rgba(0,0,0,0.6),0_0_0_1px_var(--border-color)]'}`}>
+                                        <div className={`flex flex-col flex-1 min-h-0 w-full h-full rounded-xl md:rounded-[1.8rem] overflow-hidden relative shadow-[inset_0_0_60px_rgba(0,0,0,0.9)] transition-all ${isGeodeOver ? 'border-2 border-[var(--bg-dark)]' : 'border border-white/10'}`}>
+                                            <div className="absolute top-5 left-5 z-10 pointer-events-none">
+                                                <h2 className="text-xl font-black text-white drop-shadow-lg tracking-wide">Daily Synthesization</h2>
+                                                <p className="text-xs font-bold text-white/80 uppercase tracking-widest mt-1 drop-shadow-md">
+                                                    {completionRatio >= 1 ? "Protocol Fulfilled" : "Synthesizing Momentum"}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => setIsGarden3DMaximized(!isGarden3DMaximized)}
+                                                className="absolute top-5 right-5 z-10 p-2 rounded-lg bg-[var(--bg-dark)]/80 hover:bg-[var(--bg-dark)] text-white/70 hover:text-white transition-all"
+                                                title={isGarden3DMaximized ? "Minimize" : "Maximize"}
+                                            >
+                                                {isGarden3DMaximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                                            </button>
+                                            {crystalGrowth >= 100 && (
+                                                <div className="absolute bottom-5 right-5 z-10">
+                                                    <button
+                                                        onClick={() => setIsCrystalMasteryOpen(true)}
+                                                        className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-[var(--accent-yellow)] text-black shadow-[0_0_15px_rgba(234,179,8,0.35)] hover:brightness-110 transition-all"
+                                                    >
+                                                        Rebirth Crystal
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <GeodeScene
+                                                completionRatio={completionRatio}
+                                                snipingShard={snipingShard}
+                                                setSnipingShard={setSnipingShard}
+                                                isRebirthing={isRebirthing}
+                                                isMaximized={isGarden3DMaximized}
+                                            />
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* RIGHT Column: Hall of Mastery */}
+                        <AnimatePresence>
+                            {showHallOfMastery && (
+                                <motion.section
+                                    id="garden-mastery-col"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 20 }}
+                                    transition={{ duration: 0.3 }}
+                                    className={`h-full w-full overflow-hidden flex-col ${activeGardenTab === 'complete' ? 'flex' : 'hidden lg:flex'}`}
+                                >
+                                    <MasteryContainer
+                                        id="hall-of-mastery"
+                                        masteryTab={masteryTab}
+                                        setMasteryTab={setMasteryTab}
+                                        isEmpty={
+                                            masteryTab === 'tasks' ? archivedQuests.length === 0
+                                                : masteryTab === 'shards' ? masteredShards.length === 0
+                                                    : masteredCrystals.length === 0
+                                        }
+                                        emptyText={
+                                            masteryTab === 'tasks' ? "No archived quests yet"
+                                                : masteryTab === 'shards' ? "No knowledge shards have reached 100% mastery yet."
+                                                    : "No perfected crystals yet."
+                                        }
+                                    >
+                                        {masteryTab === 'tasks' ? (
+                                            archivedQuests.map((task: Task) => (
+                                                <TaskCard
+                                                    key={task.id}
+                                                    task={task}
+                                                    onToggleSelect={handleToggleSelect}
+                                                    selected={selectedTaskIds.includes(task.id)}
+                                                    layoutId={task.id}
+                                                    isRecentlyCompleted={recentlyCompletedTaskId === task.id}
+                                                />
+                                            ))
+                                        ) : masteryTab === 'shards' ? (
+                                            masteredShards.map((shard: Shard) => (
+                                                <MasteredShardCard
+                                                    key={shard.id}
+                                                    shard={shard}
+                                                    onSnipe={() => setSnipingShard(shard)}
+                                                />
+                                            ))
+                                        ) : (
+                                            masteredCrystals.map((crystal: any) => (
+                                                <MasteredCrystalCard
+                                                    key={crystal.id}
+                                                    name={crystal.crystal_name}
+                                                    masteredAt={crystal.mastered_at}
+                                                />
+                                            ))
+                                        )}
+                                    </MasteryContainer>
+                                </motion.section>
+                            )}
+                        </AnimatePresence>
+
+                    </div>
+
+                    <DragOverlay dropAnimation={null}>
+                        {activeDragTask ? <TaskCard task={activeDragTask} isOverlay /> : null}
+                    </DragOverlay>
+
+                    {/* 🔥 UNRANKED QUESTS MODAL 🔥 */}
+                    <AnimatePresence>
+                        {showUnrankedModal && (
+                            <div className="fixed inset-0 z-[100000] flex items-center justify-center p-6">
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowUnrankedModal(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
+                                <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border-2 border-[var(--border-color)] rounded-[2.5rem] p-8 w-full max-w-2xl h-[80vh] flex flex-col shadow-2xl relative z-10 overflow-hidden">
+                                    <div className="flex justify-between items-center mb-6 shrink-0">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-[var(--accent-teal)]/10 rounded-2xl flex items-center justify-center border border-[var(--accent-teal)]/20 shadow-[0_0_15px_rgba(20,184,166,0.1)]">
+                                                <Maximize2 size={24} className="text-[var(--accent-teal)]" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-black text-[var(--text-main)] uppercase tracking-widest">Unsorted Quests</h3>
+                                                <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Awaiting Command Initialized ({filteredTasksByLoad.filter((t: Task) => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).length})</p>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => setShowUnrankedModal(false)} className="bg-[var(--bg-dark)] border border-[var(--border-color)] p-3 rounded-2xl text-[var(--text-muted)] hover:text-white transition-all hover:scale-110 active:scale-95"><X size={20} /></button>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
+                                        {filteredTasksByLoad.filter((t: Task) => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).map(task => (
+                                            <TaskCard key={task.id} task={task} completionEffect="glide" layoutId={task.id} isRecentlyCompleted={recentlyCompletedTaskId === task.id} />
+                                        ))}
+                                        {filteredTasksByLoad.filter((t: Task) => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).length === 0 && (
+                                            <div className="col-span-full h-full flex flex-col items-center justify-center text-[var(--text-muted)] gap-4 py-20 opacity-50">
+                                                <Sprout size={48} />
+                                                <p className="text-sm font-bold uppercase tracking-widest">No unranked quests found</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* BULK ACTION BAR */}
+                    <AnimatePresence>
+                        {selectedTaskIds.length > 0 && (
+                            <motion.div
+                                initial={{ y: 100, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: 100, opacity: 0 }}
+                                className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[var(--bg-card)] border-2 border-[var(--accent-teal)] rounded-2xl px-6 py-4 shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex items-center gap-6 z-[1000] backdrop-blur-md"
+                            >
+                                <div className="flex items-center gap-3 pr-6 border-r border-[var(--border-color)]">
+                                    <span className="bg-[var(--accent-teal)] text-black text-xs font-black px-2 py-1 rounded-md">
+                                        {selectedTaskIds.length}
+                                    </span>
+                                    <span className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wider">Quests Selected</span>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <SquishyButton
+                                        onClick={handleBulkComplete}
+                                        className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[var(--accent-teal)] transition-all shadow-lg border-none"
+                                    >
+                                        <CheckCircle2 size={14} /> Complete
                                     </SquishyButton>
                                     <SquishyButton
-                                        onClick={async () => {
-                                            const trimmed = crystalNameInput.trim();
-                                            if (!trimmed) return;
-                                            
-                                            setIsRebirthing(true);
-                                            // Give it 800ms to shrink in 3D
-                                            await new Promise(r => setTimeout(r, 800));
-                                            
-                                            await rebirthCrystal(trimmed);
-                                            setIsRebirthing(false);
-                                            setIsCrystalMasteryOpen(false);
-                                            setCrystalNameInput('');
-                                            
-                                            playChime(); // Celebrate rebirth!
-                                            
-                                            // Massive full-screen burst
-                                            confetti({
-                                                particleCount: 150,
-                                                spread: 160,
-                                                origin: { x: 0.5, y: 0.5 },
-                                                colors: ['#8b5cf6', '#06b6d4', '#f43f5e', '#eab308'],
-                                                gravity: 0.8,
-                                                scalar: 1.2,
-                                                zIndex: 100000
-                                            });
-                                        }}
-                                        disabled={!crystalNameInput.trim()}
-                                        className="flex-1 py-3 rounded-xl bg-[var(--accent-yellow)] text-black text-sm font-black uppercase tracking-widest disabled:opacity-50"
+                                        onClick={handleBulkDelete}
+                                        className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/30 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-none"
                                     >
-                                        Ascend Crystal
+                                        <X size={14} /> Delete
+                                    </SquishyButton>
+                                    <SquishyButton
+                                        onClick={() => setSelectedTaskIds([])}
+                                        className="text-xs font-bold text-[var(--text-muted)] hover:text-white transition-colors ml-2 border-none bg-transparent shadow-none p-1"
+                                    >
+                                        Cancel
                                     </SquishyButton>
                                 </div>
                             </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>
+                        )}
+                    </AnimatePresence>
+
+                    <AnimatePresence>
+                        {isCrystalMasteryOpen && (
+                            <div className="fixed inset-0 z-[100000] flex items-center justify-center p-6">
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    onClick={() => setIsCrystalMasteryOpen(false)}
+                                    className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+                                />
+                                <motion.div
+                                    initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                                    exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                                    className="bg-[var(--bg-card)] border-2 border-[var(--accent-yellow)] rounded-[2.5rem] p-8 w-full max-w-xl shadow-2xl relative z-10"
+                                >
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-[var(--accent-yellow)]/15 border border-[var(--accent-yellow)]/30 flex items-center justify-center">
+                                            <Sparkles size={22} className="text-[var(--accent-yellow)]" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-black text-[var(--text-main)]">Crystal Mastery Reached</h3>
+                                            <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Name your perfected crystal</p>
+                                        </div>
+                                    </div>
+
+                                    <input
+                                        value={crystalNameInput}
+                                        onChange={(e) => setCrystalNameInput(e.target.value)}
+                                        placeholder="Crystal name"
+                                        className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-[var(--accent-yellow)]"
+                                    />
+
+                                    <div className="mt-6 flex items-center gap-3">
+                                        <SquishyButton
+                                            onClick={() => setIsCrystalMasteryOpen(false)}
+                                            className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 text-sm font-bold hover:bg-white/5 transition-all shadow-none"
+                                        >
+                                            Later
+                                        </SquishyButton>
+                                        <SquishyButton
+                                            onClick={async () => {
+                                                const trimmed = crystalNameInput.trim();
+                                                if (!trimmed) return;
+
+                                                setIsRebirthing(true);
+                                                // Give it 800ms to shrink in 3D
+                                                await new Promise(r => setTimeout(r, 800));
+
+                                                await rebirthCrystal(trimmed);
+                                                setIsRebirthing(false);
+                                                setIsCrystalMasteryOpen(false);
+                                                setCrystalNameInput('');
+
+                                                playChime(); // Celebrate rebirth!
+
+                                                // Massive full-screen burst
+                                                confetti({
+                                                    particleCount: 150,
+                                                    spread: 160,
+                                                    origin: { x: 0.5, y: 0.5 },
+                                                    colors: ['#8b5cf6', '#06b6d4', '#f43f5e', '#eab308'],
+                                                    gravity: 0.8,
+                                                    scalar: 1.2,
+                                                    zIndex: 100000
+                                                });
+                                            }}
+                                            disabled={!crystalNameInput.trim()}
+                                            className="flex-1 py-3 rounded-xl bg-[var(--accent-yellow)] text-black text-sm font-black uppercase tracking-widest disabled:opacity-50"
+                                        >
+                                            Ascend Crystal
+                                        </SquishyButton>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>
 
                 </div>
-                </div>
+            </div>
 
 
             {/* Maximized 3D Garden View (OUTSIDE main zone to prevent display:none issues) */}

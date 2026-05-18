@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useUser } from '@/hooks/useAuth';
 import InfiniteCanvas from '@/components/InfiniteCanvas';
+import ZenCanvas from '@/components/ZenCanvas';
 import { CanvasPresenceSidebar } from '@/components/CanvasPresenceSidebar';
 import { Loader } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -13,11 +14,28 @@ import { PanelLeft, PanelRight } from 'lucide-react';
 function CanvasPageContent() {
   const { user, isLoading } = useUser();
   const searchParams = useSearchParams();
-  const { isSidebarHidden, setSettings } = useStudyStore();
+  const { isSidebarHidden, setSettings, useTldrawCanvas } = useStudyStore();
   const [profileName, setProfileName] = useState('Anonymous');
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [roomTitle, setRoomTitle] = useState<string | null>(null);
   const [roomDescription, setRoomDescription] = useState<string | null>(null);
+
+  // 📱 Force Landscape Orientation for APK / Mobile Web
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
+        (window.screen.orientation as any).lock('landscape').catch((e: any) => console.log('Orientation lock info:', e));
+      }
+    } catch (e) { console.log('Orientation lock error:', e); }
+
+    return () => {
+      try {
+        if (typeof window !== 'undefined' && window.screen && window.screen.orientation && (window.screen.orientation as any).unlock) {
+          (window.screen.orientation as any).unlock();
+        }
+      } catch (e) { console.log('Orientation unlock error:', e); }
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -94,14 +112,18 @@ function CanvasPageContent() {
   return (
     <div className="relative h-screen w-full bg-[#0b1211]">
       <Suspense fallback={<Loader />}>
-        <InfiniteCanvas
-          roomId={roomId}
-          userId={user.id}
-          userName={profileName}
-          realtimeProvider="supabase"
-          roomTitle={roomTitle}
-          roomDescription={roomDescription}
-        />
+        {useTldrawCanvas ? (
+          <ZenCanvas />
+        ) : (
+          <InfiniteCanvas
+            roomId={roomId}
+            userId={user.id}
+            userName={profileName}
+            realtimeProvider="supabase"
+            roomTitle={roomTitle}
+            roomDescription={roomDescription}
+          />
+        )}
       </Suspense>
       {!isRoom && (
         <button

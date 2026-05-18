@@ -20,33 +20,35 @@ export default function TaskViewModal() {
     return (
         <AnimatePresence>
             {isViewModalOpen && (
-                <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 overflow-y-auto custom-scrollbar">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={closeViewModal}
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
                     />
                     <motion.div
                         initial={{ scale: 0.95, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
-                        exit={{ scale: 0.8, opacity: 0, y: -20 }}
+                        exit={{ scale: 0.95, opacity: 0, y: 20 }}
                         transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                        className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2.5rem] w-full max-w-md relative z-10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] overflow-hidden max-h-[90vh]"
+                        className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-5 md:p-6 shadow-2xl relative z-10 w-full max-w-md flex flex-col my-auto max-h-[90vh]"
                     >
-                        <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-sidebar)]/50">
+                        {/* Header */}
+                        <div className="flex justify-between items-center mb-4 shrink-0 border-b border-[var(--border-color)] pb-3">
                             <div className="flex items-center gap-3">
                                 <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${loadColors[task.load]}`}>{task.load}</span>
-                                {task.isPinned && <Pin size={14} className="text-[var(--accent-teal)] ml-2" />}
+                                {task.isPinned && <Pin size={14} className="text-[var(--accent-teal)]" />}
                                 {task.isFrog && <span className="text-xl">🐸</span>}
                             </div>
-                            <SquishyButton onClick={closeViewModal} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-2 bg-[var(--bg-dark)] rounded-xl border border-[var(--border-color)] transition-all">
-                                <X size={18} />
-                            </SquishyButton>
+                            <button onClick={closeViewModal} className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all">
+                                <X size={20} />
+                            </button>
                         </div>
 
-                        <div className="p-6 sm:p-8 space-y-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                        {/* Content Area */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-6 mb-4">
                             <div>
                                 <h2 className="text-2xl font-black text-[var(--text-main)] leading-tight">{task.title}</h2>
                                 {task.deadline && !task.isCompleted && (
@@ -72,18 +74,22 @@ export default function TaskViewModal() {
                             </div>
                         </div>
 
-                        <div className="p-6 border-t border-[var(--border-color)] bg-[var(--bg-sidebar)]/30 flex justify-end">
+                        {/* Footer */}
+                        <div className="flex gap-3 pt-4 pb-2 border-t border-[var(--border-color)] shrink-0 mt-2">
                             {!task.isCompleted && (
                                 <SquishyButton 
                                     onClick={() => { 
                                         closeViewModal(); 
                                         openEditModal(task.id); 
                                     }} 
-                                    className="px-8 py-3 rounded-2xl bg-[var(--accent-teal)] text-[#0b1211] font-black uppercase tracking-widest text-xs transition-all shadow-[0_4px_15px_rgba(45,212,191,0.2)] flex items-center gap-3"
+                                    className="w-full py-3.5 rounded-2xl bg-[var(--accent-teal)] text-[#0b1211] hover:brightness-110 font-black uppercase tracking-widest text-xs transition-all shadow-lg flex items-center justify-center gap-3 m-0 border-none"
                                 >
-                                    <Edit2 size={14} /> Edit Task
+                                    <Edit2 size={14} /> Edit Quest
                                 </SquishyButton>
                             )}
+                            <SquishyButton onClick={closeViewModal} className="w-full py-3.5 rounded-2xl border border-white/10 text-white/60 hover:text-white hover:bg-white/5 hover:border-white/20 text-xs font-extrabold transition-all shadow-none uppercase tracking-widest flex items-center justify-center m-0">
+                                Close
+                            </SquishyButton>
                         </div>
                     </motion.div>
                 </div>

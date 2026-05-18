@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useStudyStore } from '@studybuddy/api';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { getAuthHeaders, useStudyStore, supabase, getApiUrl } from '@studybuddy/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, X } from 'lucide-react';
+import { UserPlus, Users, Search, X, Check } from 'lucide-react';
 import { Button } from './Button';
 import { SquishyButton } from './SquishyButton';
 
@@ -12,16 +12,173 @@ interface FriendRequestModalProps {
   onClose: () => void;
 }
 
+const JumpingDots: React.FC<{ label?: string }> = ({ label }) => (
+  <div className="flex flex-col items-center justify-center py-12 gap-4 my-auto">
+    <div className="flex items-center justify-center gap-2.5">
+      {[0, 1, 2].map((index) => (
+        <motion.div
+          key={index}
+          className="w-3.5 h-3.5 rounded-full bg-[var(--accent-teal)] shadow-[0_0_15px_var(--accent-teal)]"
+          animate={{ y: [0, -12, 0] }}
+          transition={{
+            duration: 0.6,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: index * 0.15,
+          }}
+        />
+      ))}
+    </div>
+    {label && <span className="text-xs font-bold text-(--text-muted) uppercase tracking-widest animate-pulse">{label}</span>}
+  </div>
+);
+
+const renderUserDisplayName = (user: { id?: string; display_name?: string; full_name?: string }, currentUserId?: string | null) => {
+  const hasDisplayName = user?.display_name && user.display_name.trim();
+  const hasFullName = user?.full_name && user.full_name.trim();
+  const isSelf = user.id === currentUserId;
+  let nameStr = 'Unknown User';
+
+  if (hasDisplayName) {
+    nameStr = hasFullName ? `${user.display_name || ''} @(${user.full_name || ''})` : (user.display_name || 'Unknown User');
+  } else if (hasFullName) {
+    nameStr = `@[${user.full_name || ''}]`;
+  }
+
+  return isSelf ? `${nameStr} (You)` : nameStr;
+};
+
 export const FriendRequestModal: React.FC<FriendRequestModalProps> = ({ isOpen, onClose }) => {
-  const { friendRequests, fetchFriendRequests, acceptFriendRequest, rejectFriendRequest } = useStudyStore();
+  const { 
+    friendRequests, fetchFriendRequests, acceptFriendRequest, rejectFriendRequest, removeFriend,
+    friends, fetchFriends, sendFriendRequest 
+  } = useStudyStore();
+
+  const [activeTab, setActiveTab] = useState<'add' | 'requests' | 'friends'>('add');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isDbLoading, setIsDbLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [requestedUsers, setRequestedUsers] = useState<Set<string>>(new Set());
+  const [incomingRequests, setIncomingRequests] = useState<Set<string>>(new Set());
+  const [friendsSet, setFriendsSet] = useState<Set<string>>(new Set());
+
+  const searchQueryRef = useRef(searchQuery);
+  useEffect(() => {
+    searchQueryRef.current = searchQuery;
+  }, [searchQuery]);
+
+  const hydrateStatuses = useCallback(async () => {
+    try {
+      const [{ data: authData }, authHeaders] = await Promise.all([
+        supabase.auth.getUser(),
+        getAuthHeaders(),
+      ]);
+      const currentUserId = authData.user?.id;
+      if (currentUserId) setCurrentUserId(currentUserId);
+      if (!currentUserId || !authHeaders.Authorization) return;
+
+      const [requestedRes, pendingRes, friendsRes] = await Promise.all([
+        fetch(getApiUrl('/api/friends?type=requested'), { headers: authHeaders }),
+        fetch(getApiUrl('/api/friends?type=pending'), { headers: authHeaders }),
+        fetch(getApiUrl('/api/friends?type=friends'), { headers: authHeaders }),
+      ]);
+
+      const [requestedData, pendingData, friendsData] = await Promise.all([
+        requestedRes.ok ? requestedRes.json() : Promise.resolve([]),
+        pendingRes.ok ? pendingRes.json() : Promise.resolve([]),
+        friendsRes.ok ? friendsRes.json() : Promise.resolve([]),
+      ]);
+
+      const toOtherId = (friendship: any) =>
+        friendship.user_id_1 === currentUserId ? friendship.user_id_2 : friendship.user_id_1;
+
+      setRequestedUsers(new Set((requestedData || []).map(toOtherId)));
+      setIncomingRequests(new Set((pendingData || []).map(toOtherId)));
+      setFriendsSet(new Set((friendsData || []).map(toOtherId)));
+    } catch (error) {
+      console.error('Failed to load friend request status:', error);
+    }
+  }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchFriendRequests();
+    if (!isOpen) return;
+    setIsDbLoading(true);
+    if (activeTab === 'add') {
+      hydrateStatuses().finally(() => setIsDbLoading(false));
+    } else if (activeTab === 'requests') {
+      fetchFriendRequests().finally(() => setIsDbLoading(false));
+    } else if (activeTab === 'friends') {
+      fetchFriends().finally(() => setIsDbLoading(false));
     }
-  }, [isOpen, fetchFriendRequests]);
 
-  if (!isOpen) return null;
+    const channel = supabase.channel('friend_request_modal_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        if (activeTab === 'add') {
+          hydrateStatuses();
+          const currentQuery = searchQueryRef.current;
+          if (currentQuery.trim()) {
+            getAuthHeaders().then(authHeaders => {
+              fetch(getApiUrl(`/api/search/users?q=${encodeURIComponent(currentQuery)}`), { headers: authHeaders })
+                .then(res => res.ok ? res.json() : [])
+                .then(data => setSearchResults(data))
+                .catch(() => {});
+            });
+          }
+        }
+        else if (activeTab === 'requests') fetchFriendRequests();
+        else if (activeTab === 'friends') fetchFriends();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_friendships' }, () => {
+        if (activeTab === 'add') hydrateStatuses();
+        else if (activeTab === 'requests') fetchFriendRequests();
+        else if (activeTab === 'friends') fetchFriends();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isOpen, activeTab, hydrateStatuses, fetchFriendRequests, fetchFriends]);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch(
+        getApiUrl(`/api/search/users?q=${encodeURIComponent(searchQuery)}`),
+        { headers: authHeaders }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        // Ensure data is always an array
+        const results = Array.isArray(data) ? data : [];
+        setSearchResults(results);
+        await hydrateStatuses();
+      } else {
+        console.error('Search returned status:', response.status);
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error('Search failed:', error);
+      setSearchResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendRequest = async (userId: string) => {
+    try {
+      await sendFriendRequest(userId);
+      await hydrateStatuses();
+    } catch (error) {
+      console.error('Failed to send friend request:', error);
+    }
+  };
 
   const handleAccept = async (friendshipId: string) => {
     try {
@@ -31,104 +188,335 @@ export const FriendRequestModal: React.FC<FriendRequestModalProps> = ({ isOpen, 
     }
   };
 
-  const handleReject = async (friendshipId: string) => {
-    try {
-      await rejectFriendRequest(friendshipId);
-    } catch (error) {
-      console.error('Failed to reject friend request:', error);
+  const handleReject = async (friendshipId: string, displayName: string) => {
+    if (confirm(`Are you sure you want to decline this request from ${displayName}?`)) {
+      try {
+        await rejectFriendRequest(friendshipId);
+      } catch (error) {
+        console.error('Failed to reject friend request:', error);
+      }
     }
   };
 
+  const handleUnfriend = async (friendshipId: string, displayName: string) => {
+    if (confirm(`Are you sure you want to unfriend ${displayName}?`)) {
+      try {
+        await removeFriend(friendshipId);
+        await fetchFriends();
+      } catch (error) {
+        console.error('Failed to unfriend:', error);
+      }
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-2 md:p-4">
+      <div className="fixed inset-0 z-[100005] flex items-center justify-center p-4 overflow-y-auto custom-scrollbar">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
         />
         <motion.div
           initial={{ scale: 0.95, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          className="bg-(--bg-sidebar) border border-(--border-color) rounded-2xl md:rounded-3xl w-full max-w-md overflow-hidden relative z-10 shadow-2xl"
+          className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-5 md:p-6 shadow-2xl relative z-10 w-full max-w-md flex flex-col my-auto max-h-[90vh]"
         >
-          <div className="p-3 md:p-6 border-b border-(--border-color) flex items-center justify-between gap-2">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-2 shrink-0">
             <div className="flex items-center gap-2">
-              <Users size={16} className="md:w-[18px] md:h-[18px] text-(--accent-teal)" />
-              <h2 className="text-sm md:text-lg font-bold text-(--text-main)">Friend Requests</h2>
+              <Users size={20} className="text-(--accent-teal)" />
+              <h3 className="text-lg font-bold text-(--text-main)">Social Network</h3>
             </div>
-            <SquishyButton
+            <button
               onClick={onClose}
-              className="text-(--text-muted) hover:text-(--text-main) bg-(--bg-dark) p-1 md:p-2 rounded-full transition-colors border-none shadow-none"
+              className="text-(--text-muted) hover:text-(--text-main)"
             >
-              <X size={14} className="md:w-4 md:h-4" />
-            </SquishyButton>
+              <X size={20} />
+            </button>
           </div>
 
-          <div className="p-3 md:p-6 space-y-2 md:space-y-4">
-            {friendRequests.length === 0 ? (
-              <p className="text-center py-4 md:py-8 text-(--text-muted) text-xs md:text-sm">
-                No pending friend requests
-              </p>
-            ) : (
-              <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
-                {friendRequests.map((request) => {
-                  // Handle both RPC format (requester_name/requester_avatar) and direct query format (profiles_1/profiles_2)
-                  const displayName = request.requester_name || request.profiles_1?.display_name || request.profiles_2?.display_name || 'Unknown User';
-                  const avatarUrl = request.requester_avatar || request.profiles_1?.avatar_url || request.profiles_2?.avatar_url;
-                  
-                  return (
-                    <div
-                      key={request.id}
-                      className="flex items-center justify-between p-2 md:p-3 rounded-lg md:rounded-xl bg-(--bg-dark) border border-(--border-color) gap-2"
-                    >
-                      <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-                        {avatarUrl && (
-                          <img
-                            src={avatarUrl}
-                            alt={displayName}
-                            className="w-8 md:w-10 h-8 md:h-10 rounded-full object-cover flex-shrink-0"
-                          />
-                        )}
-                        <div className="min-w-0">
-                          <p className="font-bold text-[11px] md:text-sm text-(--text-main) truncate">
-                            {displayName}
-                          </p>
-                          <p className="text-[9px] md:text-xs text-(--text-muted)">Wants friends</p>
-                        </div>
-                      </div>
+          {/* Tab Switcher */}
+          <div className="flex items-center justify-around w-full border-b border-[var(--border-color)] mb-4 shrink-0">
+            <button
+              onClick={() => setActiveTab('add')}
+              className={`flex-1 pb-2.5 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all ${
+                activeTab === 'add' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'
+              }`}
+            >
+              Add Friend
+            </button>
+            <button
+              onClick={() => setActiveTab('requests')}
+              className={`flex-1 pb-2.5 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all relative ${
+                activeTab === 'requests' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'
+              }`}
+            >
+              Requests
+              {friendRequests.length > 0 && (
+                <span className="absolute -top-2 right-2 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center shadow-md">
+                  {friendRequests.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('friends')}
+              className={`flex-1 pb-2.5 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all ${
+                activeTab === 'friends' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'
+              }`}
+            >
+              My Friends
+            </button>
+          </div>
 
-                      <div className="flex gap-1 md:gap-2 flex-shrink-0">
-                        <SquishyButton
-                          onClick={() => handleAccept(request.id)}
-                          className="px-2 md:px-3 py-0.5 md:py-1 text-[8px] md:text-xs rounded-lg md:rounded-lg bg-(--accent-teal) text-black hover:brightness-110 transition-colors font-bold uppercase tracking-widest border-none shadow-none"
-                        >
-                          ✓
-                        </SquishyButton>
-                        <SquishyButton
-                          onClick={() => handleReject(request.id)}
-                          className="px-2 md:px-3 py-0.5 md:py-1 text-[8px] md:text-xs rounded-lg md:rounded-lg bg-(--bg-card) text-(--text-muted) hover:text-(--text-main) transition-colors font-bold uppercase tracking-widest border-none shadow-none"
-                        >
-                          ✕
-                        </SquishyButton>
+          {/* Content Area */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-[240px] max-h-[360px] flex flex-col mb-4">
+            {isDbLoading && activeTab !== 'add' ? (
+              <div className="flex-1 space-y-3 py-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-[var(--bg-dark)] border border-(--border-color) animate-pulse">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-[var(--bg-sidebar)] shrink-0" />
+                      <div className="space-y-2 flex-1 max-w-[180px]">
+                        <div className="h-4 bg-[var(--bg-sidebar)] rounded-md w-full" />
+                        <div className="h-3 bg-[var(--bg-sidebar)] rounded-md w-2/3" />
                       </div>
                     </div>
-                  );
-                })}
+                    <div className="w-16 h-8 bg-[var(--bg-sidebar)] rounded-xl shrink-0" />
+                  </div>
+                ))}
+              </div>
+            ) : activeTab === 'add' ? (
+              <div className="space-y-4 flex-1 flex flex-col mb-2">
+                <div className="flex gap-3 shrink-0 items-center">
+                  <div className="relative flex-1 min-w-0">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                      placeholder="Search by name..."
+                      className="w-full py-3 pl-9 pr-4 rounded-2xl border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent-teal)] bg-[var(--bg-dark)] text-[var(--text-main)] text-xs font-bold outline-none placeholder:text-[var(--text-muted)]/50 transition-all shadow-inner"
+                      disabled={loading}
+                    />
+                  </div>
+                  <SquishyButton
+                    onClick={handleSearch}
+                    disabled={!searchQuery.trim() || loading}
+                    className="py-3 px-6 rounded-2xl bg-[var(--accent-teal)] text-[#0b1211] hover:brightness-110 font-black text-xs shadow-lg disabled:opacity-40 disabled:grayscale shrink-0 uppercase tracking-wider flex items-center justify-center m-0 border-none transition-all"
+                  >
+                    {loading ? '...' : 'Search'}
+                  </SquishyButton>
+                </div>
+
+                {loading ? (
+                  <div className="flex-1 space-y-3 py-2">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-[var(--bg-dark)] border border-(--border-color) animate-pulse">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 rounded-full bg-[var(--bg-sidebar)] shrink-0" />
+                          <div className="space-y-2 flex-1 max-w-[180px]">
+                            <div className="h-4 bg-[var(--bg-sidebar)] rounded-md w-full" />
+                            <div className="h-3 bg-[var(--bg-sidebar)] rounded-md w-2/3" />
+                          </div>
+                        </div>
+                        <div className="w-16 h-8 bg-[var(--bg-sidebar)] rounded-xl shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
+                    {searchResults.length === 0 && searchQuery && !loading && (
+                      <p className="text-center py-8 text-(--text-muted) text-xs font-bold uppercase tracking-widest my-auto">
+                        No users found
+                      </p>
+                    )}
+
+                    {searchResults.map((user) => (
+                      <div
+                        key={user.id}
+                        className="flex items-center justify-between p-3 rounded-2xl bg-[var(--bg-dark)] border border-(--border-color)"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {user.avatar_url ? (
+                            <img
+                              src={user.avatar_url}
+                              alt={user.display_name || user.full_name || 'User'}
+                              className="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-(--border-color)"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-(--bg-sidebar) border border-(--border-color) flex items-center justify-center text-(--text-muted) shrink-0">
+                              <Users size={18} />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-bold text-sm text-(--text-main) truncate">
+                              {renderUserDisplayName(user, currentUserId)}
+                            </p>
+                            <p className="text-xs text-(--text-muted) capitalize truncate">
+                              {user.status || 'offline'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <SquishyButton
+                          onClick={() => handleSendRequest(user.id)}
+                          disabled={user.id === currentUserId || requestedUsers.has(user.id) || incomingRequests.has(user.id) || friendsSet.has(user.id)}
+                          className={`px-4 py-2 text-[10px] rounded-xl transition-colors flex-shrink-0 ml-2 font-black uppercase tracking-wider border-none shadow-none ${
+                            user.id === currentUserId || requestedUsers.has(user.id) || incomingRequests.has(user.id) || friendsSet.has(user.id)
+                              ? 'bg-[var(--bg-sidebar)] text-(--text-muted) cursor-not-allowed'
+                              : 'bg-(--accent-teal) text-black hover:brightness-110 shadow-lg'
+                          }`}
+                        >
+                          {user.id === currentUserId ? (
+                            'You'
+                          ) : friendsSet.has(user.id) ? (
+                            'Friends'
+                          ) : incomingRequests.has(user.id) ? (
+                            'Pending'
+                          ) : requestedUsers.has(user.id) ? (
+                            <span className="inline-flex items-center gap-1"><Check size={12} /> Sent</span>
+                          ) : (
+                            'Add'
+                          )}
+                        </SquishyButton>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : activeTab === 'requests' ? (
+              <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
+                {friendRequests.length === 0 ? (
+                  <div className="text-center py-12 text-(--text-muted) text-xs font-bold uppercase tracking-widest my-auto">
+                    No pending friend requests
+                  </div>
+                ) : (
+                  friendRequests.map((request) => {
+                    const profile = request.profiles_1 || request.profiles_2 || {};
+                    const displayName = request.requester_name ? request.requester_name : renderUserDisplayName(profile);
+                    const avatarUrl = request.requester_avatar || profile.avatar_url;
+                    const isOutgoing = request.requester_id === currentUserId;
+
+                    return (
+                      <div
+                        key={request.id}
+                        className="flex items-center justify-between p-3 rounded-2xl bg-[var(--bg-dark)] border border-(--border-color) gap-2"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {avatarUrl ? (
+                            <img
+                              src={avatarUrl}
+                              alt={displayName}
+                              className="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-(--border-color)"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-(--bg-sidebar) border border-(--border-color) flex items-center justify-center text-(--text-muted) shrink-0">
+                              <Users size={18} />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-bold text-sm text-(--text-main) truncate">
+                              {displayName}
+                            </p>
+                            <p className="text-[10px] text-(--text-muted) uppercase font-bold tracking-wider">
+                              {isOutgoing ? 'Friend request sent' : 'Wants to link'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-1.5 flex-shrink-0">
+                          {isOutgoing ? (
+                            <span className="text-[10px] text-[var(--accent-teal)] font-bold uppercase tracking-wider px-3 py-2 bg-[var(--accent-teal)]/10 rounded-xl border border-[var(--accent-teal)]/20">Pending</span>
+                          ) : (
+                            <>
+                              <SquishyButton
+                                onClick={() => handleAccept(request.id)}
+                                className="px-3 py-2 text-[10px] rounded-xl bg-(--accent-teal) text-black hover:brightness-110 transition-colors font-black uppercase tracking-wider border-none shadow-lg"
+                              >
+                                Accept
+                              </SquishyButton>
+                              <SquishyButton
+                                onClick={() => handleReject(request.id, displayName)}
+                                className="px-3 py-2 text-[10px] rounded-xl bg-[var(--bg-sidebar)] text-(--text-muted) hover:text-(--text-main) transition-colors font-black uppercase tracking-wider border-none shadow-none"
+                              >
+                                Reject
+                              </SquishyButton>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
+                {friends.length === 0 ? (
+                  <div className="text-center py-12 text-(--text-muted) text-xs font-bold uppercase tracking-widest my-auto">
+                    No active friends found
+                  </div>
+                ) : (
+                  friends.map((friend) => {
+                    const friendUser = friend.friend_data || friend.friend_profile || {};
+                    const displayName = renderUserDisplayName(friendUser);
+                    const avatarUrl = friendUser?.avatar_url;
+
+                    return (
+                      <div
+                        key={friend.friendship_id}
+                        className="flex items-center justify-between p-3 rounded-2xl bg-[var(--bg-dark)] border border-(--border-color) gap-2"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {avatarUrl ? (
+                            <img
+                              src={avatarUrl}
+                              alt={displayName}
+                              className="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-(--border-color)"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-(--bg-sidebar) border border-(--border-color) flex items-center justify-center text-(--text-muted) shrink-0">
+                              <Users size={18} />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-bold text-sm text-(--text-main) truncate">
+                              {displayName}
+                            </p>
+                            <p className="text-[10px] text-(--text-muted) uppercase font-bold tracking-wider">{friendUser?.status || 'offline'}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-1.5 flex-shrink-0">
+                          <button
+                            onClick={() => handleUnfriend(friend.friendship_id, displayName)}
+                            className="px-3 py-2 text-[10px] rounded-xl bg-red-500/20 text-red-400 font-black uppercase tracking-wider border border-red-500/50 hover:bg-red-500/30 transition-colors"
+                          >
+                            Unfriend
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             )}
           </div>
 
-          <div className="p-6 pt-0 flex justify-end">
-            <Button onClick={onClose} variant="secondary">
+          <div className="flex gap-3 pt-4 pb-2 border-t border-(--border-color) shrink-0 mt-2">
+            <SquishyButton onClick={onClose} className="w-full py-3.5 rounded-2xl border border-white/10 text-white/60 hover:text-white hover:bg-white/5 hover:border-white/20 text-xs font-extrabold transition-all shadow-none uppercase tracking-widest flex items-center justify-center m-0">
               Close
-            </Button>
+            </SquishyButton>
           </div>
         </motion.div>
       </div>
     </AnimatePresence>
   );
 };
+
