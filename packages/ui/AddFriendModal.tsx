@@ -306,6 +306,23 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
     }
   };
 
+  const handleAddPactMember = async (pactId: string, memberId: string) => {
+    try {
+      const { error } = await supabase.from('pact_members').insert({ pact_id: pactId, user_id: memberId });
+      if (error) throw error;
+      await fetchPacts();
+    } catch (error) {
+      console.error('Failed to add member:', error);
+    }
+  };
+      const { error } = await supabase.from('pact_members').delete().match({ pact_id: pactId, user_id: memberId });
+      if (error) throw error;
+      await fetchPacts();
+    } catch (error) {
+      console.error('Failed to remove member:', error);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -628,21 +645,23 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
                   </div>
                 ) : (
                   <>
-                    <div className="flex justify-end mb-2">
-                      <SquishyButton
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsCreatePactModalOpen(true); }}
-                        className="py-2.5 px-4 rounded-xl bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] hover:bg-[var(--accent-teal)]/20 font-black text-[10px] shadow-none uppercase tracking-wider flex items-center justify-center gap-1.5 border border-[var(--accent-teal)]/30 transition-all"
-                      >
-                        <Plus size={14} /> New Pact
-                      </SquishyButton>
-                    </div>
+                    {!pacts.some(p => p.created_by === currentUserId) && (
+                      <div className="flex justify-end mb-2">
+                        <SquishyButton
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsCreatePactModalOpen(true); }}
+                          className="py-2.5 px-4 rounded-xl bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] hover:bg-[var(--accent-teal)]/20 font-black text-[10px] shadow-none uppercase tracking-wider flex items-center justify-center gap-1.5 border border-[var(--accent-teal)]/30 transition-all"
+                        >
+                          <Plus size={14} /> New Pact
+                        </SquishyButton>
+                      </div>
+                    )}
                     {pacts.map((pact) => {
                       const isCreator = pact.created_by === currentUserId;
-                      const members = Array.isArray(pact.members) ? pact.members : [];
+                      const members = Array.isArray(pact.pact_members) ? pact.pact_members : [];
                       
                       return (
-                        <div key={pact.pact_id} className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl p-4 space-y-3">
+                        <div key={pact.id} className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl p-4 space-y-3">
                           <div className="flex justify-between items-start mb-2">
                             <div>
                               <h4 className="text-sm font-black text-white flex items-center gap-2">
@@ -654,14 +673,14 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
                             </div>
                             {isCreator ? (
                               <button
-                                onClick={() => handleDeletePact(pact.pact_id)}
+                                onClick={() => handleDeletePact(pact.id)}
                                 className="text-[10px] text-red-400 hover:text-red-300 font-bold uppercase tracking-wider px-2 py-1 bg-red-500/10 rounded-lg"
                               >
                                 Delete Pact
                               </button>
                             ) : (
                               <button
-                                onClick={() => handleLeavePact(pact.pact_id)}
+                                onClick={() => handleLeavePact(pact.id)}
                                 className="text-[10px] text-[var(--text-muted)] hover:text-white font-bold uppercase tracking-wider px-2 py-1 bg-[var(--bg-sidebar)] rounded-lg"
                               >
                                 Leave Pact
@@ -670,23 +689,60 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
                           </div>
 
                           <div className="space-y-2 mt-3 pt-3 border-t border-[var(--border-color)]/50">
-                            {members.map((member: any) => (
-                              <div key={member.id} className="flex justify-between items-center bg-[var(--bg-sidebar)] p-2 rounded-xl">
-                                <span className="text-xs font-bold text-[var(--text-main)] truncate max-w-[150px]">
-                                  {member.id === currentUserId ? 'You' : member.name}
-                                </span>
-                                {isCreator && member.id !== currentUserId && (
-                                  <button
-                                    onClick={() => handleRemovePactMember(pact.pact_id, member.id)}
-                                    className="p-1.5 text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                    title="Remove member"
-                                  >
-                                    <UserMinus size={14} />
-                                  </button>
+                            {members.map((member: any) => {
+                              const isMe = member.user_id === currentUserId;
+                              const friendData = friends.find(f => (f.friend_data?.id || f.friend_profile?.id) === member.user_id);
+                              const profileData = isMe ? member : (friendData?.friend_data || friendData?.friend_profile || member);
+                              const displayName = renderUserDisplayName(profileData, currentUserId);
+                              const avatarUrl = profileData.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${member.user_id}`;
+
+                              return (
+                                <div key={member.user_id} className="flex justify-between items-center bg-[var(--bg-sidebar)] p-2 rounded-xl">
+                                  <div className="flex items-center gap-2 overflow-hidden">
+                                    <img src={avatarUrl} alt="avatar" className="w-6 h-6 rounded-full border border-[var(--border-color)] bg-[var(--bg-dark)] shrink-0" />
+                                    <span className="text-xs font-bold text-[var(--text-main)] truncate max-w-[150px]">
+                                      {displayName}
+                                    </span>
+                                  </div>
+                                  {isCreator && !isMe && (
+                                    <button
+                                      onClick={() => handleRemovePactMember(pact.id, member.user_id)}
+                                      className="p-1.5 text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                      title="Remove member"
+                                    >
+                                      <UserMinus size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {isCreator && (
+                            <div className="mt-4 pt-3 border-t border-[var(--border-color)]/50">
+                              <p className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider mb-2">Add Friends</p>
+                              <div className="flex flex-wrap gap-2">
+                                {friends.filter(f => !members.some((m: any) => m.user_id === (f.friend_data?.id || f.friend_profile?.id))).length === 0 ? (
+                                  <span className="text-[10px] text-[var(--text-muted)] italic">No other friends to invite.</span>
+                                ) : (
+                                  friends.filter(f => !members.some((m: any) => m.user_id === (f.friend_data?.id || f.friend_profile?.id))).map(f => {
+                                    const friendId = f.friend_data?.id || f.friend_profile?.id;
+                                    const friendProfile = f.friend_data || f.friend_profile;
+                                    const displayName = renderUserDisplayName(friendProfile);
+                                    return (
+                                      <button
+                                        key={friendId}
+                                        onClick={() => handleAddPactMember(pact.id, friendId)}
+                                        className="text-[10px] font-bold uppercase tracking-wider bg-[var(--bg-sidebar)] hover:bg-[var(--accent-teal)]/20 hover:text-[var(--accent-teal)] border border-[var(--border-color)] px-2 py-1.5 rounded-lg transition-colors flex items-center gap-1 text-[var(--text-main)]"
+                                      >
+                                        <Plus size={12} /> {displayName}
+                                      </button>
+                                    );
+                                  })
                                 )}
                               </div>
-                            ))}
-                          </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
