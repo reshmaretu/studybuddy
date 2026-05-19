@@ -732,6 +732,15 @@ export default function LanternNetPage() {
 
                                                         const isRoomActive = activeRooms.some(r => r.room_code === roomCode && (r.status === 'ACTIVE' || r.status === 'DRAFT'));
                                                         const roomObj = activeRooms.find(r => r.room_code === roomCode);
+                                                        
+                                                        // ⚡ IMPROVED ROOM STATUS LOGIC
+                                                        // Room is active if:
+                                                        // 1. Rooms table explicitly shows ACTIVE or DRAFT status (most reliable)
+                                                        // 2. Host's status indicates they're actively hosting (backup indicator)
+                                                        const hostIsHosting = hostProfile?.status && ['hosting', 'drafting', 'cafe', 'flowState', 'mastering'].includes(hostProfile.status);
+                                                        const broadcastIsRecent = broadcast.created_at && (Date.now() - new Date(broadcast.created_at).getTime()) < 4 * 60 * 60 * 1000;
+                                                        const improvedIsRoomActive = isRoomActive || (hostIsHosting && broadcastIsRecent);
+                                                        
                                                         const hostName = (hostProfile?.display_name && hostProfile.display_name.trim() !== "")
                                                             ? hostProfile.display_name
                                                             : (hostProfile?.full_name && hostProfile.full_name.trim() !== "")
@@ -756,8 +765,12 @@ export default function LanternNetPage() {
                                                                         <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase shrink-0 ${isCanvas ? 'bg-(--accent-cyan)/10 text-(--accent-cyan)' : 'bg-(--accent-teal)/10 text-(--accent-teal)'}`}>
                                                                             {isCanvas ? 'Canvas' : 'Study'}
                                                                         </span>
-                                                                        <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase shrink-0 ${roomObj?.status === 'DRAFT' ? 'bg-(--accent-yellow)/10 text-(--accent-yellow)' : roomObj?.status === 'ACTIVE' ? 'bg-(--accent-teal)/10 text-(--accent-teal)' : 'bg-red-500/10 text-red-500'}`}>
-                                                                            {roomObj?.status === 'DRAFT' ? 'Drafting' : roomObj?.status === 'ACTIVE' ? 'Active' : 'Expired'}
+                                                                        <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase shrink-0 ${
+                                                                            improvedIsRoomActive ? (
+                                                                                roomObj?.status === 'DRAFT' ? 'bg-(--accent-yellow)/10 text-(--accent-yellow)' : 'bg-(--accent-teal)/10 text-(--accent-teal)'
+                                                                            ) : 'bg-red-500/10 text-red-500'
+                                                                        }`}>
+                                                                            {improvedIsRoomActive ? (roomObj?.status === 'DRAFT' ? 'Drafting' : 'Active') : 'Expired'}
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -780,12 +793,12 @@ export default function LanternNetPage() {
 
                                                                     <SquishyButton
                                                                         onClick={() => {
-                                                                            if (isRoomActive) {
+                                                                            if (improvedIsRoomActive) {
                                                                                 router.push(isCanvas ? `/canvas?room=${roomCode}` : `/room?code=${roomCode}`);
                                                                             }
                                                                         }}
-                                                                        disabled={!isRoomActive}
-                                                                        className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${isRoomActive
+                                                                        disabled={!improvedIsRoomActive}
+                                                                        className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${improvedIsRoomActive
                                                                             ? 'bg-(--accent-teal) text-black hover:scale-105 active:scale-95 shadow-[0_5px_15px_-5px_rgba(45,212,191,0.4)]'
                                                                             : 'bg-(--bg-dark) text-(--text-muted) border border-(--border-color) cursor-not-allowed opacity-50'
                                                                             }`}
