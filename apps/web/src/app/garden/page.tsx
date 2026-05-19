@@ -508,6 +508,8 @@ export default function CrystalGarden() {
     const [showGarden3D, setShowGarden3D] = useState(true);
     const [showHallOfMastery, setShowHallOfMastery] = useState(true);
     const [taskLoadFilters, setTaskLoadFilters] = useState<('light' | 'medium' | 'heavy')[]>(['light', 'medium', 'heavy']);
+    const [showLoadFilterDropdown, setShowLoadFilterDropdown] = useState(false);
+    const loadFilterDropdownRef = useRef<HTMLDivElement>(null);
 
     const isOnlyWidgetVisible = (widget: 'focus' | 'garden' | 'mastery') => {
         const visibleCount = [showCurrentFocus, showGarden3D, showHallOfMastery].filter(Boolean).length;
@@ -710,6 +712,22 @@ export default function CrystalGarden() {
 
     // View menu and task load filter state
 
+    // Close load filter dropdown when clicking outside
+    useEffect(() => {
+        if (!showLoadFilterDropdown) return;
+        const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+            const target = event.target as Node;
+            if (loadFilterDropdownRef.current && !loadFilterDropdownRef.current.contains(target)) {
+                setShowLoadFilterDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handlePointerDown);
+        document.addEventListener('touchstart', handlePointerDown);
+        return () => {
+            document.removeEventListener('mousedown', handlePointerDown);
+            document.removeEventListener('touchstart', handlePointerDown);
+        };
+    }, [showLoadFilterDropdown]);
 
     // Close view menu when clicking outside
     useEffect(() => {
@@ -1214,25 +1232,89 @@ export default function CrystalGarden() {
                                         placeholder="Search quests..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full xl:w-64 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl pl-10 pr-24 py-3 text-xs md:text-sm font-medium focus:outline-none focus:border-[var(--accent-teal)] transition-colors placeholder:text-[var(--text-muted)]/50"
+                                        className="w-full xl:w-64 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl pl-10 pr-10 py-3 text-xs md:text-sm font-medium focus:outline-none focus:border-[var(--accent-teal)] transition-colors placeholder:text-[var(--text-muted)]/50"
                                     />
-                                    {/* Inline Load Filters (Mobile & Desktop) */}
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 bg-[var(--bg-dark)]/50 p-1 rounded-lg backdrop-blur-sm border border-white/5">
-                                        {(['light', 'medium', 'heavy'] as const).map((load) => (
-                                            <button
-                                                key={load}
-                                                onClick={() => {
-                                                    setTaskLoadFilters(prev => prev.includes(load) ? prev.filter(l => l !== load) : [...prev, load]);
-                                                }}
-                                                className={`w-3 h-3 md:w-4 md:h-4 rounded-full transition-all border ${taskLoadFilters.includes(load)
-                                                        ? load === 'light' ? 'bg-teal-400 border-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.5)]'
-                                                            : load === 'medium' ? 'bg-yellow-400 border-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.5)]'
-                                                                : 'bg-red-400 border-red-400 shadow-[0_0_8px_rgba(248,113,113,0.5)]'
-                                                        : 'bg-transparent border-[var(--border-color)] hover:border-white/30'
-                                                    }`}
-                                                title={`Toggle ${load} quests`}
-                                            />
-                                        ))}
+                                    {/* Unified Load Filter Button (Desktop Only) */}
+                                    <div ref={loadFilterDropdownRef} className="absolute right-3 top-1/2 -translate-y-1/2 hidden xl:block z-[100]">
+                                        <button
+                                            onClick={() => setShowLoadFilterDropdown(!showLoadFilterDropdown)}
+                                            className="p-2 hover:bg-white/10 rounded-lg transition-colors relative group"
+                                            title="Filter by task load"
+                                        >
+                                            <Filter size={16} className="text-[var(--text-muted)] group-hover:text-white transition-colors" />
+                                        </button>
+                                        
+                                        {/* Dropdown Menu */}
+                                        <AnimatePresence>
+                                            {showLoadFilterDropdown && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -8 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -8 }}
+                                                    transition={{ duration: 0.15 }}
+                                                    className="absolute right-0 top-full mt-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-3 min-w-[200px] shadow-lg z-[9999]"
+                                                >
+                                                    <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">Filter by Load</p>
+                                                    <div className="space-y-2">
+                                                        {[
+                                                            { load: 'light' as const, label: 'Light Quests', color: 'text-teal-400', dotColor: 'bg-teal-400', hoverBg: 'hover:bg-teal-400/10' },
+                                                            { load: 'medium' as const, label: 'Medium Quests', color: 'text-yellow-400', dotColor: 'bg-yellow-400', hoverBg: 'hover:bg-yellow-400/10' },
+                                                            { load: 'heavy' as const, label: 'Heavy Quests', color: 'text-red-400', dotColor: 'bg-red-400', hoverBg: 'hover:bg-red-400/10' }
+                                                        ].map(({ load, label, color, dotColor, hoverBg }) => {
+                                                            const isChecked = taskLoadFilters.includes(load);
+                                                            return (
+                                                                <button
+                                                                    key={load}
+                                                                    onClick={() => {
+                                                                        setTaskLoadFilters(prev =>
+                                                                            prev.includes(load)
+                                                                                ? prev.filter(l => l !== load)
+                                                                                : [...prev, load]
+                                                                        );
+                                                                    }}
+                                                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${hoverBg} ${isChecked ? 'bg-white/10' : 'bg-white/5'}`}
+                                                                >
+                                                                    {/* Custom Checkbox */}
+                                                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                                                                        isChecked
+                                                                            ? `${dotColor} border-current shadow-lg shadow-current/50`
+                                                                            : 'border-[var(--border-color)] bg-transparent hover:border-white/40'
+                                                                    }`}>
+                                                                        {isChecked && (
+                                                                            <motion.div
+                                                                                initial={{ scale: 0 }}
+                                                                                animate={{ scale: 1 }}
+                                                                                exit={{ scale: 0 }}
+                                                                                transition={{ duration: 0.1 }}
+                                                                            >
+                                                                                <Check size={14} className="text-black font-bold" />
+                                                                            </motion.div>
+                                                                        )}
+                                                                    </div>
+                                                                    <span className={`text-xs font-bold uppercase tracking-widest ${color}`}>{label}</span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    
+                                                    {/* Quick Actions */}
+                                                    <div className="border-t border-[var(--border-color)] mt-3 pt-3 flex gap-2">
+                                                        <button
+                                                            onClick={() => setTaskLoadFilters(['light', 'medium', 'heavy'])}
+                                                            className="flex-1 text-xs font-medium text-teal-400 hover:bg-teal-400/10 p-2 rounded transition-colors"
+                                                        >
+                                                            All
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setTaskLoadFilters([])}
+                                                            className="flex-1 text-xs font-medium text-red-400 hover:bg-red-400/10 p-2 rounded transition-colors"
+                                                        >
+                                                            None
+                                                        </button>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 </div>
 

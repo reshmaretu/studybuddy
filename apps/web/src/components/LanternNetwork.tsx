@@ -223,7 +223,16 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                 return { id, pos: basePositions.get(id) };
             }).filter(m => m.pos) as { id: string; pos: [number, number, number] }[];
 
-            if (memberPositions.length < 2) return;
+            if (memberPositions.length < 2) {
+                console.debug(`⚠️ Pact "${pact.pact_name}" has only ${memberPositions.length} visible member(s), skipping constellation (needs 2+)`, {
+                    pactId: pact.id,
+                    memberCount: memberIds.length,
+                    visibleCount: memberPositions.length,
+                    memberIds,
+                    color: pact.constellation_color
+                });
+                return;
+            }
 
             const center = memberPositions.reduce((acc, curr) => {
                 acc[0] += curr.pos[0];
@@ -280,9 +289,21 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
 
             const pactColor = pact.constellation_color || getPactColor(pact.id || 'default');
 
+            // Validate constellation color is not empty/null
+            if (!pactColor || typeof pactColor !== 'string' || pactColor.trim() === '') {
+                console.warn(`⚠️ Invalid constellation color for pact "${pact.pact_name}":`, pactColor, 'using fallback');
+                // Use fallback color
+            }
+
             pactCenters.push({
                 center: [center[0], center[1], center[2]],
                 color: pactColor
+            });
+
+            console.debug(`✨ Rendering constellation "${pact.pact_name}" with ${memberPositions.length} members, color: ${pactColor}`, {
+                pactId: pact.id,
+                color: pactColor,
+                template: template.name
             });
 
             // Draw template lines
@@ -339,6 +360,14 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                 const y = pos[1] + (dy / norm) * push;
                 const z = is3D ? pos[2] : 0;
                 nextPositions.set(userId, [x, y, z]);
+            });
+        }
+
+        if (pacts.length > 0) {
+            console.debug(`📊 Pact constellation rendering:`, {
+                totalPacts: pacts.length,
+                totalLines: lines.length,
+                lineColors: lines.map(l => l.color).filter((v, i, a) => a.indexOf(v) === i)
             });
         }
 
@@ -664,13 +693,23 @@ function ConstellationLink({ start, end, color, is3D }: { start: [number, number
         }
     });
 
-    const threeColor = useMemo(() => new THREE.Color(color), [color]);
+    // Validate and normalize color - ensure it's a valid hex or CSS color
+    const validatedColor = useMemo(() => {
+        try {
+            // Test if color is valid by creating a THREE.Color
+            new THREE.Color(color || '#2dd4bf');
+            return color || '#2dd4bf';
+        } catch (e) {
+            console.warn(`Invalid constellation color: ${color}, using default`);
+            return '#2dd4bf';
+        }
+    }, [color]);
 
     return (
         <Line 
             ref={lineRef}
             points={[start, end]} 
-            color={color} 
+            color={validatedColor} 
             transparent 
             opacity={is3D ? 0.8 : 0.6} 
             lineWidth={is3D ? 2.5 : 1.5}

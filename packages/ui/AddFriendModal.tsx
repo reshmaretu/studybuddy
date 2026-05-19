@@ -315,13 +315,6 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
       console.error('Failed to add member:', error);
     }
   };
-      const { error } = await supabase.from('pact_members').delete().match({ pact_id: pactId, user_id: memberId });
-      if (error) throw error;
-      await fetchPacts();
-    } catch (error) {
-      console.error('Failed to remove member:', error);
-    }
-  };
 
   if (!isOpen) return null;
 
